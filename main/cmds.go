@@ -67,17 +67,17 @@ func uninstall(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (
 }
 
 var (
-	stateChangeLogMap = map[HealthStatus]string {
+	stateChangeLogMap = map[HealthStatus]string{
 		Healthy:   "state changed to healthy",
 		Unhealthy: "state changed to unhealthy",
 	}
 
-	healthStatusToStatusType = map[HealthStatus]StatusType {
+	healthStatusToStatusType = map[HealthStatus]StatusType{
 		Healthy:   StatusSuccess,
 		Unhealthy: StatusError,
 	}
 
-	healthStatusToMessage = map[HealthStatus]string {
+	healthStatusToMessage = map[HealthStatus]string{
 		Healthy:   "Application found to be healthy",
 		Unhealthy: "Application found to be unhealthy",
 	}
