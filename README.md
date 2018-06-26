@@ -1,7 +1,5 @@
 # Azure ApplicationHealth Extension for Linux (1.0.0) 
 
-This documentation is current for version 1.0.0 and above.
-
 The application health extension periodically probes for application health within a Linux VM when configured.
 The result of the health checks guide automatic actions that can take place on VMs such as stopping rolling upgrades
 across a set of VMs and repairing VMs as they become unhealthy.
