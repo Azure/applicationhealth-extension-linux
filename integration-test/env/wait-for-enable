@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# This script exists because applicationhealth-shim will detach the enable command
+# into background and when that happens the applicationhealth shim will exit,
+# causing test container to exit as its entrypoint has exited. So we use this
+# to wait indefinitely until enable background process disappears from ps output
+# or the status file indicates that the extension has provisioned successfully.
+
+log(){ echo "[wait] time=$(date --rfc-3339=s | sed 's/ /T/') $@">&2; }
+
+log "bar entry"
+waitonstatus="n"
+for a
+do
+    if [ $a = 'status' ]; then
+        log "waiting on status"
+        waitonstatus="y"
+    fi
+done
+
+sleep 1
+bin="bin/applicationhealth-extension"
+while true; do
+    out="$(ps aux)"
+    if [ $waitonstatus == "y" ]; then
+        log "waiting on successful status"
+        if grep -q 'success' /var/lib/waagent/Extension/status/0.status; then
+            log "'$bin' indicated a successful state"
+            exit 0
+        fi
+        sleep .5
+    elif  [[ "$out" == **"$bin"** ]]; then
+        log "'$bin' still running in the background..."
+        if grep -q 'success' /var/lib/waagent/Extension/status/0.status; then
+            log "'$bin' indicated a successful state"
+            exit 0
+        fi
+        sleep .5
+    else
+        log "'$bin' process exited"
+        exit 0
+    fi
+done

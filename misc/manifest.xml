@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<ExtensionImage xmlns="http://schemas.microsoft.com/windowsazure">
+  <ProviderNameSpace>Microsoft.ManagedServices</ProviderNameSpace>
+  <Type>ApplicationHealthLinux</Type>
+  <Version>1.0.0</Version>
+  <Label>Microsoft Azure Application Health Extension for Linux Virtual Machines</Label>
+  <HostingResources>VmRole</HostingResources>
+  <MediaLink></MediaLink>
+  <Description>Microsoft Azure Application Health Extension is an extension installed on a VM to periodically determine configured application health.</Description>
+  <IsInternalExtension>false</IsInternalExtension>
+  <IsJsonExtension>true</IsJsonExtension>
+  <SupportedOS>Linux</SupportedOS>
+  <CompanyName>Microsoft</CompanyName>
+  <!--%REGIONS%-->
+</ExtensionImage>
