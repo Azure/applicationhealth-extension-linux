@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
 	"strings"
+	"syscall"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
@@ -14,8 +14,8 @@ import (
 var (
 	// dataDir is where we store the logs and state for the extension handler
 	dataDir = "/var/lib/waagent/apphealth"
-	
-    shutdown = false
+
+	shutdown = false
 )
 
 func main() {

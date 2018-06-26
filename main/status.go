@@ -50,9 +50,9 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 			Version:      1.0,
 			TimestampUTC: now,
 			Status: Status{
-				Operation: operation,
+				Operation:                   operation,
 				ConfigurationAppliedTimeUTC: now,
-				Status:    t,
+				Status: t,
 				FormattedMessage: FormattedMessage{
 					Lang:    "en",
 					Message: message},

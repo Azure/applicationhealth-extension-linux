@@ -14,8 +14,8 @@ import (
 type HealthStatus string
 
 const (
-	Healthy             HealthStatus = "healthy"
-	Unhealthy           HealthStatus = "unhealthy"
+	Healthy   HealthStatus = "healthy"
+	Unhealthy HealthStatus = "unhealthy"
 )
 
 type HealthProbe interface {
@@ -29,7 +29,7 @@ type TcpHealthProbe struct {
 
 type HttpHealthProbe struct {
 	HttpClient *http.Client
-	Address string
+	Address    string
 }
 
 func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
@@ -41,12 +41,12 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.port()),
 		}
-		ctx.Log("event", "creating tcp probe targeting " + p.address())
+		ctx.Log("event", "creating tcp probe targeting "+p.address())
 	case "http":
 		fallthrough
 	case "https":
 		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		ctx.Log("event", "creating " + cfg.protocol() + " probe targeting " + p.address())
+		ctx.Log("event", "creating "+cfg.protocol()+" probe targeting "+p.address())
 	default:
 		ctx.Log("event", "default settings without probe")
 	}
@@ -55,11 +55,11 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 }
 
 func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
-	conn, err := net.DialTimeout("tcp", p.address(), 30 * time.Second)
+	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	if err != nil {
 		return Unhealthy, nil
 	}
-	
+
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
 		return Unhealthy, errUnableToConvertType
@@ -84,16 +84,16 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 		transport = &http.Transport{
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
-			TLSClientConfig: &tls.Config{ InsecureSkipVerify: true },
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-		
-		p.HttpClient = &http.Client {
+
+		p.HttpClient = &http.Client{
 			CheckRedirect: noRedirect,
 			Timeout:       timeout,
 			Transport:     transport,
 		}
 	} else if protocol == "http" {
-		p.HttpClient = &http.Client {
+		p.HttpClient = &http.Client{
 			CheckRedirect: noRedirect,
 			Timeout:       timeout,
 		}
@@ -134,7 +134,7 @@ func (p *HttpHealthProbe) address() string {
 }
 
 var (
-	errNoRedirect = errors.New("No redirect allowed")
+	errNoRedirect          = errors.New("No redirect allowed")
 	errUnableToConvertType = errors.New("Unable to convert type")
 )
 

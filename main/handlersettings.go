@@ -20,7 +20,7 @@ type handlerSettings struct {
 }
 
 func (s *handlerSettings) protocol() string {
-    return s.publicSettings.Protocol
+	return s.publicSettings.Protocol
 }
 
 func (s *handlerSettings) requestPath() string {
@@ -48,9 +48,9 @@ func (h handlerSettings) validate() error {
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {
-	Protocol         string      `json:"protocol"`
-	Port             int         `json:"port,int"`
-	RequestPath      string      `json:"requestPath"`
+	Protocol    string `json:"protocol"`
+	Port        int    `json:"port,int"`
+	RequestPath string `json:"requestPath"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected
