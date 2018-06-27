@@ -7,9 +7,8 @@
   <HostingResources>VmRole</HostingResources>
   <MediaLink></MediaLink>
   <Description>Microsoft Azure Application Health Extension is an extension installed on a VM to periodically determine configured application health.</Description>
-  <IsInternalExtension>false</IsInternalExtension>
+  <IsInternalExtension>true</IsInternalExtension>
   <IsJsonExtension>true</IsJsonExtension>
   <SupportedOS>Linux</SupportedOS>
   <CompanyName>Microsoft</CompanyName>
-  <!--%REGIONS%-->
 </ExtensionImage>
