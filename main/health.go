@@ -2,8 +2,10 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -77,36 +79,29 @@ func (p *TcpHealthProbe) address() string {
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
 	p := new(HttpHealthProbe)
 
-	timeout := time.Duration(30 * time.Second)
-
-	var transport *http.Transport
-	if protocol == "https" {
-		transport = &http.Transport{
+	p.HttpClient = &http.Client{
+		CheckRedirect: noRedirect,
+		Timeout:       time.Duration(30 * time.Second),
+		Transport: &http.Transport{
 			// Ignore authentication/certificate failures - just validate that the localhost
-			// endpoint responds with HTTP.OK
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-
-		p.HttpClient = &http.Client{
-			CheckRedirect: noRedirect,
-			Timeout:       timeout,
-			Transport:     transport,
-		}
-	} else if protocol == "http" {
-		p.HttpClient = &http.Client{
-			CheckRedirect: noRedirect,
-			Timeout:       timeout,
-		}
+			// endpoint responds with http.StatusOK
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
 	}
 
-	portString := ""
-	if protocol == "http" && port != 0 && port != 80 {
-		portString = ":" + strconv.Itoa(port)
-	} else if protocol == "https" && port != 0 && port != 443 {
-		portString = ":" + strconv.Itoa(port)
+	u := url.URL{
+		Scheme: protocol,
+		Host:   "localhost",
+		Path:   requestPath,
 	}
 
-	p.Address = protocol + "://localhost" + portString + "/" + requestPath
+	if port != 0 {
+		u.Host = fmt.Sprintf("%s:%d", u.Host, port)
+	}
+
+	p.Address = u.String()
 	return p
 }
 
