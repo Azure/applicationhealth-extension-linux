@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -105,7 +106,11 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	} else if protocol == "https" && port != 0 && port != 443 {
 		portString = ":" + strconv.Itoa(port)
 	}
-
+	_, length := utf8.DecodeRuneInString(s)
+	// remove first slash since we want requestPath to be defined without having to prefix with a slash
+	if (length > 0 && requestPath[0] == '/') {
+		requestPath = requestPath[length:]
+	}
 	p.Address = protocol + "://localhost" + portString + "/" + requestPath
 	return p
 }

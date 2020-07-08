@@ -149,6 +149,21 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
 }
 
+@test "handler command: enable - healthy http probe prefixing requestPath with a slash" {
+    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
+    push_settings '
+    {
+        "protocol": "http",
+        "port": 8080,
+        "requestPath": "/health"
+    }' ''
+    run start_container
+    echo "$output"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+}
+
 @test "handler command: enable - healthy https probe" {
     mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
