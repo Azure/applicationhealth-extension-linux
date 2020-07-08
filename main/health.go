@@ -106,7 +106,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	} else if protocol == "https" && port != 0 && port != 443 {
 		portString = ":" + strconv.Itoa(port)
 	}
-	_, length := utf8.DecodeRuneInString(s)
+	_, length := utf8.DecodeRuneInString(requestPath)
 	// remove first slash since we want requestPath to be defined without having to prefix with a slash
 	if (length > 0 && requestPath[0] == '/') {
 		requestPath = requestPath[length:]

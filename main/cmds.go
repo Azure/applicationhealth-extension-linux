@@ -117,7 +117,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			prevState = state
 		}
 
-		err := reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
+		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
 		if (err != nil) {
 			ctx.Log("error", err);
 		}
