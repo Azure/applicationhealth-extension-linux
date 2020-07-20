@@ -106,8 +106,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		state, err := probe.evaluate(ctx)
 		if err != nil {
 			ctx.Log("error", err)
-		}
-		else {
+		} else {
 			if shutdown {
 				return "", errTerminated
 			}
