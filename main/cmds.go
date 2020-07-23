@@ -105,19 +105,23 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	for {
 		state, err := probe.evaluate(ctx)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to evaluate health")
+			ctx.Log("error", err)
+		} else {
+			if shutdown {
+				return "", errTerminated
+			}
+	
+			if prevState != state {
+				ctx.Log("event", stateChangeLogMap[state])
+				prevState = state
+			}
+	
+			err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
+			if (err != nil) {
+				ctx.Log("error", err)
+			}
 		}
 
-		if shutdown {
-			return "", errTerminated
-		}
-
-		if prevState != state {
-			ctx.Log("event", stateChangeLogMap[state])
-			prevState = state
-		}
-
-		reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
 		time.Sleep(5 * time.Second)
 
 		if shutdown {
