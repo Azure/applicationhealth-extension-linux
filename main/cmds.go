@@ -102,30 +102,51 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	var prevState HealthStatus
 	probe := NewHealthProbe(ctx, &cfg)
 
+    var (
+        intervalInSeconds = cfg.intervalInSeconds()
+        numberOfProbes = cfg.numberOfProbes()
+    )
+
+    var (
+        numOfConsecutiveDifferentState = numberOfProbes
+    )
+	var currentState = Unknown
+	var failedToWriteStatus
 	for {
 		state, err := probe.evaluate(ctx)
 		if err != nil {
 			ctx.Log("error", err)
-		} else {
-			if shutdown {
-				return "", errTerminated
-			}
-	
-			if prevState != state {
-				ctx.Log("event", stateChangeLogMap[state])
-				prevState = state
-			}
-	
-			err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
-			if (err != nil) {
-				ctx.Log("error", err)
-			}
 		}
-
-		time.Sleep(5 * time.Second)
 
 		if shutdown {
 			return "", errTerminated
 		}
-	}
+
+		if prevState != state {
+			ctx.Log("event", stateChangeLogMap[state])
+			prevState = state
+		}
+
+		if (state != Unknown && state != currentState) {
+			numOfConsecutiveDifferentState--
+		} else {
+			numOfConsecutiveDifferentState = numberOfProbes
+		}
+
+		if (numOfConsecutiveDifferentState == 0) {
+			err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
+			if (err != nil) {
+				ctx.Log("error", err)
+			} else {
+				currentState = state
+			}
+			numOfConsecutiveDifferentState = numberOfProbes
+		}
+
+        time.Sleep(time.Duration(intervalInSeconds) * time.Second)
+
+        if shutdown {
+            return "", errTerminated
+        }
+    }
 }

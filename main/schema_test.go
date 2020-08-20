@@ -46,6 +46,42 @@ func TestValidatePublicSettings_requestPath(t *testing.T) {
 	require.Nil(t, validatePublicSettings(`{"requestPath": "health/Endpoint"}`), "valid request path")
 }
 
+func TestValidatePublicSettings_intervalInSeconds(t *testing.T) {
+    err := validatePublicSettings(`{"intervalInSeconds": "foo"}`)
+    require.NotNil(t, err)
+    require.Contains(t, err.Error(), "Invalid type. Expected: integer, given: string")
+
+    err = validatePublicSettings(`{"intervalInSeconds": 0}`)
+    require.NotNil(t, err)
+    require.Contains(t, err.Error(), "intervalInSeconds: Must be greater than or equal to 5")
+
+    err = validatePublicSettings(`{"intervalInSeconds": 70}`)
+    require.NotNil(t, err)
+    require.Contains(t, err.Error(), "intervalInSeconds: Must be less than or equal to 30")
+
+    require.Nil(t, validatePublicSettings(`{"intervalInSeconds": 5}`), "valid intervalInSeconds")
+    require.Nil(t, validatePublicSettings(`{"intervalInSeconds": 20}`), "valid intervalInSeconds")
+    require.Nil(t, validatePublicSettings(`{"intervalInSeconds": 60}`), "valid intervalInSeconds")
+}
+
+func TestValidatePublicSettings_numberOfProbes(t *testing.T) {
+    err := validatePublicSettings(`{"numberOfProbes": "foo"}`)
+    require.NotNil(t, err)
+    require.Contains(t, err.Error(), "Invalid type. Expected: integer, given: string")
+
+    err = validatePublicSettings(`{"numberOfProbes": 0}`)
+    require.NotNil(t, err)
+    require.Contains(t, err.Error(), "numberOfProbes: Must be greater than or equal to 1")
+
+    err = validatePublicSettings(`{"numberOfProbes": 5}`)
+    require.NotNil(t, err)
+    require.Contains(t, err.Error(), "numberOfProbes: Must be less than or equal to 3")
+
+    require.Nil(t, validatePublicSettings(`{"numberOfProbes": 1}`), "valid numberOfProbes")
+    require.Nil(t, validatePublicSettings(`{"numberOfProbes": 2}`), "valid numberOfProbes")
+    require.Nil(t, validatePublicSettings(`{"numberOfProbes": 3}`), "valid numberOfProbes")
+}
+
 func TestValidatePublicSettings_unrecognizedField(t *testing.T) {
 	err := validatePublicSettings(`{"protocol": "date", "alien":0}`)
 	require.NotNil(t, err)

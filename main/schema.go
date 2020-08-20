@@ -20,15 +20,29 @@ const (
       "type": "string",
       "enum": ["tcp", "http", "https"]
     },
-	  "port": {
-	    "description": "Required when the protocol is 'tcp'. Optional when the protocol is 'http' or 'https'.",
+	"port": {
+	  "description": "Required when the protocol is 'tcp'. Optional when the protocol is 'http' or 'https'.",
       "type": "integer",
       "minimum": 1,
       "maximum": 65535
-	  },
+	},
     "requestPath": {
       "description": "Path on which the web request should be sent. Required when the protocol is 'http' or 'https'.",
       "type": "string"
+    },
+    "intervalInSeconds": {
+      "description": "The interval, in seconds, for how frequently to probe the endpoint for health status.",
+      "type": "integer",
+      "default": 5,
+      "minimum": 5,
+      "maximum": 60
+    },
+    "numberOfProbes": {
+      "description": "The number of probe reponses needed to change health state",
+      "type": "integer",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 3
     }
   },
   "additionalProperties": false

@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	errTcpMustNotIncludeRequestPath    = errors.New("'requestPath' cannot be specified when using 'tcp' protocol")
-	errTcpConfigurationMustIncludePort = errors.New("'port' must be specified when using 'tcp' protocol")
+    errTcpMustNotIncludeRequestPath    = errors.New("'requestPath' cannot be specified when using 'tcp' protocol")
+    errTcpConfigurationMustIncludePort = errors.New("'port' must be specified when using 'tcp' protocol")
+    errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 120 seconds")
 )
 
 // handlerSettings holds the configuration of the extension handler.
@@ -31,6 +32,14 @@ func (s *handlerSettings) port() int {
 	return s.publicSettings.Port
 }
 
+func (s *handlerSettings) intervalInSeconds() int {
+	return s.publicSettings.IntervalInSeconds
+}
+
+func (s *handlerSettings) numberOfProbes() int {
+	return s.publicSettings.NumberOfProbes
+}
+
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
 func (h handlerSettings) validate() error {
@@ -42,15 +51,22 @@ func (h handlerSettings) validate() error {
 		return errTcpMustNotIncludeRequestPath
 	}
 
+    probeSettlingTime := h.intervalInSeconds() * h.numberOfProbes()
+    if probeSettlingTime > 120 {
+        return errProbeSettleTimeExceedsThreshold
+    }
+
 	return nil
 }
 
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {
-	Protocol    string `json:"protocol"`
-	Port        int    `json:"port,int"`
-	RequestPath string `json:"requestPath"`
+    Protocol          string `json:"protocol"`
+    Port              int    `json:"port,int"`
+    RequestPath       string `json:"requestPath"`
+    IntervalInSeconds int    `json:"intervalInSeconds,int"`
+    NumberOfProbes    int    `json:"numberOfProbes,int"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected

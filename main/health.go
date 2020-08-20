@@ -17,6 +17,7 @@ type HealthStatus string
 const (
 	Healthy   HealthStatus = "healthy"
 	Unhealthy HealthStatus = "unhealthy"
+	Unknown HealthStatus = "unknown"
 )
 
 type HealthProbe interface {
@@ -58,7 +59,7 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	if err != nil {
-		return Unhealthy, nil
+		return Unknown, nil
 	}
 
 	tcpConn, ok := conn.(*net.TCPConn)
@@ -116,7 +117,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	if err != nil {
-		return Unhealthy, err
+		return Unknown, err
 	}
 
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
