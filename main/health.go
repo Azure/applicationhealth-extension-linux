@@ -5,8 +5,8 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -17,7 +17,7 @@ type HealthStatus string
 const (
 	Healthy   HealthStatus = "healthy"
 	Unhealthy HealthStatus = "unhealthy"
-	Unknown HealthStatus = "unknown"
+	Unknown   HealthStatus = "unknown"
 )
 
 type HealthProbe interface {
@@ -59,7 +59,7 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	if err != nil {
-		return Unknown, nil
+		return Unhealthy, nil
 	}
 
 	tcpConn, ok := conn.(*net.TCPConn)

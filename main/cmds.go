@@ -1,12 +1,11 @@
 package main
 
 import (
-	"os"
-	"time"
-
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
+	"os"
+	"time"
 )
 
 type cmdFunc func(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int) (msg string, err error)
@@ -101,17 +100,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 	var prevState HealthStatus
 	probe := NewHealthProbe(ctx, &cfg)
+	var (
+		intervalInSeconds              = cfg.intervalInSeconds()
+		numberOfProbes                 = cfg.numberOfProbes()
+		numOfConsecutiveDifferentState = numberOfProbes
+		currentState                   = Unknown
+		consecutiveDifferentState      = Unknown
+	)
 
-    var (
-        intervalInSeconds = cfg.intervalInSeconds()
-        numberOfProbes = cfg.numberOfProbes()
-    )
-
-    var (
-        numOfConsecutiveDifferentState = numberOfProbes
-    )
-	var currentState = Unknown
-	var failedToWriteStatus
 	for {
 		state, err := probe.evaluate(ctx)
 		if err != nil {
@@ -122,31 +118,37 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
+		if state != Unknown && state != currentState && (consecutiveDifferentState == Unknown || consecutiveDifferentState == state) {
+			numOfConsecutiveDifferentState--
+			consecutiveDifferentState = state
+		} else {
+			numOfConsecutiveDifferentState = numberOfProbes
+			consecutiveDifferentState = Unknown
+		}
+
 		if prevState != state {
 			ctx.Log("event", stateChangeLogMap[state])
 			prevState = state
 		}
 
-		if (state != Unknown && state != currentState) {
-			numOfConsecutiveDifferentState--
-		} else {
+		if numOfConsecutiveDifferentState == 0 || (currentState == Unknown && state == Healthy) {
+			currentState = state
+			ctx.Log("event", "Current state is now "+string(currentState))
 			numOfConsecutiveDifferentState = numberOfProbes
+			consecutiveDifferentState = Unknown
 		}
 
-		if (numOfConsecutiveDifferentState == 0) {
-			err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[state], substatusName, healthStatusToMessage[state])
-			if (err != nil) {
+		if currentState != Unknown {
+			err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[currentState], substatusName, healthStatusToMessage[currentState])
+			if err != nil {
 				ctx.Log("error", err)
-			} else {
-				currentState = state
-			}
-			numOfConsecutiveDifferentState = numberOfProbes
+			}		
 		}
 
-        time.Sleep(time.Duration(intervalInSeconds) * time.Second)
+		time.Sleep(time.Duration(intervalInSeconds) * time.Second)
 
-        if shutdown {
-            return "", errTerminated
-        }
-    }
+		if shutdown {
+			return "", errTerminated
+		}
+	}
 }
