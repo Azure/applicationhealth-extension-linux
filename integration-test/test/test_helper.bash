@@ -140,7 +140,7 @@ verify_state_change_timestamps() {
             [[ $enableLogs[index] =~ $regex ]]
             if [[ ! -z "$prevDate" ]]; then
                 diff=$(( $(date -d "${BASH_REMATCH[1]}" "+%s") - $(date -d "$prevDate" "+%s") ))
-                echo "$i Diff is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
+                echo "Actual time difference is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
