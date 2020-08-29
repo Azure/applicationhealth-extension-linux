@@ -82,8 +82,8 @@ mk_settings_json() { # turns json public settings ($1) and ($2) into a json encr
         prot="null"
     fi
     
-	cat <<-EOF
-	{
+    cat <<-EOF
+    {
         "runtimeSettings": [
             {
                 "handlerSettings": {
@@ -93,7 +93,7 @@ mk_settings_json() { # turns json public settings ($1) and ($2) into a json encr
                 }
             }
         ]
-	}
+    }
 EOF
 }
 
@@ -123,4 +123,28 @@ copy_config() { # places specified settings file ($1) into container as 0.settin
     echo "Copying $1 to container as 0.settings." >&2
     docker cp "$1" "$TEST_CONTAINER:/var/lib/waagent/Extension/config/0.settings"
     echo "Copied settings into container.">&2
+}
+
+# first argument is the string containing healthextension logs separated by newline
+# it also expects the time={time in TZ format} version={version} to be in each log line
+# second argument is an array of expected time difference (in seconds) between previous log
+# for example: [5,10] means that the expected time difference between second log and first log is 5 seconds
+# and time difference between third log and second log is 10 seconds
+verify_state_change_timestamps() {
+    expectedTimeDifferences="$2"
+    regex='time=(.*) version=(.*)'
+    prevDate=""
+    index=0
+    while IFS=$'\n' read -ra enableLogs; do
+        for i in "${!enableLogs[@]}"; do
+            [[ $enableLogs[index] =~ $regex ]]
+            if [[ ! -z "$prevDate" ]]; then
+                diff=$(( $(date -d "${BASH_REMATCH[1]}" "+%s") - $(date -d "$prevDate" "+%s") ))
+                echo "$i Diff is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
+                [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
+            fi
+        index=$index+1
+        prevDate=${BASH_REMATCH[1]}     
+        done
+    done <<< "$1"
 }

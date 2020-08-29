@@ -133,7 +133,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 		if numOfConsecutiveDifferentState == 0 || (currentState == Unknown && state == Healthy) {
 			currentState = state
-			ctx.Log("event", "Current state is now "+string(currentState))
+			ctx.Log("event", "Current state is now " + string(currentState))
 			numOfConsecutiveDifferentState = numberOfProbes
 			consecutiveDifferentState = Unknown
 		}

@@ -38,8 +38,8 @@ while true; do
     else
         if [[ "$1" != "webserverexit" ]]; then
             log "'$bin' process exited"
-                exit 0
-        elif [[ "$out" != **"0 webserver states="** ]]; then
+            exit 0
+        elif [[ "$out" != **"0 webserver -states="** ]]; then
             log "webserver exited"
             exit 0
         fi 
