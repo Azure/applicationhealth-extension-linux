@@ -214,8 +214,8 @@ teardown(){
     expectedTimeDifferences=(0 5 5)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
-    [[ "$output" == *'Current state is now healthy'* ]]
-    [[ "$output" == *'Current state is now unhealthy'* ]]
+    [[ "$output" == *'Committed state is healthy'* ]]
+    [[ "$output" == *'Committed state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
@@ -239,8 +239,8 @@ teardown(){
     expectedTimeDifferences=(0 8 8 8 8)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
-    [[ "$output" == *'Current state is now healthy'* ]]
-    [[ "$output" == *'Current state is now unhealthy'* ]]
+    [[ "$output" == *'Committed state is healthy'* ]]
+    [[ "$output" == *'Committed state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
@@ -264,8 +264,8 @@ teardown(){
     expectedTimeDifferences=(0 5 5 5 5)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
    
-    [[ "$output" == *'Current state is now healthy'* ]]
-    [[ "$output" == *'Current state is now unhealthy'* ]]
+    [[ "$output" == *'Committed state is healthy'* ]]
+    [[ "$output" == *'Committed state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
