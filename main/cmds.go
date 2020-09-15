@@ -114,7 +114,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
     // Example: Committed state = healthy, numberOfProbes = 3
     // In order to change committed state to unhealthy, the probe needs to be unhealthy 3 consecutive times
     for {
-		startTime := time.Now()
+        startTime := time.Now()
         state, err := probe.evaluate(ctx)
         if err != nil {
             ctx.Log("error", err)
@@ -146,14 +146,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
             if err != nil {
                 ctx.Log("error", err)
             }        
-		}
-		
-		nextProbeDuration := time.Duration(intervalInSeconds) * time.Second
-		endTime = time.Now()
-		durationToWait := nextProbeDuration - endTime.Sub(startTime) 
-		if (durationToWait > 0) {
-			time.Sleep(durationToWait)
-		}
+        }
+        
+        nextProbeDuration := time.Duration(intervalInSeconds) * time.Second
+        endTime := time.Now()
+        durationToWait := nextProbeDuration - endTime.Sub(startTime) 
+        if (durationToWait > 0) {
+            time.Sleep(durationToWait)
+        }
 
         if shutdown {
             return "", errTerminated
