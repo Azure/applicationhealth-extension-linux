@@ -12,6 +12,9 @@ var (
 	errTcpMustNotIncludeRequestPath    = errors.New("'requestPath' cannot be specified when using 'tcp' protocol")
 	errTcpConfigurationMustIncludePort = errors.New("'port' must be specified when using 'tcp' protocol")
 	errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 120 seconds")
+	defaultIntervalInSeconds = 5
+	defaultNumberOfProbes = 1
+	maximumProbeSettleTime = 120
 )
 
 // handlerSettings holds the configuration of the extension handler.
@@ -35,7 +38,7 @@ func (s *handlerSettings) port() int {
 func (s *handlerSettings) intervalInSeconds() int {
 	var intervalInSeconds = s.publicSettings.IntervalInSeconds
 	if intervalInSeconds == 0 {
-		return 5
+		return defaultIntervalInSeconds
 	} else {
 		return intervalInSeconds
 	}
@@ -44,7 +47,7 @@ func (s *handlerSettings) intervalInSeconds() int {
 func (s *handlerSettings) numberOfProbes() int {
 	var numberOfProbes = s.publicSettings.NumberOfProbes
 	if numberOfProbes == 0 {
-		return 1
+		return defaultNumberOfProbes
 	} else {
 		return numberOfProbes
 	}
@@ -62,7 +65,7 @@ func (h handlerSettings) validate() error {
 	}
 
 	probeSettlingTime := h.intervalInSeconds() * h.numberOfProbes()
-	if probeSettlingTime > 120 {
+	if probeSettlingTime > maximumProbeSettleTime {
 		return errProbeSettleTimeExceedsThreshold
 	}
 

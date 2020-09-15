@@ -42,7 +42,7 @@ const (
       "type": "integer",
       "default": 1,
       "minimum": 1,
-      "maximum": 3
+      "maximum": 6
     }
   },
   "additionalProperties": false
