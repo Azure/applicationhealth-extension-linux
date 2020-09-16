@@ -105,8 +105,9 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
         numberOfProbes                 = cfg.numberOfProbes()
         numberOfProbesLeft             = numberOfProbes
         committedState                 = Unknown
-    )
-
+	)
+	intervalBetweenProbesInSeconds := time.Duration(intervalInSeconds) * time.Second
+	
     // The committed health status (the state written to the status file) initially does not have a state
     // In order to change the state in the status file, the following must be observed:
     //  1. Healthy status observed once when committed state is unknown
@@ -148,9 +149,8 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
             }        
         }
         
-        nextProbeDuration := time.Duration(intervalInSeconds) * time.Second
         endTime := time.Now()
-        durationToWait := nextProbeDuration - endTime.Sub(startTime) 
+        durationToWait := intervalBetweenProbesInSeconds - endTime.Sub(startTime) 
         if (durationToWait > 0) {
             time.Sleep(durationToWait)
         }
