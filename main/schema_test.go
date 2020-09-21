@@ -73,9 +73,9 @@ func TestValidatePublicSettings_numberOfProbes(t *testing.T) {
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "numberOfProbes: Must be greater than or equal to 1")
 
-	err = validatePublicSettings(`{"numberOfProbes": 7}`)
+	err = validatePublicSettings(`{"numberOfProbes": 25}`)
 	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "numberOfProbes: Must be less than or equal to 6")
+	require.Contains(t, err.Error(), "numberOfProbes: Must be less than or equal to 24")
 
 	require.Nil(t, validatePublicSettings(`{"numberOfProbes": 1}`), "valid numberOfProbes")
 	require.Nil(t, validatePublicSettings(`{"numberOfProbes": 2}`), "valid numberOfProbes")
