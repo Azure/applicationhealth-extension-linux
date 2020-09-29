@@ -178,6 +178,99 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
 }
 
+@test "handler command: enable - numofprobes with states = uu" {
+    mk_container sh -c "webserver -states=u,u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 3,
+        "intervalInSeconds": 7
+    }' ''
+    run start_container
+
+    echo "$output"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Enable in progress'* ]]
+}
+
+@test "handler command: enable - numofprobes with states = huu" {
+    mk_container sh -c "webserver -states=h,u,u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 5
+    }' ''
+    run start_container
+
+    echo "$output"
+
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    expectedTimeDifferences=(0 5 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
+    [[ "$output" == *'Committed health state is healthy'* ]]
+    [[ "$output" == *'Committed health state is unhealthy'* ]]
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
+}
+
+@test "handler command: enable - numofprobes with states = huuh" {
+    mk_container sh -c "webserver -states=h,u,u,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 8
+    }' ''
+    run start_container
+
+    echo "$output"
+
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    expectedTimeDifferences=(0 8 8 8 8)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
+    [[ "$output" == *'Committed health state is healthy'* ]]
+    [[ "$output" == *'Committed health state is unhealthy'* ]]
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
+}
+
+@test "handler command: enable - numofprobes with states = huuhh" {
+    mk_container sh -c "webserver -states=h,u,u,h,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 5
+    }' ''
+    run start_container
+
+    echo "$output"
+
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    expectedTimeDifferences=(0 5 5 5 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+   
+    [[ "$output" == *'Committed health state is healthy'* ]]
+    [[ "$output" == *'Committed health state is unhealthy'* ]]
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+}
+
 @test "handler command: uninstall - deletes the data dir" {
     run in_container sh -c \
         "fake-waagent install && fake-waagent uninstall"

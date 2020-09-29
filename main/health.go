@@ -5,8 +5,8 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -17,6 +17,7 @@ type HealthStatus string
 const (
 	Healthy   HealthStatus = "healthy"
 	Unhealthy HealthStatus = "unhealthy"
+	Unknown   HealthStatus = "unknown"
 )
 
 type HealthProbe interface {
@@ -116,7 +117,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	if err != nil {
-		return Unhealthy, err
+		return Unknown, err
 	}
 
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")

@@ -29,15 +29,19 @@ while true; do
             exit 0
         fi
         sleep .5
-    elif  [[ "$out" == **"$bin"** ]]; then
-        log "'$bin' still running in the background..."
+    elif  [[ "$1" != "webserverexit" && "$out" == **"$bin"** ]]; then
         if grep -q 'success' /var/lib/waagent/Extension/status/0.status; then
             log "'$bin' indicated a successful state"
             exit 0
         fi
         sleep .5
     else
-        log "'$bin' process exited"
-        exit 0
+        if [[ "$1" != "webserverexit" ]]; then
+            log "'$bin' process exited"
+            exit 0
+        elif [[ "$out" != **"0 webserver -states="** ]]; then
+            log "webserver exited"
+            exit 0
+        fi 
     fi
 done
