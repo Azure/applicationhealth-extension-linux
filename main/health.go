@@ -15,10 +15,41 @@ import (
 type HealthStatus string
 
 const (
-	Healthy   HealthStatus = "healthy"
-	Unhealthy HealthStatus = "unhealthy"
-	Unknown   HealthStatus = "unknown"
+	Initializing	HealthStatus = "initializing"
+	Healthy   		HealthStatus = "healthy"
+	Draining		HealthStatus = "draining"
+	Unknown			HealthStatus = "unknown"
+	Disabled		HealthStatus = "disabled"
+	Busy			HealthStatus = "busy"
+	Unhealthy		HealthStatus = "unhealthy"
 )
+
+func (p HealthStatus) GetStateTransitionMessage() string {
+	return "Reporting health status of " + string(p)
+}
+
+func (p HealthStatus) GetStatusType() StatusType {
+	switch p {
+	case Initializing:
+		fallthrough
+	case Healthy:
+		return StatusSuccess
+	case Unhealthy:
+		return StatusError
+	case Draining:
+		fallthrough
+	case Busy:
+		fallthrough
+	case Unknown:
+		fallthrough
+	case Disabled:
+		return StatusWarning
+	}
+}
+
+func (p HealthStatus) GetSubstatusMessage() string {
+	return "Application found to be in " + string(p) + " state"
+}
 
 type HealthProbe interface {
 	evaluate(ctx *log.Context) (HealthStatus, error)
@@ -114,6 +145,25 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
+func (p *HttpHealthProbe) mapStatusCodeToHealthStatus(code int) (HealthStatus) {
+	switch code {
+	case http.StatusOK: 
+		return Healthy
+	case http.StatusCreated: 
+		return Initializing
+	case http.StatusMovedPermanently: 
+		return Draining
+	case http.StatusRequestTimeout: 
+		return Unknown
+	case http.StatusNotImplemented: 
+		return Disabled
+	case http.StatusServiceUnavailable:
+		return Busy
+	default:
+		return Unhealthy 
+	}
+}
+
 func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	if err != nil {
@@ -123,14 +173,13 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
 	resp, err := p.HttpClient.Do(req)
 	if err != nil {
+		if os.IsTimeout(err) {
+			return Unknown, nil
+		}
 		return Unhealthy, nil
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		return Healthy, nil
-	}
-
-	return Unhealthy, nil
+	return mapStatusCodeToHealthStatus(resp.StatusCode), nil
 }
 
 func (p *HttpHealthProbe) address() string {

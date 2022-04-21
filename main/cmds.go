@@ -65,23 +65,6 @@ func uninstall(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (
     return "", nil
 }
 
-var (
-    stateChangeLogMap = map[HealthStatus]string{
-        Healthy:   "state changed to healthy",
-        Unhealthy: "state changed to unhealthy",
-    }
-
-    healthStatusToStatusType = map[HealthStatus]StatusType{
-        Healthy:   StatusSuccess,
-        Unhealthy: StatusError,
-    }
-
-    healthStatusToMessage = map[HealthStatus]string{
-        Healthy:   "Application found to be healthy",
-        Unhealthy: "Application found to be unhealthy",
-    }
-)
-
 const (
     statusMessage = "Successfully polling for application health"
     substatusName = "AppHealthStatus"
@@ -104,7 +87,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
         intervalInSeconds              = cfg.intervalInSeconds()
         numberOfProbes                 = cfg.numberOfProbes()
         numberOfProbesLeft             = numberOfProbes
-        committedState                 = Unknown
+        committedState                 = nil
 	)
 	intervalBetweenProbesInSeconds := time.Duration(intervalInSeconds) * time.Second
 	
@@ -125,25 +108,25 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
             return "", errTerminated
         }
 
-        if state != Unknown && state != committedState {
+        if state != committedState {
             numberOfProbesLeft--
         } else {
             numberOfProbesLeft = numberOfProbes
         }
 
         if prevState != state {
-            ctx.Log("event", stateChangeLogMap[state])
+            ctx.Log("event", state.GetStateTransitionMessage())
             prevState = state
         }
 
-        if numberOfProbesLeft == 0 || (committedState == Unknown && state == Healthy) {
+        if numberOfProbesLeft == 0 || (committedState == nil && state != nil) {
             committedState = state
             ctx.Log("event", "Committed health state is " + string(committedState))
             numberOfProbesLeft = numberOfProbes
         }
 
-        if committedState != Unknown {
-            err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, healthStatusToStatusType[committedState], substatusName, healthStatusToMessage[committedState])
+        if committedState != nil {
+            err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), substatusName, committedState.GetSubstatusMessage())
             if err != nil {
                 ctx.Log("error", err)
             }        
