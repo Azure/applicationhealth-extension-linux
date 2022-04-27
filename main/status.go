@@ -40,14 +40,14 @@ type FormattedMessage struct {
 }
 
 type AdditionalProperties struct {
-	AppHealthState HealthStatus `json:"appHealthState"`
+	AppHealthState HealthStatus `json:"applicationHealthState"`
 }
 
 type SubstatusItem struct {
 	Name             string           `json:"name"`
 	Status           StatusType       `json:"status"`
 	FormattedMessage FormattedMessage `json:"formattedMessage"`
-	AdditionalProperties AdditionalProperties `json:"additionalProperties`
+	AdditionalProperties AdditionalProperties `json:"additionalProperties"`
 }
 
 func NewStatus(t StatusType, operation, message string) StatusReport {
@@ -79,8 +79,8 @@ func (r StatusReport) AddSubstatus(t StatusType, name, message string, state Hea
 					Message: message,
 				},
 				AdditionalProperties: AdditionalProperties{
-					AppHealthState: state
-				}
+					AppHealthState: state,
+				},
 			},
 		}
 	}
@@ -107,7 +107,7 @@ func (r StatusReport) Save(statusFolder string, seqNum int) error {
 		return fmt.Errorf("status: failed to marshal into json: %v", err)
 	}
 	if err := ioutil.WriteFile(tmpFile.Name(), b, 0644); err != nil {
-		return fmt.Errorf("status: failed to path=%s error=%v", tmpFile.Name(), err)
+		return fmt.Errorf("status: failed to write to path=%s error=%v", tmpFile.Name(), err)
 	}
 
 	if err := os.Rename(tmpFile.Name(), path); err != nil {

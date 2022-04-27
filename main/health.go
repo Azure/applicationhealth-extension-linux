@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"io/ioutil"
+	"encoding/json"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -22,33 +24,24 @@ const (
 	Disabled		HealthStatus = "disabled"
 	Busy			HealthStatus = "busy"
 	Unhealthy		HealthStatus = "unhealthy"
+	Empty			HealthStatus = ""		
 )
 
 func (p HealthStatus) GetStateTransitionMessage() string {
-	return "Reporting health status of " + string(p)
+	return "state changed to " + string(p)
 }
 
 func (p HealthStatus) GetStatusType() StatusType {
 	switch p {
-	case Initializing:
-		fallthrough
-	case Healthy:
-		return StatusSuccess
-	case Unhealthy:
-		return StatusError
-	case Draining:
-		fallthrough
-	case Busy:
-		fallthrough
 	case Unknown:
-		fallthrough
-	case Disabled:
-		return StatusWarning
+		return StatusError
+	default:
+		return StatusSuccess 
 	}
 }
 
 func (p HealthStatus) GetSubstatusMessage() string {
-	return "Application found to be in " + string(p) + " state"
+	return "Application found to be " + string(p)
 }
 
 type HealthProbe interface {
@@ -63,6 +56,10 @@ type TcpHealthProbe struct {
 type HttpHealthProbe struct {
 	HttpClient *http.Client
 	Address    string
+}
+
+type EndpointResponse struct {
+	AppHealthState HealthStatus `json:"ApplicationHealthState"`
 }
 
 func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
@@ -145,25 +142,6 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) mapStatusCodeToHealthStatus(code int) (HealthStatus) {
-	switch code {
-	case http.StatusOK: 
-		return Healthy
-	case http.StatusCreated: 
-		return Initializing
-	case http.StatusMovedPermanently: 
-		return Draining
-	case http.StatusRequestTimeout: 
-		return Unknown
-	case http.StatusNotImplemented: 
-		return Disabled
-	case http.StatusServiceUnavailable:
-		return Busy
-	default:
-		return Unhealthy 
-	}
-}
-
 func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	if err != nil {
@@ -173,13 +151,21 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
 	resp, err := p.HttpClient.Do(req)
 	if err != nil {
-		if os.IsTimeout(err) {
-			return Unknown, nil
-		}
-		return Unhealthy, nil
+		return Unknown, err
 	}
 
-	return mapStatusCodeToHealthStatus(resp.StatusCode), nil
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Unknown, err
+	}
+	var endpointResponse EndpointResponse
+	if err := json.Unmarshal(bodyBytes, endpointResponse); err != nil {
+		return Unknown, err
+	}
+
+	return endpointResponse.AppHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {

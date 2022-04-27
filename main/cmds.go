@@ -87,7 +87,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
         intervalInSeconds              = cfg.intervalInSeconds()
         numberOfProbes                 = cfg.numberOfProbes()
         numberOfProbesLeft             = numberOfProbes
-        committedState                 = nil
+        committedState                 = Empty
 	)
 	intervalBetweenProbesInSeconds := time.Duration(intervalInSeconds) * time.Second
 	
@@ -119,13 +119,13 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
             prevState = state
         }
 
-        if numberOfProbesLeft == 0 || (committedState == nil && state != nil) {
+        if numberOfProbesLeft == 0 || (committedState == Empty && state != Empty) {
             committedState = state
             ctx.Log("event", "Committed health state is " + string(committedState))
             numberOfProbesLeft = numberOfProbes
         }
 
-        if committedState != nil {
+        if committedState != Empty {
             err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), substatusName, committedState.GetSubstatusMessage(), committedState)
             if err != nil {
                 ctx.Log("error", err)

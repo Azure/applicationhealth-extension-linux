@@ -6,10 +6,29 @@ import (
     "net/http"
     "strings"
     "context"
+    "encoding/json"
+)
+
+var stateMap = map[string]string {
+    "i": "initializing",
+    "h": "healthy",
+    "d": "draining",
+    "unk": "unknown",
+    "di": "disabled",
+    "b": "busy",
+    "u": "unhealthy",
+} 
+
+const ApplicationHealthStateResponseKey = "ApplicationHealthState" 
+
+var (
+    response = map[string]string {
+        ApplicationHealthStateResponseKey: "",
+    }
 )
 
 func main() {
-    states := flag.String("states", "", "contains comma separated u or h repesenting unhealthy and healthy")
+    states := flag.String("states", "", "contains comma separated [i, h, d, unk, di, b, u] repesenting [initializing, healthy, draining, unknown, disabled, busy, unhealthy]")
     flag.Parse()
     healthStates := strings.Split(*states, ",")
     var shouldExitOnEmptyHealthStates = len(healthStates) > 0
@@ -17,17 +36,20 @@ func main() {
     httpServer := http.Server{Addr: ":8080", Handler: httpMutex }
     httpsServer := http.Server{Addr: ":443", Handler: httpMutex }
 
-    // sends 200 if expected state is healthy and 500 otherwise
+    // sends json resonse body with "appHealthState" = state
     // looks at the first state in the healthStates array and dequeues that element after its iterated
     httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        var statusCode = 200
         if len(healthStates) > 0 {
-            if healthStates[0] == "u" {
-                statusCode = 500
-            }
+            response[ApplicationHealthStateResponseKey] = stateMap[healthStates[0]]
             healthStates = healthStates[1:]
-        }        
-        w.WriteHeader(statusCode)
+            w.Header().Set("Content-Type", "application/json")    
+            resp, err := json.Marshal(response)
+            if err != nil {
+                log.Printf("Error happened in JSON marshal. Err: %s", err)
+            }
+            w.Write(resp)
+        }    
+        
         // if healthStates is non-empty, this means that the test is only meant to run till we iterate over all healthstates, so the servers are shutdown
         if shouldExitOnEmptyHealthStates && len(healthStates) == 0 {
             go func() {
