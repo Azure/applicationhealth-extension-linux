@@ -33,15 +33,21 @@ type Status struct {
 	FormattedMessage            FormattedMessage `json:"formattedMessage"`
 	SubstatusList               []SubstatusItem  `json:"substatus,omitempty"`
 }
+
 type FormattedMessage struct {
 	Lang    string `json:"lang"`
 	Message string `json:"message"`
+}
+
+type AdditionalProperties struct {
+	AppHealthState HealthStatus `json:"appHealthState"`
 }
 
 type SubstatusItem struct {
 	Name             string           `json:"name"`
 	Status           StatusType       `json:"status"`
 	FormattedMessage FormattedMessage `json:"formattedMessage"`
+	AdditionalProperties AdditionalProperties `json:"additionalProperties`
 }
 
 func NewStatus(t StatusType, operation, message string) StatusReport {
@@ -62,7 +68,7 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 	}
 }
 
-func (r StatusReport) AddSubstatus(t StatusType, name, message string) {
+func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
 	if len(r) > 0 {
 		r[0].Status.SubstatusList = []SubstatusItem{
 			{
@@ -72,6 +78,9 @@ func (r StatusReport) AddSubstatus(t StatusType, name, message string) {
 					Lang:    "en",
 					Message: message,
 				},
+				AdditionalProperties: AdditionalProperties{
+					AppHealthState: state
+				}
 			},
 		}
 	}

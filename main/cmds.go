@@ -126,7 +126,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
         }
 
         if committedState != nil {
-            err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), substatusName, committedState.GetSubstatusMessage())
+            err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), substatusName, committedState.GetSubstatusMessage(), committedState)
             if err != nil {
                 ctx.Log("error", err)
             }        
