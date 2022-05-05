@@ -27,10 +27,6 @@ const (
 	Empty			HealthStatus = ""		
 )
 
-func (p HealthStatus) GetStateTransitionMessage() string {
-	return "state changed to " + string(p)
-}
-
 func (p HealthStatus) GetStatusType() StatusType {
 	switch p {
 	case Unknown:
@@ -161,7 +157,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 		return Unknown, err
 	}
 	var endpointResponse EndpointResponse
-	if err := json.Unmarshal(bodyBytes, endpointResponse); err != nil {
+	if err := json.Unmarshal(bodyBytes, &endpointResponse); err != nil {
 		return Unknown, err
 	}
 

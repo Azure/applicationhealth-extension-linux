@@ -115,7 +115,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
         }
 
         if prevState != state {
-            ctx.Log("event", state.GetStateTransitionMessage())
+            ctx.Log("event", "State changed to " + string(state))
             prevState = state
         }
 

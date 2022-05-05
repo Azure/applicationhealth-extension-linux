@@ -42,7 +42,7 @@ teardown(){
     echo "$output"
     [[ "$output" = *'applicationhealth-extension process terminated'* ]]
 
-    healthy_count="$(echo "$output" | grep -c 'state changed to healthy')"
+    healthy_count="$(echo "$output" | grep -c 'State changed to healthy')"
     echo "Enable count=$healthy_count"
     [ "$healthy_count" -eq 2 ]
 
@@ -135,7 +135,7 @@ teardown(){
 }
 
 @test "handler command: enable - healthy http probe" {
-    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
+    mk_container sh -c "webserver -states=h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -150,7 +150,7 @@ teardown(){
 }
 
 @test "handler command: enable - healthy http probe prefixing requestPath with a slash" {
-    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
+    mk_container sh -c "webserver -states=h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -165,7 +165,7 @@ teardown(){
 }
 
 @test "handler command: enable - healthy https probe" {
-    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
+    mk_container sh -c "webserver -states=h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "https",

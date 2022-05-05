@@ -30,15 +30,17 @@ var (
 func main() {
     states := flag.String("states", "", "contains comma separated [i, h, d, unk, di, b, u] repesenting [initializing, healthy, draining, unknown, disabled, busy, unhealthy]")
     flag.Parse()
+    originalHealthStates := strings.Split(*states, ",")
     healthStates := strings.Split(*states, ",")
     var shouldExitOnEmptyHealthStates = len(healthStates) > 0
     httpMutex := http.NewServeMux()
     httpServer := http.Server{Addr: ":8080", Handler: httpMutex }
     httpsServer := http.Server{Addr: ":443", Handler: httpMutex }
 
-    // sends json resonse body with "appHealthState" = state
+    // sends json resonse body with application health state expected by extension
     // looks at the first state in the healthStates array and dequeues that element after its iterated
     httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        log.Printf("Serving endpoint: %v", healthStates) 
         if len(healthStates) > 0 {
             response[ApplicationHealthStateResponseKey] = stateMap[healthStates[0]]
             healthStates = healthStates[1:]
@@ -53,7 +55,8 @@ func main() {
         // if healthStates is non-empty, this means that the test is only meant to run till we iterate over all healthstates, so the servers are shutdown
         if shouldExitOnEmptyHealthStates && len(healthStates) == 0 {
             go func() {
-                log.Printf("Shutting down http and https server")                 
+                log.Printf("Finished serving health states: %v", originalHealthStates) 
+                log.Printf("Shutting down http and https server")              
                 httpServer.Shutdown(context.Background())
                 httpsServer.Shutdown(context.Background())        
             }()
