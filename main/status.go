@@ -44,9 +44,9 @@ type AdditionalProperties struct {
 }
 
 type SubstatusItem struct {
-	Name             string           `json:"name"`
-	Status           StatusType       `json:"status"`
-	FormattedMessage FormattedMessage `json:"formattedMessage"`
+	Name                 string               `json:"name"`
+	Status               StatusType           `json:"status"`
+	FormattedMessage     FormattedMessage     `json:"formattedMessage"`
 	AdditionalProperties AdditionalProperties `json:"additionalProperties"`
 }
 

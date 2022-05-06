@@ -2,13 +2,13 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-	"io/ioutil"
-	"encoding/json"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -17,14 +17,26 @@ import (
 type HealthStatus string
 
 const (
-	Initializing	HealthStatus = "initializing"
-	Healthy   		HealthStatus = "healthy"
-	Draining		HealthStatus = "draining"
-	Unknown			HealthStatus = "unknown"
-	Disabled		HealthStatus = "disabled"
-	Busy			HealthStatus = "busy"
-	Unhealthy		HealthStatus = "unhealthy"
-	Empty			HealthStatus = ""		
+	Initializing HealthStatus = "initializing"
+	Healthy      HealthStatus = "healthy"
+	Draining     HealthStatus = "draining"
+	Unknown      HealthStatus = "unknown"
+	Disabled     HealthStatus = "disabled"
+	Busy         HealthStatus = "busy"
+	Unhealthy    HealthStatus = "unhealthy"
+	Empty        HealthStatus = ""
+)
+
+var (
+	healthStatuses = map[HealthStatus]struct{}{
+		Initializing: {},
+		Healthy:      {},
+		Draining:     {},
+		Unknown:      {},
+		Disabled:     {},
+		Busy:         {},
+		Unhealthy:    {},
+	}
 )
 
 func (p HealthStatus) GetStatusType() StatusType {
@@ -32,12 +44,24 @@ func (p HealthStatus) GetStatusType() StatusType {
 	case Unknown:
 		return StatusError
 	default:
-		return StatusSuccess 
+		return StatusSuccess
 	}
 }
 
 func (p HealthStatus) GetSubstatusMessage() string {
 	return "Application found to be " + string(p)
+}
+
+func ParseHealthStatus(response map[string]interface{}) (HealthStatus, error) {
+	str, ok := response[ApplicationHealthStateResponseKey]
+	if !ok {
+		return Unknown, errors.Errorf("Response body does not contain key '%s': %v", ApplicationHealthStateResponseKey, response)
+	}
+	healthStatus := HealthStatus(strings.ToLower(str.(string)))
+	if _, ok = healthStatuses[healthStatus]; !ok {
+		return Unknown, errors.Errorf("Response body '%s' has invalid value '%s'", ApplicationHealthStateResponseKey, str)
+	}
+	return healthStatus, nil
 }
 
 type HealthProbe interface {
@@ -52,10 +76,6 @@ type TcpHealthProbe struct {
 type HttpHealthProbe struct {
 	HttpClient *http.Client
 	Address    string
-}
-
-type EndpointResponse struct {
-	AppHealthState HealthStatus `json:"ApplicationHealthState"`
 }
 
 func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
@@ -156,12 +176,18 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	if err != nil {
 		return Unknown, err
 	}
-	var endpointResponse EndpointResponse
-	if err := json.Unmarshal(bodyBytes, &endpointResponse); err != nil {
+
+	var respJson map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &respJson); err != nil {
 		return Unknown, err
 	}
 
-	return endpointResponse.AppHealthState, nil
+	status, err := ParseHealthStatus(respJson)
+	if err != nil {
+		return Unknown, err
+	}
+
+	return status, nil
 }
 
 func (p *HttpHealthProbe) address() string {
