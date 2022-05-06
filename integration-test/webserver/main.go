@@ -7,6 +7,14 @@ import (
     "strings"
     "context"
     "encoding/json"
+    "time"
+)
+
+const (
+    TimeoutFlag = "t"
+    ApplicationHealthStateMissingFlag = "x"
+    InvalidApplicationHealthStateValueFlag = "null"
+    ApplicationHealthStateResponseKey = "ApplicationHealthState" 
 )
 
 var stateMap = map[string]string {
@@ -18,8 +26,6 @@ var stateMap = map[string]string {
     "b": "busy",
     "u": "unhealthy",
 } 
-
-const ApplicationHealthStateResponseKey = "ApplicationHealthState" 
 
 var (
     response = map[string]string {
@@ -40,16 +46,26 @@ func main() {
     // sends json resonse body with application health state expected by extension
     // looks at the first state in the healthStates array and dequeues that element after its iterated
     httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        log.Printf("Serving endpoint: %v", healthStates) 
         if len(healthStates) > 0 {
-            response[ApplicationHealthStateResponseKey] = stateMap[healthStates[0]]
+            stateFlag = healthStates[0]
+            log.Printf("Serving health state %s: %v", stateFlag, stateMap[stateFlag]) 
+            response[ApplicationHealthStateResponseKey] = stateMap[stateFlag]
             healthStates = healthStates[1:]
-            w.Header().Set("Content-Type", "application/json")    
-            resp, err := json.Marshal(response)
-            if err != nil {
-                log.Printf("Error happened in JSON marshal. Err: %s", err)
+            switch (stateFlag) {
+            case TimeoutFlag:
+                time.Sleep(30 * time.Second)
+            case ApplicationHealthStateMissingFlag:
+
+            case InvalidApplicationHealthStateValueFlag:
+
+            default:
+                w.Header().Set("Content-Type", "application/json")    
+                resp, err := json.Marshal(response)
+                if err != nil {
+                    log.Printf("Error happened in JSON marshal. Err: %s", err)
+                }
+                w.Write(resp)
             }
-            w.Write(resp)
         }    
         
         // if healthStates is non-empty, this means that the test is only meant to run till we iterate over all healthstates, so the servers are shutdown

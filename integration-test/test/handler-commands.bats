@@ -193,7 +193,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Enable in progress'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
 }
 
 @test "handler command: enable - numofprobes with states = huu" {

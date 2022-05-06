@@ -119,7 +119,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
             prevState = state
         }
 
-        if numberOfProbesLeft == 0 || (committedState == Empty && state != Empty) {
+        if (numberOfProbesLeft == 0) || (committedState == Empty) {
             committedState = state
             ctx.Log("event", "Committed health state is " + string(committedState))
             numberOfProbesLeft = numberOfProbes
