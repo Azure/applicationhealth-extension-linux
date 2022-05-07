@@ -11,6 +11,7 @@ applicationhealth-extension-linux
 # Folders
 _obj
 _test
+testbin
 
 # Architecture specific extensions/prefixes
 *.[568vq]

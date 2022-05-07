@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
@@ -15,10 +17,52 @@ import (
 type HealthStatus string
 
 const (
-	Healthy   HealthStatus = "healthy"
-	Unhealthy HealthStatus = "unhealthy"
-	Unknown   HealthStatus = "unknown"
+	Initializing HealthStatus = "initializing"
+	Healthy      HealthStatus = "healthy"
+	Draining     HealthStatus = "draining"
+	Unknown      HealthStatus = "unknown"
+	Disabled     HealthStatus = "disabled"
+	Busy         HealthStatus = "busy"
+	Unhealthy    HealthStatus = "unhealthy"
+	Empty        HealthStatus = ""
 )
+
+var (
+	healthStatuses = map[HealthStatus]struct{}{
+		Initializing: {},
+		Healthy:      {},
+		Draining:     {},
+		Unknown:      {},
+		Disabled:     {},
+		Busy:         {},
+		Unhealthy:    {},
+	}
+)
+
+func (p HealthStatus) GetStatusType() StatusType {
+	switch p {
+	case Unknown:
+		return StatusError
+	default:
+		return StatusSuccess
+	}
+}
+
+func (p HealthStatus) GetSubstatusMessage() string {
+	return "Application found to be " + string(p)
+}
+
+func ParseHealthStatus(response map[string]interface{}) (HealthStatus, error) {
+	str, ok := response[ApplicationHealthStateResponseKey]
+	if !ok {
+		return Unknown, errors.Errorf("Response body does not contain key '%s': %v", ApplicationHealthStateResponseKey, response)
+	}
+	healthStatus := HealthStatus(strings.ToLower(str.(string)))
+	if _, ok = healthStatuses[healthStatus]; !ok {
+		return Unknown, errors.Errorf("Response body '%s' has invalid value '%s'", ApplicationHealthStateResponseKey, str)
+	}
+	return healthStatus, nil
+}
 
 type HealthProbe interface {
 	evaluate(ctx *log.Context) (HealthStatus, error)
@@ -123,14 +167,27 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
 	resp, err := p.HttpClient.Do(req)
 	if err != nil {
-		return Unhealthy, nil
+		return Unknown, err
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		return Healthy, nil
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Unknown, err
 	}
 
-	return Unhealthy, nil
+	var respJson map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &respJson); err != nil {
+		return Unknown, err
+	}
+
+	status, err := ParseHealthStatus(respJson)
+	if err != nil {
+		return Unknown, err
+	}
+
+	return status, nil
 }
 
 func (p *HttpHealthProbe) address() string {

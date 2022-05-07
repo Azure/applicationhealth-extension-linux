@@ -21,6 +21,7 @@ type StatusType string
 
 const (
 	StatusTransitioning StatusType = "transitioning"
+	StatusWarning       StatusType = "warning"
 	StatusError         StatusType = "error"
 	StatusSuccess       StatusType = "success"
 )
@@ -32,15 +33,21 @@ type Status struct {
 	FormattedMessage            FormattedMessage `json:"formattedMessage"`
 	SubstatusList               []SubstatusItem  `json:"substatus,omitempty"`
 }
+
 type FormattedMessage struct {
 	Lang    string `json:"lang"`
 	Message string `json:"message"`
 }
 
+type AdditionalProperties struct {
+	AppHealthState HealthStatus `json:"applicationHealthState"`
+}
+
 type SubstatusItem struct {
-	Name             string           `json:"name"`
-	Status           StatusType       `json:"status"`
-	FormattedMessage FormattedMessage `json:"formattedMessage"`
+	Name                 string               `json:"name"`
+	Status               StatusType           `json:"status"`
+	FormattedMessage     FormattedMessage     `json:"formattedMessage"`
+	AdditionalProperties AdditionalProperties `json:"additionalProperties"`
 }
 
 func NewStatus(t StatusType, operation, message string) StatusReport {
@@ -61,7 +68,7 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 	}
 }
 
-func (r StatusReport) AddSubstatus(t StatusType, name, message string) {
+func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
 	if len(r) > 0 {
 		r[0].Status.SubstatusList = []SubstatusItem{
 			{
@@ -70,6 +77,9 @@ func (r StatusReport) AddSubstatus(t StatusType, name, message string) {
 				FormattedMessage: FormattedMessage{
 					Lang:    "en",
 					Message: message,
+				},
+				AdditionalProperties: AdditionalProperties{
+					AppHealthState: state,
 				},
 			},
 		}
@@ -97,7 +107,7 @@ func (r StatusReport) Save(statusFolder string, seqNum int) error {
 		return fmt.Errorf("status: failed to marshal into json: %v", err)
 	}
 	if err := ioutil.WriteFile(tmpFile.Name(), b, 0644); err != nil {
-		return fmt.Errorf("status: failed to path=%s error=%v", tmpFile.Name(), err)
+		return fmt.Errorf("status: failed to write to path=%s error=%v", tmpFile.Name(), err)
 	}
 
 	if err := os.Rename(tmpFile.Name(), path); err != nil {
