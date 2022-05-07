@@ -21,7 +21,6 @@ type StatusType string
 
 const (
 	StatusTransitioning StatusType = "transitioning"
-	StatusWarning       StatusType = "warning"
 	StatusError         StatusType = "error"
 	StatusSuccess       StatusType = "success"
 )

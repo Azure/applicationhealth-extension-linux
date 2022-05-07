@@ -48,8 +48,6 @@ func statusMsg(c cmd, t StatusType, msg string) string {
 		s += " in progress"
 	case StatusError:
 		s += " failed"
-	case StatusWarning:
-		s += " has warning"
 	}
 
 	if msg != "" {
