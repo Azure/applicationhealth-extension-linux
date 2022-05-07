@@ -9,14 +9,15 @@ install:
   - sudo apt-get install -qq bats
   - curl -sL https://deb.nodesource.com/setup_6.x | sudo bash -
   - sudo apt-get install -qqy nodejs
-  - sudo npm install -g npm
-  - sudo npm install -g azure-cli
-  - go get -u golang.org/x/lint/golint
+  - sudo apt install npm
+  - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash -
+  - sudo apt install golint
   - go get -u github.com/ahmetalpbalkan/govvv
+  - go get -u github.com/tools/godep
 before_script:
   - docker version
   - docker info
-  - azure telemetry --disable && azure -v
+  - az configure -d collect_telemetry=false && az -v
 script:
   - test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
   - test -z "$(golint . | tee /dev/stderr)"
