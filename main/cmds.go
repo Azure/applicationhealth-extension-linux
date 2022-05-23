@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"os"
 	"time"
+	"strings"
 )
 
 type cmdFunc func(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int) (msg string, err error)
@@ -67,7 +68,6 @@ func uninstall(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (
 
 const (
 	statusMessage = "Successfully polling for application health"
-	substatusName = "AppHealthStatus"
 )
 
 var (
@@ -115,21 +115,19 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		if prevState != state {
-			ctx.Log("event", "State changed to "+string(state))
+			ctx.Log("event", "State changed to "+strings.ToLower(string(state)))
 			prevState = state
 		}
 
 		if (numberOfProbesLeft == 0) || (committedState == Empty) {
 			committedState = state
-			ctx.Log("event", "Committed health state is "+string(committedState))
+			ctx.Log("event", "Committed health state is "+strings.ToLower(string(committedState)))
 			numberOfProbesLeft = numberOfProbes
 		}
 
-		if committedState != Empty {
-			err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), substatusName, committedState.GetSubstatusMessage(), committedState)
-			if err != nil {
-				ctx.Log("error", err)
-			}
+		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), SubstatusKeyNameAppHealthStatus, committedState.GetSubstatusMessage(), committedState)
+		if err != nil {
+			ctx.Log("error", err)
 		}
 
 		endTime := time.Now()

@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -17,25 +18,25 @@ import (
 type HealthStatus string
 
 const (
-	Initializing HealthStatus = "initializing"
-	Healthy      HealthStatus = "healthy"
-	Draining     HealthStatus = "draining"
-	Unknown      HealthStatus = "unknown"
-	Disabled     HealthStatus = "disabled"
-	Busy         HealthStatus = "busy"
-	Unhealthy    HealthStatus = "unhealthy"
+	Initializing HealthStatus = "Initializing"
+	Healthy      HealthStatus = "Healthy"
+	Draining     HealthStatus = "Draining"
+	Unknown      HealthStatus = "Unknown"
+	Disabled     HealthStatus = "Disabled"
+	Busy         HealthStatus = "Busy"
+	Unhealthy    HealthStatus = "Unhealthy"
 	Empty        HealthStatus = ""
 )
 
 var (
-	healthStatuses = map[HealthStatus]struct{}{
-		Initializing: {},
-		Healthy:      {},
-		Draining:     {},
-		Unknown:      {},
-		Disabled:     {},
-		Busy:         {},
-		Unhealthy:    {},
+	healthStatuses = map[HealthStatus]bool {
+		Initializing: true,
+		Healthy:      true,
+		Draining:     true,
+		Unknown:      true,
+		Disabled:     true,
+		Busy:         true,
+		Unhealthy:    true,
 	}
 )
 
@@ -49,19 +50,11 @@ func (p HealthStatus) GetStatusType() StatusType {
 }
 
 func (p HealthStatus) GetSubstatusMessage() string {
-	return "Application found to be " + string(p)
+	return "Application health found to be " + strings.ToLower(string(p))
 }
 
-func ParseHealthStatus(response map[string]interface{}) (HealthStatus, error) {
-	str, ok := response[ApplicationHealthStateResponseKey]
-	if !ok {
-		return Unknown, errors.Errorf("Response body does not contain key '%s': %v", ApplicationHealthStateResponseKey, response)
-	}
-	healthStatus := HealthStatus(strings.ToLower(str.(string)))
-	if _, ok = healthStatuses[healthStatus]; !ok {
-		return Unknown, errors.Errorf("Response body '%s' has invalid value '%s'", ApplicationHealthStateResponseKey, str)
-	}
-	return healthStatus, nil
+type EndpointResponse struct {
+	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
 }
 
 type HealthProbe interface {
@@ -177,17 +170,16 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 		return Unknown, err
 	}
 
-	var respJson map[string]interface{}
-	if err := json.Unmarshal(bodyBytes, &respJson); err != nil {
+	endpointResponse := new(EndpointResponse)
+	if err := json.Unmarshal(bodyBytes, endpointResponse); err != nil {
 		return Unknown, err
 	}
 
-	status, err := ParseHealthStatus(respJson)
-	if err != nil {
-		return Unknown, err
+	if endpointResponse == nil || !healthStatuses[endpointResponse.ApplicationHealthState] {
+		return Unknown, errors.New(fmt.Sprintf("Unable to parse '%s' in response body '%s'", SubstatusKeyNameAppHealthStatus, string(bodyBytes)))
 	}
 
-	return status, nil
+	return endpointResponse.ApplicationHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {

@@ -31,7 +31,7 @@ teardown(){
     diff="$(container_diff)"; echo "$diff"
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable twice, process exits cleanly" {
@@ -49,7 +49,7 @@ teardown(){
     diff="$(container_diff)"; echo "$diff"
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - validates json schema" {
@@ -72,7 +72,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
 @test "handler command: enable - unknown http probe" {
@@ -87,7 +87,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - unknown https probe" {
@@ -102,7 +102,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - unknown after 10 seconds" {
@@ -117,7 +117,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - healthy tcp probe" {
@@ -131,7 +131,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - healthy http probe" {
@@ -146,7 +146,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - healthy http probe prefixing requestPath with a slash" {
@@ -161,7 +161,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - healthy https probe" {
@@ -175,7 +175,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - numofprobes with states = uu" {
@@ -193,7 +193,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
 @test "handler command: enable - numofprobes with states = huu" {
@@ -218,7 +218,7 @@ teardown(){
     [[ "$output" == *'Committed health state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
 @test "handler command: enable - numofprobes with states = huuh" {
@@ -243,7 +243,7 @@ teardown(){
     [[ "$output" == *'Committed health state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
 @test "handler command: enable - numofprobes with states = huuhh" {
@@ -268,7 +268,7 @@ teardown(){
     [[ "$output" == *'Committed health state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - numofprobes with rich health states = i,h,h,d,d,di,di,b,b,u,u,unk,unk" {
@@ -297,7 +297,7 @@ teardown(){
     [[ "$output" == *'Committed health state is unhealthy'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - endpoint timeout results in unknown" {
@@ -317,7 +317,7 @@ teardown(){
     [[ "$output" == *'Committed health state is unknown'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - invalid or missing app health state in response body results in unknown" {
@@ -340,7 +340,7 @@ teardown(){
     [[ "$output" == *'Committed health state is unknown'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: uninstall - deletes the data dir" {
