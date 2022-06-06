@@ -141,10 +141,29 @@ verify_state_change_timestamps() {
             if [[ ! -z "$prevDate" ]]; then
                 diff=$(( $(date -d "${BASH_REMATCH[1]}" "+%s") - $(date -d "$prevDate" "+%s") ))
                 echo "Actual time difference is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
+                echo "$prevDate, ${BASH_REMATCH[1]}"
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
         prevDate=${BASH_REMATCH[1]}     
+        done
+    done <<< "$1"
+}
+
+# first argument is the string containing healthextension logs separated by newline
+# it also expects event={"description of state event"} to be in each log line
+# second argument is an array of expected state log strings
+verify_states() {
+    expectedStateLogs="$2"
+    regex='event="(.*)"'
+    index=0
+    while IFS=$'\n' read -ra stateLogs; do
+        for i in "${!stateLogs[@]}"; do
+            [[ $stateLogs[i] =~ $regex ]]
+            stateEvent=${BASH_REMATCH[1]}
+            echo "Actual: '$stateEvent' and expected is: '${expectedStateLogs[index]}'"
+            [[ "$stateEvent" == "${expectedStateLogs[index]}" ]]
+        index=$index+1
         done
     done <<< "$1"
 }

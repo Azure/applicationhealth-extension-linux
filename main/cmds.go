@@ -123,7 +123,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(enableStartTime)
 			if (timeElapsed >= gracePeriodInMinutes) {
-				ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - Expired. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
+				ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - expired. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
 				honorGracePeriod = false
 			}
 		}
@@ -133,7 +133,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		} 
         
         if prevState != state {
-            ctx.Log("event", "State changed to "+strings.ToLower(string(state)))
+            ctx.Log("event", "Probe observed health state changed to "+strings.ToLower(string(state)))
             numConsecutiveProbes = 1
             prevState = state
         }
@@ -146,7 +146,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			if honorGracePeriod {
 				timeElapsed := time.Now().Sub(enableStartTime)
 				if allowedHealthStatuses[state] && numConsecutiveProbes == numberOfProbes {
-					ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - Successful probes. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
+					ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - successful probes. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
 					honorGracePeriod = false
 				} else {
 					ctx.Log("event", fmt.Sprintf("Honoring grace period of '%v'. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))

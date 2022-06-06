@@ -17,22 +17,24 @@ load test_helper
     echo "$output"
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
-    echo "$enableLog"
-    stateChangeLog="$(echo "$output" | grep 'operation=enable' | grep 'State changed to')"
+
     expectedTimeDifferences=(0 5 5 5 5 5 5 5 5)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
-   
-    commitLog="$(echo "$output" | grep 'operation=enable' | grep 'Committed health state')"
-
-    [[ "$output" == *'Committed health state is woohoo'* ]]
-    [[ "$output" == *'Committed health state is healthy'* ]]
-    [[ "$output" == *'State changed to unknown'* ]]
-    [[ "$output" == *'State changed to busy'* ]]
-    [[ "$output" == *'State changed to unknown'* ]]
-    [[ "$output" == *'State changed to busy'* ]]
-    [[ "$output" == *'State changed to unknown'* ]]
-    [[ "$output" == *'State changed to busy'* ]]
     
+    expectedStateLogs=(
+        "State changed to unknown"
+        "Committed health state is unknown"
+        "State changed to healthy"
+        "Committed health state is healthy"
+        "State changed to unknown"
+        "State changed to busy"
+        "State changed to unknown"
+        "State changed to busy"
+        "State changed to unknown"
+        "State changed to busy"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }

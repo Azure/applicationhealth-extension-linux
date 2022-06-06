@@ -12,7 +12,7 @@ import (
 
 const (
 	TimeoutFlag                            = "t" // force request to timeout
-	TimeoutInSeconds                       = 60
+	TimeoutInSeconds                       = 30
 	ApplicationHealthStateMissingFlag      = "m" // send missing response body
 	InvalidApplicationHealthStateValueFlag = "x" // send invalid value for health state
 
@@ -21,17 +21,13 @@ const (
 
 // Flags passed to webserver in command line args to send correct health state values
 var stateMap = map[string]string{
-	"i":   "Initializing",
 	"h":   "Healthy",
-	"d":   "Draining",
-	"unk": "Unknown",
-	"di":  "Disabled",
-	"b":   "Busy",
 	"u":   "Unhealthy",
+	"b":   "Busy",
 }
 
 func main() {
-	states := flag.String("states", "", "contains comma separated [i, h, d, unk, di, b, u] repesenting [initializing, healthy, draining, unknown, disabled, busy, unhealthy]")
+	states := flag.String("states", "", "contains comma separated [h,u,b]")
 	flag.Parse()
 	originalHealthStates := strings.Split(*states, ",")
 	healthStates := strings.Split(*states, ",")
@@ -45,7 +41,6 @@ func main() {
 	httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if len(healthStates) > 0 {
 			stateFlag := healthStates[0]
-			log.Printf("Serving health state %s: %v", stateFlag, stateMap[stateFlag])
 			healthStates = healthStates[1:]
 
 			response := make(map[string]string)
