@@ -20,24 +20,10 @@ type HealthStatus string
 const (
 	Initializing HealthStatus = "Initializing"
 	Healthy      HealthStatus = "Healthy"
-	Draining     HealthStatus = "Draining"
-	Unknown      HealthStatus = "Unknown"
-	Disabled     HealthStatus = "Disabled"
-	Busy         HealthStatus = "Busy"
 	Unhealthy    HealthStatus = "Unhealthy"
+	Busy         HealthStatus = "Busy"
+	Unknown      HealthStatus = "Unknown"
 	Empty        HealthStatus = ""
-)
-
-var (
-	healthStatuses = map[HealthStatus]bool {
-		Initializing: true,
-		Healthy:      true,
-		Draining:     true,
-		Unknown:      true,
-		Disabled:     true,
-		Busy:         true,
-		Unhealthy:    true,
-	}
 )
 
 func (p HealthStatus) GetStatusType() StatusType {
@@ -51,10 +37,6 @@ func (p HealthStatus) GetStatusType() StatusType {
 
 func (p HealthStatus) GetSubstatusMessage() string {
 	return "Application health found to be " + strings.ToLower(string(p))
-}
-
-type EndpointResponse struct {
-	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
 }
 
 type HealthProbe interface {
@@ -170,16 +152,19 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 		return Unknown, err
 	}
 
-	endpointResponse := new(EndpointResponse)
-	if err := json.Unmarshal(bodyBytes, endpointResponse); err != nil {
+	probeResponse := new(ProbeResponse)
+	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
 		return Unknown, err
 	}
 
-	if endpointResponse == nil || !healthStatuses[endpointResponse.ApplicationHealthState] {
+	if probeResponse == nil {
 		return Unknown, errors.New(fmt.Sprintf("Unable to parse '%s' in response body '%s'", SubstatusKeyNameAppHealthStatus, string(bodyBytes)))
 	}
 
-	return endpointResponse.ApplicationHealthState, nil
+	if err := probeResponse.validate(ctx); err != nil {
+		return Unknown, err
+	}
+	return probeResponse.ApplicationHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {

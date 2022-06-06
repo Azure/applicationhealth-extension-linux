@@ -4,6 +4,7 @@ import (
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
+    "fmt"
 	"os"
 	"time"
 	"strings"
@@ -81,23 +82,32 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	var prevState HealthStatus
 	probe := NewHealthProbe(ctx, &cfg)
 	var (
-		intervalInSeconds  = cfg.intervalInSeconds()
-		numberOfProbes     = cfg.numberOfProbes()
-		numberOfProbesLeft = numberOfProbes
-		committedState     = Empty
+		intervalBetweenProbesInSeconds  = time.Duration(cfg.intervalInSeconds()) * time.Second
+		numberOfProbes     		        = cfg.numberOfProbes()
+		gracePeriodInMinutes 	        = time.Duration(cfg.gracePeriodInMinutes()) * time.Minute
+		numConsecutiveProbes	        = 0
+		prevState				        = Empty
+		committedState     		        = Empty
+		honorGracePeriod		        = gracePeriodInMinutes > 0
+        enableStartTime                 = time.Now()
 	)
-	intervalBetweenProbesInSeconds := time.Duration(intervalInSeconds) * time.Second
 
+    if !honorGracePeriod {
+        ctx.Log("event", "Grace period not set")
+    }
 	// The committed health status (the state written to the status file) initially does not have a state
 	// In order to change the state in the status file, the following must be observed:
 	//  1. Healthy status observed once when committed state is unknown
 	//  2. A different status is observed numberOfProbes consecutive times
 	// Example: Committed state = healthy, numberOfProbes = 3
 	// In order to change committed state to unhealthy, the probe needs to be unhealthy 3 consecutive times
-	for {
+	//
+    // The committed health state will remain in 'Initializing' state until any of the following occurs:
+	//	1. Grace period expires
+	//	2. A valid health state is observed numberOfProbes consecutive times
+    for {
 		startTime := time.Now()
 		state, err := probe.evaluate(ctx)
 		if err != nil {
@@ -108,21 +118,44 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
-		if state != committedState {
-			numberOfProbesLeft--
-		} else {
-			numberOfProbesLeft = numberOfProbes
+        // Consistently check if grace period has expired so that when we commit, 
+		// we decide if it should be Initializing or let state pass through
+		if honorGracePeriod {
+			timeElapsed := time.Now().Sub(enableStartTime)
+			if (timeElapsed >= gracePeriodInMinutes) {
+				ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - Expired. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
+				honorGracePeriod = false
+			}
 		}
 
-		if prevState != state {
-			ctx.Log("event", "State changed to "+strings.ToLower(string(state)))
-			prevState = state
+		if state != committedState && prevState == state {
+			numConsecutiveProbes++
+		} 
+        
+        if prevState != state {
+            ctx.Log("event", "State changed to "+strings.ToLower(string(state)))
+            numConsecutiveProbes = 1
+            prevState = state
+        }
+
+        if state == committedState {
+			numConsecutiveProbes = 0
 		}
 
-		if (numberOfProbesLeft == 0) || (committedState == Empty) {
+        if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
+			if honorGracePeriod {
+				timeElapsed := time.Now().Sub(enableStartTime)
+				if allowedHealthStatuses[state] && numConsecutiveProbes == numberOfProbes {
+					ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - Successful probes. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
+					honorGracePeriod = false
+				} else {
+					ctx.Log("event", fmt.Sprintf("Honoring grace period of '%v'. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
+					state = Initializing
+				}
+			}
 			committedState = state
-			ctx.Log("event", "Committed health state is "+strings.ToLower(string(committedState)))
-			numberOfProbesLeft = numberOfProbes
+			ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+			numConsecutiveProbes = 0
 		}
 
 		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), SubstatusKeyNameAppHealthStatus, committedState.GetSubstatusMessage(), committedState)

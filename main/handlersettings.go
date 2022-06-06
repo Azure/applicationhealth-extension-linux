@@ -53,6 +53,10 @@ func (s *handlerSettings) numberOfProbes() int {
 	}
 }
 
+func (s *handlerSettings) gracePeriodInMinutes() int {
+	return s.publicSettings.GracePeriodInMinutes
+}
+
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
 func (h handlerSettings) validate() error {
@@ -80,6 +84,7 @@ type publicSettings struct {
 	RequestPath       string `json:"requestPath"`
 	IntervalInSeconds int    `json:"intervalInSeconds,int"`
 	NumberOfProbes    int    `json:"numberOfProbes,int"`
+	GracePeriodInMinutes int `json:"gracePeriodInMinutes,int"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected
