@@ -462,13 +462,13 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 5,
-        "gracePeriodInMinutes": 1
+        "gracePeriodInMinutes": 10
     }' ''
     run start_container
 
     echo "$output"
 
-    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Grace period set to 10m'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
@@ -498,12 +498,12 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriodInMinutes": 1
+        "gracePeriodInMinutes": 10
     }' ''
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Grace period set to 10m'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
     [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
 
@@ -537,7 +537,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriodInMinutes": 1
+        "gracePeriodInMinutes": 10
     }' ''
     run start_container
 
@@ -547,7 +547,7 @@ teardown(){
     expectedTimeDifferences=(0 10 10 10 10 10 10 10 10 10 10)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
-    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Grace period set to 10m'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
     [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
     
@@ -569,6 +569,83 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+}
+
+@test "handler command: enable - states pass through when grace period expires" {
+    mk_container sh -c "webserver -states=x,x,x,x,x,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 10,
+        "gracePeriodInMinutes": 1
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Honoring grace period'* ]]
+    [[ "$output" == *'No longer honoring grace period - expired'* ]]
+    
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+
+    expectedTimeDifferences=(0 60)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
+    expectedStateLogs=(
+        "Health state changed to unknown"
+        "Committed health state is initializing"
+        "Committed health state is unknown"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+}
+
+@test "handler command: enable - larger numberOfProbes, consecutive rich states pass through grace period" {
+    mk_container sh -c "webserver -states=x,x,x,x,h,u,b,h,u,u,h,h,h,h,u,b,b,b,b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 4,
+        "intervalInSeconds": 5,
+        "gracePeriodInMinutes": 10
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Grace period set to 10m'* ]]
+    [[ "$output" == *'Honoring grace period'* ]]
+    [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
+    
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+
+    expectedTimeDifferences=(0 20 5 5 5 5 10 15 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
+    expectedStateLogs=(
+        "Health state changed to unknown"
+        "Committed health state is initializing"
+        "Health state changed to healthy"
+        "Health state changed to unhealthy"
+        "Health state changed to busy"
+        "Health state changed to healthy"
+        "Health state changed to unhealthy"
+        "Health state changed to healthy"
+        "Committed health state is healthy"
+        "Health state changed to unhealthy"
+        "Health state changed to busy"
+        "Committed health state is busy"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be busy'* ]]
 }
 
 @test "handler command: uninstall - deletes the data dir" {
