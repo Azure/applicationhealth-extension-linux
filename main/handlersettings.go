@@ -14,6 +14,7 @@ var (
 	errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 120 seconds")
 	defaultIntervalInSeconds           = 5
 	defaultNumberOfProbes              = 1
+    defaultGracePeriodInMinutes        = 0
 	maximumProbeSettleTime             = 120
 )
 
@@ -54,7 +55,12 @@ func (s *handlerSettings) numberOfProbes() int {
 }
 
 func (s *handlerSettings) gracePeriodInMinutes() int {
-	return s.publicSettings.GracePeriodInMinutes
+    var gracePeriodInMinutes = s.publicSettings.GracePeriodInMinutes
+	if gracePeriodInMinutes == 0 {
+		return defaultGracePeriodInMinutes
+	} else {
+		return gracePeriodInMinutes
+	}
 }
 
 // validate makes logical validation on the handlerSettings which already passed
