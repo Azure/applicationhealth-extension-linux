@@ -25,6 +25,12 @@ jobs:
     - name: Install golint
       run: sudo apt install golint
 
+    - name: Get Go Packages
+      run: go get -u github.com/tools/godep
+    
+    - name: Restore Go Packages
+      run: godep restore
+
     - name: Formatting 
       run: test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
       
