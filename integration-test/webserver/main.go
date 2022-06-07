@@ -21,9 +21,9 @@ const (
 
 // Flags passed to webserver in command line args to send correct health state values
 var stateMap = map[string]string{
-	"h":   "Healthy",
-	"u":   "Unhealthy",
-	"b":   "Busy",
+	"h": "Healthy",
+	"u": "Unhealthy",
+	"b": "Busy",
 }
 
 func main() {

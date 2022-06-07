@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-    "fmt"
 	"os"
-	"time"
 	"strings"
+	"time"
 )
 
 type cmdFunc func(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int) (msg string, err error)
@@ -84,21 +84,21 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 	probe := NewHealthProbe(ctx, &cfg)
 	var (
-		intervalBetweenProbesInMs       = time.Duration(cfg.intervalInSeconds()) * time.Millisecond * 1000
-		numberOfProbes     		        = cfg.numberOfProbes()
-		gracePeriodInMinutes 	        = time.Duration(cfg.gracePeriodInMinutes()) * time.Minute
-		numConsecutiveProbes	        = 0
-		prevState				        = Empty
-		committedState     		        = Empty
-		honorGracePeriod		        = gracePeriodInMinutes > 0
-        enableStartTime                 = time.Now()
+		intervalBetweenProbesInMs = time.Duration(cfg.intervalInSeconds()) * time.Millisecond * 1000
+		numberOfProbes            = cfg.numberOfProbes()
+		gracePeriodInMinutes      = time.Duration(cfg.gracePeriodInMinutes()) * time.Minute
+		numConsecutiveProbes      = 0
+		prevState                 = Empty
+		committedState            = Empty
+		honorGracePeriod          = gracePeriodInMinutes > 0
+		enableStartTime           = time.Now()
 	)
 
-    if !honorGracePeriod {
-        ctx.Log("event", "Grace period not set")
-    } else {
-        ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInMinutes))
-    }
+	if !honorGracePeriod {
+		ctx.Log("event", "Grace period not set")
+	} else {
+		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInMinutes))
+	}
 	// The committed health status (the state written to the status file) initially does not have a state
 	// In order to change the state in the status file, the following must be observed:
 	//  1. Healthy status observed once when committed state is unknown
@@ -106,10 +106,10 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	// Example: Committed state = healthy, numberOfProbes = 3
 	// In order to change committed state to unhealthy, the probe needs to be unhealthy 3 consecutive times
 	//
-    // The committed health state will remain in 'Initializing' state until any of the following occurs:
+	// The committed health state will remain in 'Initializing' state until any of the following occurs:
 	//	1. Grace period expires
 	//	2. A valid health state is observed numberOfProbes consecutive times
-    for {
+	for {
 		startTime := time.Now()
 		state, err := probe.evaluate(ctx)
 		if err != nil {
@@ -120,37 +120,37 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
-        // Only increment if it's a repeat of the previous
-        if prevState == state {
+		// Only increment if it's a repeat of the previous
+		if prevState == state {
 			numConsecutiveProbes++
-        // Log stage changes and also reset consecutive count to 1 as a new state was observed
+			// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
-            ctx.Log("event", "Health state changed to "+strings.ToLower(string(state)))
-            numConsecutiveProbes = 1
-            prevState = state
-        }
+			ctx.Log("event", "Health state changed to "+strings.ToLower(string(state)))
+			numConsecutiveProbes = 1
+			prevState = state
+		}
 
-        if honorGracePeriod && ((numConsecutiveProbes == numberOfProbes) || (committedState == Empty)) {
-            timeElapsed := time.Now().Sub(enableStartTime)
-            if (timeElapsed >= gracePeriodInMinutes) {
-                ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
-                honorGracePeriod = false
-            } else if allowedHealthStatuses[state] {
-                ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
-                honorGracePeriod = false
-            } else {
-                ctx.Log("event", fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
-                state = Initializing
-            }
-        }
+		if honorGracePeriod && ((numConsecutiveProbes == numberOfProbes) || (committedState == Empty)) {
+			timeElapsed := time.Now().Sub(enableStartTime)
+			if timeElapsed >= gracePeriodInMinutes {
+				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
+				honorGracePeriod = false
+			} else if allowedHealthStatuses[state] {
+				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
+				honorGracePeriod = false
+			} else {
+				ctx.Log("event", fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
+				state = Initializing
+			}
+		}
 
-        // Reset since we don't wish to commit the same state
-        if state == committedState {
-            numConsecutiveProbes = 0
-        }
+		// Reset since we don't wish to commit the same state
+		if state == committedState {
+			numConsecutiveProbes = 0
+		}
 
-        if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
-            committedState = state
+		if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
+			committedState = state
 			ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			numConsecutiveProbes = 0
 		}

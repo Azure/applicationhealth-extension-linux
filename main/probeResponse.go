@@ -1,16 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-	"fmt"
 )
 
 var (
-	allowedHealthStatuses = map[HealthStatus]bool {
-		Healthy:      true,
-		Unhealthy:    true,
-		Busy:         true,
+	allowedHealthStatuses = map[HealthStatus]bool{
+		Healthy:   true,
+		Unhealthy: true,
+		Busy:      true,
 	}
 )
 
