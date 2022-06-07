@@ -84,7 +84,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 	probe := NewHealthProbe(ctx, &cfg)
 	var (
-		intervalBetweenProbesInSeconds  = time.Duration(cfg.intervalInSeconds()) * time.Second
+		intervalBetweenProbesInMs       = time.Duration(cfg.intervalInSeconds()) * time.Millisecond * 1000
 		numberOfProbes     		        = cfg.numberOfProbes()
 		gracePeriodInMinutes 	        = time.Duration(cfg.gracePeriodInMinutes()) * time.Minute
 		numConsecutiveProbes	        = 0
@@ -96,6 +96,8 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
     if !honorGracePeriod {
         ctx.Log("event", "Grace period not set")
+    } else {
+        ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInMinutes))
     }
 	// The committed health status (the state written to the status file) initially does not have a state
 	// In order to change the state in the status file, the following must be observed:
@@ -118,42 +120,37 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
-        // Consistently check if grace period has expired so that when we commit, 
-		// we decide if it should be Initializing or let state pass through
-		if honorGracePeriod {
-			timeElapsed := time.Now().Sub(enableStartTime)
-			if (timeElapsed >= gracePeriodInMinutes) {
-				ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - expired. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
-				honorGracePeriod = false
-			}
-		}
-
-		if state != committedState && prevState == state {
+        // Only increment if it's a repeat of the previous
+        if prevState == state {
 			numConsecutiveProbes++
-		} 
-        
-        if prevState != state {
-            ctx.Log("event", "Probe observed health state changed to "+strings.ToLower(string(state)))
+        // Log stage changes and also reset consecutive count to 1 as a new state was observed
+		} else {
+            ctx.Log("event", "Health state changed to "+strings.ToLower(string(state)))
             numConsecutiveProbes = 1
             prevState = state
         }
 
+        if honorGracePeriod && ((numConsecutiveProbes == numberOfProbes) || (committedState == Empty)) {
+            timeElapsed := time.Now().Sub(enableStartTime)
+            if (timeElapsed >= gracePeriodInMinutes) {
+                ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
+                honorGracePeriod = false
+            } else if allowedHealthStatuses[state] {
+                ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
+                honorGracePeriod = false
+            } else {
+                ctx.Log("event", fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
+                state = Initializing
+            }
+        }
+
+        // Reset since we don't wish to commit the same state
         if state == committedState {
-			numConsecutiveProbes = 0
-		}
+            numConsecutiveProbes = 0
+        }
 
         if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
-			if honorGracePeriod {
-				timeElapsed := time.Now().Sub(enableStartTime)
-				if allowedHealthStatuses[state] && numConsecutiveProbes == numberOfProbes {
-					ctx.Log("event", fmt.Sprintf("No longer honoring grace period of '%v' - successful probes. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
-					honorGracePeriod = false
-				} else {
-					ctx.Log("event", fmt.Sprintf("Honoring grace period of '%v'. Time elapsed = '%v'", gracePeriodInMinutes, timeElapsed))
-					state = Initializing
-				}
-			}
-			committedState = state
+            committedState = state
 			ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			numConsecutiveProbes = 0
 		}
@@ -164,7 +161,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		endTime := time.Now()
-		durationToWait := intervalBetweenProbesInSeconds - endTime.Sub(startTime)
+		durationToWait := intervalBetweenProbesInMs - endTime.Sub(startTime)
 		if durationToWait > 0 {
 			time.Sleep(durationToWait)
 		}

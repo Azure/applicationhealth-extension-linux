@@ -2,39 +2,44 @@
 
 load test_helper
 
-@test "handler command: enable - alternating numofprobes with rich health = m,h,h,x,b,x,b,x,b" {
-    mk_container sh -c "webserver -states=m,h,h,x,b,x,b,x,b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+setup(){
+    build_docker_image
+}
+
+teardown(){
+    rm -rf "$certs_dir"
+}
+
+@test "handler command: enable - states passthrough when grace period expires" {
+    mk_container sh -c "webserver -states=x,x,x,x,x,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
         "requestPath": "health",
         "port": 8080,
         "numberOfProbes": 2,
-        "intervalInSeconds": 5
+        "intervalInSeconds": 10,
+        "gracePeriodInMinutes": 1
     }' ''
     run start_container
 
     echo "$output"
-
+    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Honoring grace period'* ]]
+    [[ "$output" == *'No longer honoring grace period - expired'* ]]
+    
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 5 5 5 5 5 5 5 5)
+    expectedTimeDifferences=(0, 60)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
-    
+
     expectedStateLogs=(
-        "State changed to unknown"
+        "Health state changed to unknown"
+        "Committed health state is initializing"
         "Committed health state is unknown"
-        "State changed to healthy"
-        "Committed health state is healthy"
-        "State changed to unknown"
-        "State changed to busy"
-        "State changed to unknown"
-        "State changed to busy"
-        "State changed to unknown"
-        "State changed to busy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }

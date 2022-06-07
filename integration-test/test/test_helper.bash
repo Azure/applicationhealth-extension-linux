@@ -131,6 +131,7 @@ copy_config() { # places specified settings file ($1) into container as 0.settin
 # for example: [5,10] means that the expected time difference between second log and first log is 5 seconds
 # and time difference between third log and second log is 10 seconds
 verify_state_change_timestamps() {
+    echo "$1"
     expectedTimeDifferences="$2"
     regex='time=(.*) version=(.*)'
     prevDate=""
@@ -141,7 +142,7 @@ verify_state_change_timestamps() {
             if [[ ! -z "$prevDate" ]]; then
                 diff=$(( $(date -d "${BASH_REMATCH[1]}" "+%s") - $(date -d "$prevDate" "+%s") ))
                 echo "Actual time difference is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
-                echo "$prevDate, ${BASH_REMATCH[1]}"
+                echo "Reported time: ${BASH_REMATCH[1]} and previous time: ${prevDate}"
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
