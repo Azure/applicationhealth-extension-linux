@@ -53,15 +53,16 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 	now := time.Now().UTC().Format(time.RFC3339)
 	return []StatusItem{
 		{
-			Version:      1.0,
+			Version: 1.0,
 			TimestampUTC: now,
-			Status: Status{
-				Operation:                   operation,
+			Status: Status {
+				Operation: operation,
 				ConfigurationAppliedTimeUTC: now,
 				Status: t,
 				FormattedMessage: FormattedMessage{
-					Lang:    "en",
-					Message: message},
+					Lang: "en",
+					Message: message,
+				},
 			},
 		},
 	}
@@ -71,13 +72,13 @@ func (r StatusReport) AddSubstatus(t StatusType, name, message string, state Hea
 	if len(r) > 0 {
 		r[0].Status.SubstatusList = []SubstatusItem{
 			{
-				Name:   name,
+				Name: name,
 				Status: t,
-				FormattedMessage: FormattedMessage{
-					Lang:    "en",
+				FormattedMessage: FormattedMessage {
+					Lang: "en",
 					Message: message,
 				},
-				AdditionalProperties: AdditionalProperties{
+				AdditionalProperties: AdditionalProperties {
 					AppHealthState: state,
 				},
 			},

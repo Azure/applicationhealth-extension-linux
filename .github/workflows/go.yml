@@ -7,89 +7,95 @@ on:
     branches: [ "master" ]
 
 jobs:
-  lint_and_unit_test:
-    strategy:
-      matrix:
-        os: [ubuntu-18.04]
-        go_version: [1.7]
-    runs-on: ${{ matrix.os }}
-    steps:
-    - name: Pull Repository
-      uses: actions/checkout@v3
-      
-    - name: Setup Go Environment
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go_version }}
-    
-    - name: Install golint
-      run: sudo apt install golint
-
-    - name: Get Go Packages
-      run: go get -u github.com/tools/godep
-    
-    - name: Restore Go Packages
-      run: godep restore
-
-    - name: Formatting 
-      run: test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
-      
-    - name: Lint
-      run: test -z "$(golint . | tee /dev/stderr)"
-    
-    - name: Vet
-      run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
-    
-    - name: Unit Tests
-      run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
-      
   build:
     strategy:
       matrix:
         os: [ubuntu-18.04]
-        go_version: [1.7]
+    
     runs-on: ${{ matrix.os }}
+
+    env:
+      repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
+
     steps:
+    - name: Setup Go
+      uses: actions/setup-go@v3
+
+    - name: Setup Go Environment 
+      run: |
+        echo "GOPATH=${{ github.workspace }}/go" >> $GITHUB_ENV
+        echo "GO111MODULE=auto" >> $GITHUB_ENV
+        echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
+        go env
+  
+    - name: Install Go Packages
+      run: |
+        sudo apt install golint
+        go get -u github.com/ahmetalpbalkan/govvv
+        go get -u github.com/tools/godep
+
     - name: Pull Repository
       uses: actions/checkout@v3
-
-    - name: Setup Go Environment
-      uses: actions/setup-go@v3
       with:
-        go-version: ${{ matrix.go_version }}
+        path: ${{ env.repo_root }}
+
+    - name: Restore Go Dependencies
+      run: |
+        godep restore
+      working-directory: ${{ env.repo_root }}
 
     - name: Install Bats
       run: |
         sudo add-apt-repository ppa:duggan/bats --yes
         sudo apt-get update -qq
         sudo apt-get install -qq bats
-    
-    - name: Install Other Dependencies
+
+    - name: Install Node and Npm
       run: |
         curl -sL https://deb.nodesource.com/setup_6.x | sudo bash -
         sudo apt-get install -qqy nodejs
         sudo apt install npm
-        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash -
-    
-    - name: Get Go Packages
-      run: |
-        go get -u github.com/ahmetalpbalkan/govvv
-        go get -u github.com/tools/godep
-    
-    - name: Restore Go Packages
-      run: godep restore
-    
+
+    - name: Install Azure CLI
+      run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash -
+      
     - name: Install Docker
-      run: sudo apt install docker.io
-    
+      run: |
+        sudo apt-get install runc
+        sudo apt-get install containerd
+        sudo apt-get install docker.io
+
+    - name: Formatting 
+      continue-on-error: true
+      run: test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
+      working-directory: ${{ env.repo_root }}
+
+    - name: Lint
+      continue-on-error: true
+      run: test -z "$(golint . | tee /dev/stderr)"
+      working-directory: ${{ env.repo_root }}
+
+    - name: Vet
+      continue-on-error: true
+      run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
+      working-directory: ${{ env.repo_root }}
+
+    - name: Unit Tests
+      continue-on-error: true
+      run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
+      working-directory: ${{ env.repo_root }}
+
     - name: Build Binaries
       run: make binary
+      working-directory: ${{ env.repo_root }}
     
     - name: Generate Webserver Credentials
       run: |
         openssl rand -out ~/.rnd 2048
         openssl genrsa -out testbin/webserverkey.pem 2048
         openssl req -new -x509 -sha256 -key testbin/webserverkey.pem -out testbin/webservercert.pem -days 3650 -subj '/CN=www.contoso.com/O=Contoso LTD./C=US'
-    
+      working-directory: ${{ env.repo_root }}
+
     - name: Run Integration Tests
       run: sudo bats integration-test/test
+      working-directory: ${{ env.repo_root }}
