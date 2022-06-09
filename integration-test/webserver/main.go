@@ -28,13 +28,16 @@ var stateMap = map[string]string{
 
 func main() {
 	states := flag.String("states", "", "contains comma separated [h,u,b]")
+	serverUptime := flag.Int("uptime", 0, "duration in seconds for how long the server should remain running")
 	flag.Parse()
+	serverUptimeSet := *serverUptime != 0
 	originalHealthStates := strings.Split(*states, ",")
 	healthStates := strings.Split(*states, ",")
 	var shouldExitOnEmptyHealthStates = len(healthStates) > 0
 	httpMutex := http.NewServeMux()
 	httpServer := http.Server{Addr: ":8080", Handler: httpMutex}
 	httpsServer := http.Server{Addr: ":443", Handler: httpMutex}
+	startTime := time.Now()
 
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
@@ -70,7 +73,7 @@ func main() {
 		}
 
 		// if healthStates is non-empty, this means that the test is only meant to run till we iterate over all healthstates, so the servers are shutdown
-		if shouldExitOnEmptyHealthStates && len(healthStates) == 0 {
+		if shouldExitOnEmptyHealthStates && len(healthStates) == 0 && !serverUptimeSet {
 			go func() {
 				log.Printf("Finished serving health states: %v", originalHealthStates)
 				log.Printf("Shutting down http and https server")
@@ -82,4 +85,20 @@ func main() {
 
 	go httpServer.ListenAndServe()
 	httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem")
+
+	// For TCP probes, we need a way to keep the server up and running
+	if (serverUptimeSet) {
+		serverUptimeInSeconds := time.Duration(*serverUptime) * time.Second
+		log.Printf("Server uptime set to %v", serverUptimeInSeconds)
+		for  {
+			if (time.Now().Sub(startTime) > serverUptimeInSeconds) {
+				log.Printf("Shutting down http and https server - server uptime expired")
+				go func() {
+					httpServer.Shutdown(context.Background())
+					httpsServer.Shutdown(context.Background())
+				}()
+				return
+			}
+		}
+	}
 }
