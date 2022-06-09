@@ -329,7 +329,7 @@ teardown(){
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 10 10 10 10 10 10 0 10 10 10)
+    expectedTimeDifferences=(0 10 10 10 10 10 10 0 10 20 10)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     expectedStateLogs=(
@@ -342,12 +342,11 @@ teardown(){
         "Health state changed to unhealthy"
         "Health state changed to healthy"
         "Committed health state is unhealthy"
-        "Health state changed to unhealthy"
         "Health state changed to healthy"
         "Health state changed to unhealthy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }

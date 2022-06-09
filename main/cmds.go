@@ -130,8 +130,6 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			prevState = state
 		}
 
-		ctx.Log("event", fmt.Sprintf("Current: %v, Number of consecutive probes: %d", state, numConsecutiveProbes))
-
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(enableStartTime)
 			// If grace period expires, application is considered unhealthy as it didn't initialize on time
