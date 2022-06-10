@@ -144,14 +144,15 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 			// Application will be in Initializing state since we have not received consecutive valid health states
-			} else if committedState == Empty {
+			} else {
+				ctx.Log("event", fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 				state = Initializing
 			}
-			ctx.Log("event", fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 		}
 
-		// Reset since we don't wish to commit the same state
-		if state == committedState {
+		// Reset since we don't wish to commit the same state, don't reset probes if we're in initializing state
+		// If we're in initializing state then we still want to keep track of what the endpoint is returning
+		if state == committedState && state != Initializing {
 			numConsecutiveProbes = 0
 		}
 
