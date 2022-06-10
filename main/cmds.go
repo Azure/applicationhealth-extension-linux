@@ -123,12 +123,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		// Only increment if it's a repeat of the previous
 		if prevState == state {
 			numConsecutiveProbes++
-			// Log stage changes and also reset consecutive count to 1 as a new state was observed
+		// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
 			ctx.Log("event", "Health state changed to "+strings.ToLower(string(state)))
 			numConsecutiveProbes = 1
 			prevState = state
 		}
+
+		ctx.Log("debug", fmt.Sprintf("Probe: %v, Committed: %v, numConsecutiveProbes: %d, numProbes: %d", state, committedState, numConsecutiveProbes, numberOfProbes))
 
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(enableStartTime)
@@ -150,15 +152,11 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			}
 		}
 
-		// Reset since we don't wish to commit the same state, don't reset probes if we're in initializing state
-		// If we're in initializing state then we still want to keep track of what the endpoint is returning
-		if state == committedState && state != Initializing {
-			numConsecutiveProbes = 0
-		}
-
 		if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
-			committedState = state
-			ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+			if state != committedState {
+				committedState = state
+				ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+			}
 			numConsecutiveProbes = 0
 		}
 

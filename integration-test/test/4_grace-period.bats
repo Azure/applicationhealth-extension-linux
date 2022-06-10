@@ -10,7 +10,7 @@ teardown(){
     rm -rf "$certs_dir"
 }
 
-@test "handler command: enable - log shows grace period not set" {
+@test "handler command: enable - grace period not set - log shows" {
     mk_container sh -c "webserver -states=h,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -30,7 +30,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
-@test "handler command: enable - http probe honor grace period" {
+@test "handler command: enable - honor grace period - http 2 probes" {
     mk_container sh -c "webserver -states=x,h,u,b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -66,7 +66,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - unresponsive http probe with numberOfProbes=1 honors grace period" {
+@test "handler command: enable - honor grace period - unresponsive http probe with numberOfProbes=1" {
     mk_container sh -c "webserver -states=m,m,m & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -94,7 +94,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - tcp probe with numberOfProbes=1 bypasses grace period" {
+@test "handler command: enable - bypass grace period - tcp probe with numberOfProbes=1" {
     mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -121,7 +121,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
-@test "handler command: enable - failed tcp probe honors grace period" {
+@test "handler command: enable - honor grace period - failed tcp probe" {
     mk_container sh -c "webserver -uptime=15 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -149,7 +149,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - bypassing grace period with consecutive valid health states" {
+@test "handler command: enable - bypass grace period - consecutive valid health states" {
     mk_container sh -c "webserver -states=x,h,u,b,b,h,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -188,7 +188,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
-@test "handler command: enable - state change behavior retained after bypassing grace period" {
+@test "handler command: enable - bypass grace period - state change behavior retained" {
     mk_container sh -c "webserver -states=x,h,u,b,b,h,h,u,b,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -231,7 +231,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - larger numberOfProbes, consecutive rich states pass through grace period" {
+@test "handler command: enable - bypass grace period - larger numberOfProbes, consecutive rich states" {
     mk_container sh -c "webserver -states=x,x,x,x,h,u,b,h,u,u,h,h,h,h,u,b,b,b,b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -275,7 +275,7 @@ teardown(){
 }
 
 
-@test "handler command: enable - unhealthy when grace period expires" {
+@test "handler command: enable - grace period expires - results in immediate unhealthy" {
     mk_container sh -c "webserver -states=x,x,x,x,x,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -309,7 +309,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
-@test "handler command: enable - unhealthy when grace period expires with additional alternating health states" {
+@test "handler command: enable - grace period expires - unhealthy with additional alternating health states" {
     mk_container sh -c "webserver -states=x,u,x,u,x,u,h,u,h,u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -329,7 +329,7 @@ teardown(){
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 10 10 10 10 10 10 0 10 20 10)
+    expectedTimeDifferences=(0 10 10 10 10 10 10 0 20 10)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     expectedStateLogs=(
