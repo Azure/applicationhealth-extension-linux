@@ -10,7 +10,7 @@ teardown(){
     rm -rf "$certs_dir"
 }
 
-@test "handler command: enable - numofprobes with rich health states = m,h,h,b,b,u,u,x,x" {
+@test "handler command: enable - rich states - basic states= m,h,h,b,b,u,u,x,x" {
     mk_container sh -c "webserver -states=m,h,h,b,b,u,u,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -47,7 +47,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - alternating numofprobes with rich health = m,h,h,x,b,u,b,x,b" {
+@test "handler command: enable - rich states - alternating states=m,h,h,x,b,u,b,x,b" {
     mk_container sh -c "webserver -states=m,h,h,x,b,u,b,x,b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -84,7 +84,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
-@test "handler command: enable - endpoint timeout results in unknown" {
+@test "handler command: enable - rich states - endpoint timeout results in unknown" {
     mk_container sh -c "webserver -states=h,t,t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -115,7 +115,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - invalid or missing app health state in response body results in unknown" {
+@test "handler command: enable - rich states - invalid or missing app health state in response body results in unknown" {
     mk_container sh -c "webserver -states=h,m,m,h,h,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {

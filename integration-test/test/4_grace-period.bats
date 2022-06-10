@@ -94,33 +94,6 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - bypass grace period - tcp probe with numberOfProbes=1" {
-    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
-    push_settings '
-    {
-        "protocol": "tcp",
-        "port": 3387,
-        "gracePeriodInMinutes": 10
-    }' ''
-    run start_container
-
-    echo "$output"
-
-    [[ "$output" == *'Grace period set to 10m'* ]]
-    [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
-
-    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
-
-    expectedStateLogs=(
-        "Health state changed to unhealthy"
-        "Committed health state is unhealthy"
-    )
-    verify_states "$enableLog" "${expectedStateLogs[@]}"
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
-}
-
 @test "handler command: enable - honor grace period - failed tcp probe" {
     mk_container sh -c "webserver -uptime=15 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
@@ -147,6 +120,33 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
+}
+
+@test "handler command: enable - bypass grace period - tcp probe with numberOfProbes=1" {
+    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "port": 3387,
+        "gracePeriodInMinutes": 10
+    }' ''
+    run start_container
+
+    echo "$output"
+
+    [[ "$output" == *'Grace period set to 10m'* ]]
+    [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
+
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+
+    expectedStateLogs=(
+        "Health state changed to unhealthy"
+        "Committed health state is unhealthy"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
 }
 
 @test "handler command: enable - bypass grace period - consecutive valid health states" {
