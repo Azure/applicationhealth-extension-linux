@@ -120,6 +120,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
+		ctx.Log("debug", fmt.Sprintf(
+			"Latest: %v, Previous: %v, Committed: %v, numberOfConsecutiveProbes: %d, numberOfProbes: %d", 
+			state, 
+			prevState, 
+			committedState, 
+			numConsecutiveProbes, 
+			numberOfProbes))
+
 		// Only increment if it's a repeat of the previous
 		if prevState == state {
 			numConsecutiveProbes++
@@ -129,8 +137,6 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			numConsecutiveProbes = 1
 			prevState = state
 		}
-
-		ctx.Log("debug", fmt.Sprintf("Probe: %v, Committed: %v, numConsecutiveProbes: %d, numProbes: %d", state, committedState, numConsecutiveProbes, numberOfProbes))
 
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(enableStartTime)
