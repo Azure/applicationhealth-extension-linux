@@ -39,7 +39,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 5,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -73,7 +73,7 @@ teardown(){
         "protocol": "http",
         "requestPath": "/health",
         "port": 8080,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -101,7 +101,7 @@ teardown(){
         "protocol": "tcp",
         "port": 3387,
         "numberOfProbes": 2,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -128,7 +128,7 @@ teardown(){
     {
         "protocol": "tcp",
         "port": 3387,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -158,7 +158,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -197,7 +197,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -240,7 +240,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 4,
         "intervalInSeconds": 5,
-        "gracePeriodInMinutes": 10
+        "gracePeriod": 10
     }' ''
     run start_container
 
@@ -284,7 +284,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriodInMinutes": 1
+        "gracePeriod": 1
     }' ''
     run start_container
 
@@ -318,7 +318,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriodInMinutes": 1
+        "gracePeriod": 1
     }' ''
     run start_container
 

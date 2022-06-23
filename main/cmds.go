@@ -86,12 +86,12 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	var (
 		intervalBetweenProbesInMs = time.Duration(cfg.intervalInSeconds()) * time.Millisecond * 1000
 		numberOfProbes            = cfg.numberOfProbes()
-		gracePeriodInMinutes      = time.Duration(cfg.gracePeriodInMinutes()) * time.Minute
+		gracePeriodInMinutes      = time.Duration(cfg.gracePeriod()) * time.Minute
 		numConsecutiveProbes      = 0
 		prevState                 = Empty
 		committedState            = Empty
 		honorGracePeriod          = gracePeriodInMinutes > 0
-		enableStartTime           = time.Now()
+		gracePeriodStartTime      = time.Now()
 	)
 
 	if !honorGracePeriod {
@@ -120,14 +120,6 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
-		ctx.Log("debug", fmt.Sprintf(
-			"Latest: %v, Previous: %v, Committed: %v, numberOfConsecutiveProbes: %d, numberOfProbes: %d", 
-			state, 
-			prevState, 
-			committedState, 
-			numConsecutiveProbes, 
-			numberOfProbes))
-
 		// Only increment if it's a repeat of the previous
 		if prevState == state {
 			numConsecutiveProbes++
@@ -139,7 +131,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		if honorGracePeriod {
-			timeElapsed := time.Now().Sub(enableStartTime)
+			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application is considered unhealthy as it didn't initialize on time
 			if timeElapsed >= gracePeriodInMinutes {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))

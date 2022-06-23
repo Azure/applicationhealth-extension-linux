@@ -14,7 +14,7 @@ var (
 	errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 120 seconds")
 	defaultIntervalInSeconds           = 5
 	defaultNumberOfProbes              = 1
-	defaultGracePeriodInMinutes        = 0
+	defaultGracePeriod       = 0
 	maximumProbeSettleTime             = 120
 )
 
@@ -54,12 +54,12 @@ func (s *handlerSettings) numberOfProbes() int {
 	}
 }
 
-func (s *handlerSettings) gracePeriodInMinutes() int {
-	var gracePeriodInMinutes = s.publicSettings.GracePeriodInMinutes
-	if gracePeriodInMinutes == 0 {
-		return defaultGracePeriodInMinutes
+func (s *handlerSettings) gracePeriod() int {
+	var gracePeriod = s.publicSettings.GracePeriod
+	if gracePeriod == 0 {
+		return defaultGracePeriod
 	} else {
-		return gracePeriodInMinutes
+		return gracePeriod
 	}
 }
 
@@ -90,7 +90,7 @@ type publicSettings struct {
 	RequestPath          string `json:"requestPath"`
 	IntervalInSeconds    int    `json:"intervalInSeconds,int"`
 	NumberOfProbes       int    `json:"numberOfProbes,int"`
-	GracePeriodInMinutes int    `json:"gracePeriodInMinutes,int"`
+	GracePeriod 		 int    `json:"gracePeriod,int"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected
