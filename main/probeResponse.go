@@ -7,9 +7,13 @@ import (
 )
 
 var (
-	allowedHealthStatuses = map[HealthStatus]bool{
+	healthStatusesAllowedInProbeResponse = map[HealthStatus]bool{
 		Healthy:   true,
 		Unhealthy: true,
+		Busy:      true,
+	}
+	healthStatusesAllowedToBypassGracePeriod = map[HealthStatus]bool{
+		Healthy:   true,
 		Busy:      true,
 	}
 )
@@ -19,7 +23,7 @@ type ProbeResponse struct {
 }
 
 func (p ProbeResponse) validate(ctx *log.Context) error {
-	if !allowedHealthStatuses[p.ApplicationHealthState] {
+	if !healthStatusesAllowedInProbeResponse[p.ApplicationHealthState] {
 		return errors.New(fmt.Sprintf("Invalid value '%s' for '%s'", string(p.ApplicationHealthState), ApplicationHealthStateResponseKey))
 	}
 	return nil

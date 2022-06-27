@@ -138,33 +138,49 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	if err != nil {
 		return Unknown, err
 	}
-
+	
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
 	resp, err := p.HttpClient.Do(req)
+	// non-2xx status code doesn't return err
+	// err is returned if a timeout occurred
 	if err != nil {
 		return Unknown, err
 	}
 
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return Unknown, err
-	}
+	// 2xx status code -> check response body
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return Unknown, err
+		}
 
-	probeResponse := new(ProbeResponse)
-	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
-		return Unknown, err
-	}
+		probeResponse := new(ProbeResponse)
+		if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
+			return Unknown, err
+		}
 
-	if probeResponse == nil {
-		return Unknown, errors.New(fmt.Sprintf("Unable to parse '%s' in response body '%s'", SubstatusKeyNameAppHealthStatus, string(bodyBytes)))
-	}
+		// do not require that customer will send application health state
+		// default to Healthy if health state is not present
+		if probeResponse == nil {
+			bodyStr := string(bodyBytes)
+			if strings.Contains(bodyStr, SubstatusKeyNameAppHealthStatus) {
+				return Unknown, errors.New(fmt.Sprintf("Unable to parse '%s' in response body '%s'", SubstatusKeyNameAppHealthStatus, ))
+			} else {
+				return Healthy, nil
+			}
+		}
 
-	if err := probeResponse.validate(ctx); err != nil {
-		return Unknown, err
+		if err := probeResponse.validate(ctx); err != nil {
+			return Unknown, err
+		}
+
+		return probeResponse.ApplicationHealthState, nil
+	// non 2xx status code
+	} else {
+		return Unhealthy, nil
 	}
-	return probeResponse.ApplicationHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {
