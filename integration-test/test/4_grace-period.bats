@@ -11,7 +11,7 @@ teardown(){
 }
 
 @test "handler command: enable - grace period not set - log shows" {
-    mk_container sh -c "webserver -states=h,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -31,7 +31,7 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - http 2 probes" {
-    mk_container sh -c "webserver -states=x,h,u,b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2,2u,2b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -67,7 +67,7 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - unresponsive http probe with numberOfProbes=1" {
-    mk_container sh -c "webserver -states=m,m,m & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2m,2m,2m & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -94,63 +94,8 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - honor grace period - failed tcp probe" {
-    mk_container sh -c "webserver -uptime=15 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
-    push_settings '
-    {
-        "protocol": "tcp",
-        "port": 3387,
-        "numberOfProbes": 2,
-        "gracePeriod": 10
-    }' ''
-    run start_container
-
-    echo "$output"
-
-    [[ "$output" == *'Grace period set to 10m'* ]]
-    [[ "$output" == *'Honoring grace period'* ]]
-
-    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
-
-    expectedStateLogs=(
-        "Health state changed to unhealthy"
-        "Committed health state is initializing"
-    )
-    verify_states "$enableLog" "${expectedStateLogs[@]}"
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
-}
-
-@test "handler command: enable - bypass grace period - tcp probe with numberOfProbes=1" {
-    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
-    push_settings '
-    {
-        "protocol": "tcp",
-        "port": 3387,
-        "gracePeriod": 10
-    }' ''
-    run start_container
-
-    echo "$output"
-
-    [[ "$output" == *'Grace period set to 10m'* ]]
-    [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
-
-    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
-
-    expectedStateLogs=(
-        "Health state changed to unhealthy"
-        "Committed health state is unhealthy"
-    )
-    verify_states "$enableLog" "${expectedStateLogs[@]}"
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
-}
-
 @test "handler command: enable - bypass grace period - consecutive valid health states" {
-    mk_container sh -c "webserver -states=x,h,u,b,b,h,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2,2u,2b,2b,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -189,7 +134,7 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - state change behavior retained" {
-    mk_container sh -c "webserver -states=x,h,u,b,b,h,h,u,b,x,x & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2,2u,2b,2b,2,2,2u,2b,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
