@@ -67,7 +67,7 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - unresponsive http probe with numberOfProbes=1" {
-    mk_container sh -c "webserver -states=2m,2m,2m & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2t,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
