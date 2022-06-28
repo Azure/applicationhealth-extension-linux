@@ -132,7 +132,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
-			// If grace period expires, application is considered unhealthy as it didn't initialize on time
+			// If grace period expires, application didn't initialize on time
 			if timeElapsed >= gracePeriodInMinutes {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
