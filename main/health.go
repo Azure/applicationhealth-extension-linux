@@ -149,7 +149,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	defer resp.Body.Close()
 
 	// non 2xx status code
-	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return Unknown, nil
 	}
 
