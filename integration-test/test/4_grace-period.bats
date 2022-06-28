@@ -219,9 +219,8 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be busy'* ]]
 }
 
-
-@test "handler command: enable - grace period expires - results in immediate unhealthy" {
-    mk_container sh -c "webserver -states=2i,2i,2i,2i,2i,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - bypass / grace period expires - unknown/unhealthy fails to bypass and expiration results in unknown" {
+    mk_container sh -c "webserver -states=2u,2u,2i,2i,2u,2u,2u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -240,22 +239,25 @@ teardown(){
     
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 60)
+    expectedTimeDifferences=(0 20 20 20 10)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     expectedStateLogs=(
-        "Health state changed to unknown"
+        "Health state changed to unhealthy"
         "Committed health state is initializing"
-        "Committed health state is unhealthy"
+        "Health state changed to unknown"
+        "Health state changed to unhealthy"
+        "Committed health state is unknown"
+        "Health state changed to unhealthy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - grace period expires - unhealthy with additional alternating health states" {
-    mk_container sh -c "webserver -states=2i,2u,2i,2u,2i,2u,2,2u,2,2u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - grace period expires - additional alternating health states" {
+    mk_container sh -c "webserver -states=2i,2u,2i,2u,2i,2u,2,2u,2,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -274,7 +276,7 @@ teardown(){
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 10 10 10 10 10 10 0 20 10)
+    expectedTimeDifferences=(0 10 10 10 10 10 10 0 10 10 10 10)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     expectedStateLogs=(
@@ -286,12 +288,13 @@ teardown(){
         "Health state changed to unknown"
         "Health state changed to unhealthy"
         "Health state changed to healthy"
-        "Committed health state is unhealthy"
-        "Health state changed to healthy"
+        "Committed health state is unknown"
         "Health state changed to unhealthy"
+        "Health state changed to healthy"
+        "Committed health state is healthy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }

@@ -69,6 +69,8 @@ func main() {
 						log.Printf("Sending response with app health state: %s", stateMap[stateFlag])
 						response[ApplicationHealthStateResponseKey] = stateMap[stateFlag]
 				}
+			} else {
+				log.Printf("Sending no response body with status code %v", statusCode)
 			}
 		}
 		healthStates = healthStates[1:]
