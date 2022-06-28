@@ -19,12 +19,16 @@ var (
 )
 
 type ProbeResponse struct {
-	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
+	ApplicationHealthState *HealthStatus `json:"applicationHealthState"`
 }
 
 func (p ProbeResponse) validate(ctx *log.Context) error {
-	if !healthStatusesAllowedInProbeResponse[p.ApplicationHealthState] {
-		return errors.New(fmt.Sprintf("Invalid value '%s' for '%s'", string(p.ApplicationHealthState), ApplicationHealthStateResponseKey))
+	if p.ApplicationHealthState == nil {
+		return nil
+	}
+
+	if !healthStatusesAllowedInProbeResponse[*p.ApplicationHealthState] {
+		return errors.New(fmt.Sprintf("Invalid value '%s' for '%s'", string(*p.ApplicationHealthState), ApplicationHealthStateResponseKey))
 	}
 	return nil
 }

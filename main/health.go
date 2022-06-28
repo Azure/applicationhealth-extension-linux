@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -149,38 +148,31 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 
 	defer resp.Body.Close()
 
-	// 2xx status code -> check response body
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return Unknown, err
-		}
-
-		probeResponse := new(ProbeResponse)
-		if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
-			return Unknown, err
-		}
-
-		// do not require that customer will send application health state
-		// default to Healthy if health state is not present
-		if probeResponse == nil {
-			bodyStr := string(bodyBytes)
-			if strings.Contains(bodyStr, SubstatusKeyNameAppHealthStatus) {
-				return Unknown, errors.New(fmt.Sprintf("Unable to parse '%s' in response body '%s'", SubstatusKeyNameAppHealthStatus, ))
-			} else {
-				return Healthy, nil
-			}
-		}
-
-		if err := probeResponse.validate(ctx); err != nil {
-			return Unknown, err
-		}
-
-		return probeResponse.ApplicationHealthState, nil
 	// non 2xx status code
-	} else {
-		return Unhealthy, nil
+	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
+		return Unknown, nil
 	}
+
+	// 2xx status code -> check response body
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Unknown, err
+	}
+
+	probeResponse := new(ProbeResponse)
+	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
+		return Unknown, err
+	}
+
+	if probeResponse.ApplicationHealthState == nil {
+		return Healthy, err
+	}
+
+	if err := probeResponse.validate(ctx); err != nil {
+		return Unknown, err
+	}
+
+	return *probeResponse.ApplicationHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {

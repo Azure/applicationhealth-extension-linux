@@ -178,8 +178,8 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
-@test "handler command: enable - numofprobes with states = uu" {
-    mk_container sh -c "webserver -states=u,u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - numofprobes with states = unk,unk" {
+    mk_container sh -c "webserver -states=3,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -193,11 +193,11 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - numofprobes with states = huu" {
-    mk_container sh -c "webserver -states=h,u,u & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - numofprobes with states = h,unk,unk" {
+    mk_container sh -c "webserver -states=2,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -218,17 +218,17 @@ teardown(){
     expectedStateLogs=(
         "Health state changed to healthy"
         "Committed health state is healthy"
-        "Health state changed to unhealthy"
-        "Committed health state is unhealthy"
+        "Health state changed to unknown"
+        "Committed health state is unknown"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - numofprobes with states = huuh" {
-    mk_container sh -c "webserver -states=h,u,u,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - numofprobes with states = h,unk,unk,h" {
+    mk_container sh -c "webserver -states=2,4,4,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -249,18 +249,18 @@ teardown(){
     expectedStateLogs=(
         "Health state changed to healthy"
         "Committed health state is healthy"
-        "Health state changed to unhealthy"
-        "Committed health state is unhealthy"
+        "Health state changed to unknown"
+        "Committed health state is unknown"
         "Health state changed to healthy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - numofprobes with states = huuhh" {
-    mk_container sh -c "webserver -states=h,u,u,h,h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - numofprobes with states = h,unk,unk,h,h" {
+    mk_container sh -c "webserver -states=2,4,4,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -281,8 +281,8 @@ teardown(){
     expectedStateLogs=(
         "Health state changed to healthy"
         "Committed health state is healthy"
-        "Health state changed to unhealthy"
-        "Committed health state is unhealthy"
+        "Health state changed to unknown"
+        "Committed health state is unknown"
         "Health state changed to healthy"
         "Committed health state is healthy"
     )
