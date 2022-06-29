@@ -13,7 +13,7 @@ import (
 
 const (
 	TimeoutFlag                            = "t" // force request to timeout
-	TimeoutInSeconds                       = 30
+	TimeoutInSeconds                       = 35
 	ApplicationHealthStateMissingFlag      = "m" // send missing response body
 	InvalidApplicationHealthStateValueFlag = "i" // send invalid value for health state
 
