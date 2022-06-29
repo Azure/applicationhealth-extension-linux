@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +21,7 @@ type ProbeResponse struct {
 	ApplicationHealthState *HealthStatus `json:"applicationHealthState"`
 }
 
-func (p ProbeResponse) validate(ctx *log.Context) error {
+func (p ProbeResponse) validate() error {
 	if p.ApplicationHealthState == nil {
 		return nil
 	}
