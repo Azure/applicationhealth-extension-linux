@@ -134,7 +134,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
-@test "handler command: enable - healthy http probe" {
+@test "handler command: enable - unknown http probe - no response body" {
     mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -146,10 +146,10 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - healthy http probe prefixing requestPath with a slash" {
+@test "handler command: enable - unknown http probe - no response body - prefixing requestPath with a slash" {
     mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -161,10 +161,10 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - healthy https probe" {
+@test "handler command: enable - unknown https probe - no response body" {
     mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -175,7 +175,7 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - numofprobes with states = unk,unk" {
@@ -197,7 +197,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,unk,unk" {
-    mk_container sh -c "webserver -states=2,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2h,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -228,7 +228,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,unk,unk,h" {
-    mk_container sh -c "webserver -states=2,4,4,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2h,4,4,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -260,7 +260,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,unk,unk,h,h" {
-    mk_container sh -c "webserver -states=2,4,4,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2h,4,4,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",

@@ -6,28 +6,20 @@ import (
 )
 
 var (
-	healthStatusesAllowedInProbeResponse = map[HealthStatus]bool{
+	allowedHealthStatuses = map[HealthStatus]bool{
 		Healthy:   true,
 		Unhealthy: true,
-		Busy:      true,
-	}
-	healthStatusesAllowedToBypassGracePeriod = map[HealthStatus]bool{
-		Healthy:   true,
 		Busy:      true,
 	}
 )
 
 type ProbeResponse struct {
-	ApplicationHealthState *HealthStatus `json:"applicationHealthState"`
+	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
 }
 
 func (p ProbeResponse) validate() error {
-	if p.ApplicationHealthState == nil {
-		return nil
-	}
-
-	if !healthStatusesAllowedInProbeResponse[*p.ApplicationHealthState] {
-		return errors.New(fmt.Sprintf("Invalid value '%s' for '%s'", string(*p.ApplicationHealthState), ApplicationHealthStateResponseKey))
+	if !allowedHealthStatuses[p.ApplicationHealthState] {
+		return errors.New(fmt.Sprintf("Invalid value '%s' for '%s'", string(p.ApplicationHealthState), ApplicationHealthStateResponseKey))
 	}
 	return nil
 }

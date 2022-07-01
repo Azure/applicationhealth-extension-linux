@@ -26,12 +26,10 @@ teardown(){
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
     
-    expectedTimeDifferences=(0 10 5 5 5 5 5 5 5)
+    expectedTimeDifferences=(0 20 5 5 5 5 5 5)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     expectedStateLogs=(
-        "Health state changed to healthy"
-        "Committed health state is healthy"
         "Health state changed to unknown"
         "Committed health state is unknown"
         "Health state changed to busy"
@@ -96,10 +94,12 @@ teardown(){
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
     
-    expectedTimeDifferences=(0 15 5 5 5 5 5 5 5)
+    expectedTimeDifferences=(0 5 5 5 5 5 5 5 5 5 5)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
    
     expectedStateLogs=(
+        "Health state changed to unknown"
+        "Committed health state is unknown"
         "Health state changed to healthy"
         "Committed health state is healthy"
         "Health state changed to busy"
@@ -115,7 +115,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
-@test "handler command: enable - rich states - alternating states=unk,h,h,i,b,u,b,i,b" {
+@test "handler command: enable - rich states - alternating states=i,h,h,i,b,u,b,i,b" {
     mk_container sh -c "webserver -states=2i,2h,2h,2i,2b,2u,2b,2i,2b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {

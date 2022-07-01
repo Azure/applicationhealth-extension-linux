@@ -148,10 +148,6 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 
 	defer resp.Body.Close()
 
-	return p.extractHealthStatusFromResponse(resp)
-}
-
-func (p *HttpHealthProbe) extractHealthStatusFromResponse(resp *http.Response) (HealthStatus, error) {
 	// non 2xx status code
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return Unknown, nil
@@ -162,23 +158,14 @@ func (p *HttpHealthProbe) extractHealthStatusFromResponse(resp *http.Response) (
 		return Unknown, err
 	}
 
-	// check if response is json, we should not require that response body is in JSON format
-	var js json.RawMessage
-	if err := json.Unmarshal(bodyBytes, &js); err != nil {
-		return Healthy, nil
-	}
-
-	// Check if JSON contains ApplicationHealthState
 	probeResponse := new(ProbeResponse)
 	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
 		return Unknown, err
-	} else if probeResponse.ApplicationHealthState == nil {
-		return Healthy, err
 	} else if err := probeResponse.validate(); err != nil {
 		return Unknown, err
 	}
 
-	return *probeResponse.ApplicationHealthState, nil
+	return probeResponse.ApplicationHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {
