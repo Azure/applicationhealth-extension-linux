@@ -24,11 +24,10 @@ const (
 var stateMap = map[string]string{
 	"h": "Healthy",
 	"u": "Unhealthy",
-	"b": "Busy",
 }
 
 func main() {
-	states := flag.String("states", "", "contains comma separated [2,3,4,5] representing status code x00 to send back combined with optional [h,u,b,t,m,i] for health state")
+	states := flag.String("states", "", "contains comma separated [2,3,4,5] representing status code x00 to send back combined with optional [h,u,t,m,i] for health state")
 	flag.Parse()
 	originalHealthStates := strings.Split(*states, ",")
 	healthStates := strings.Split(*states, ",")

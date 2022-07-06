@@ -31,7 +31,7 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - http 2 probes" {
-    mk_container sh -c "webserver -states=2i,2h,2u,2b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -58,7 +58,7 @@ teardown(){
         "Committed health state is initializing"
         "Health state changed to healthy"
         "Health state changed to unhealthy"
-        "Health state changed to busy"
+        "Health state changed to healthy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
@@ -95,7 +95,7 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - consecutive valid health states" {
-    mk_container sh -c "webserver -states=2i,2h,2u,2b,2b,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2h,2u,2h,2h,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -122,8 +122,8 @@ teardown(){
         "Committed health state is initializing"
         "Health state changed to healthy"
         "Health state changed to unhealthy"
-        "Health state changed to busy"
-        "Committed health state is busy"
+        "Health state changed to healthy"
+        "Committed health state is healthy"
         "Health state changed to unknown"
         "Committed health state is unknown"
     )
@@ -134,7 +134,7 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - state change behavior retained" {
-    mk_container sh -c "webserver -states=2i,2h,2u,2b,2b,2h,2h,2u,2b,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2h,2u,2h,2h,2u,2u,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -149,7 +149,7 @@ teardown(){
     echo "$output"
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 10 10 10 10 10 10 10 10 10 10)
+    expectedTimeDifferences=(0 10 10 10 10 10 10 10 10 10)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     [[ "$output" == *'Grace period set to 10m'* ]]
@@ -161,12 +161,11 @@ teardown(){
         "Committed health state is initializing"
         "Health state changed to healthy"
         "Health state changed to unhealthy"
-        "Health state changed to busy"
-        "Committed health state is busy"
         "Health state changed to healthy"
         "Committed health state is healthy"
         "Health state changed to unhealthy"
-        "Health state changed to busy"
+        "Committed health state is unhealthy"
+        "Health state changed to healthy"
         "Health state changed to unknown"
         "Committed health state is unknown"
     )
@@ -177,7 +176,7 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - larger numberOfProbes, consecutive rich states" {
-    mk_container sh -c "webserver -states=2i,2i,2i,2i,2h,2u,2b,2h,2u,2u,2h,2h,2h,2h,2u,2b,2b,2b,2b & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2i,2i,2i,2i,2h,2u,2h,2u,2u,2h,2h,2h,2h,2u,2i,2i,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -196,7 +195,7 @@ teardown(){
     
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 20 5 5 5 5 10 15 5)
+    expectedTimeDifferences=(0 20 5 5 5 10 15 5)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
 
     expectedStateLogs=(
@@ -204,23 +203,22 @@ teardown(){
         "Committed health state is initializing"
         "Health state changed to healthy"
         "Health state changed to unhealthy"
-        "Health state changed to busy"
         "Health state changed to healthy"
         "Health state changed to unhealthy"
         "Health state changed to healthy"
         "Committed health state is healthy"
         "Health state changed to unhealthy"
-        "Health state changed to busy"
-        "Committed health state is busy"
+        "Health state changed to unknown"
+        "Committed health state is unknown"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be busy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
 }
 
 @test "handler command: enable - bypass / grace period expires - fail to bypass and expiration results in unknown" {
-    mk_container sh -c "webserver -states=2u,2m,2i,2i,2b,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -states=2u,2m,2i,2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -246,7 +244,7 @@ teardown(){
         "Health state changed to unhealthy"
         "Committed health state is initializing"
         "Health state changed to unknown"
-        "Health state changed to busy"
+        "Health state changed to healthy"
         "Health state changed to unhealthy"
         "Health state changed to healthy"
         "Committed health state is unknown"

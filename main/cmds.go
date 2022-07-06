@@ -120,6 +120,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			return "", errTerminated
 		}
 
+		ctx.Log("debug", fmt.Sprintf(
+			"Latest: %v, Previous: %v, Committed: %v, numberOfConsecutiveProbes: %d, numberOfProbes: %d", 
+			state, 
+			prevState, 
+			committedState, 
+			numConsecutiveProbes, 
+			numberOfProbes))
+
 		// Only increment if it's a repeat of the previous
 		if prevState == state {
 			numConsecutiveProbes++
@@ -130,6 +138,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			prevState = state
 		}
 
+		ctx.Log("debug2", fmt.Sprintf(
+			"Latest: %v, Previous: %v, Committed: %v, numberOfConsecutiveProbes: %d, numberOfProbes: %d", 
+			state, 
+			prevState, 
+			committedState, 
+			numConsecutiveProbes, 
+			numberOfProbes))
+
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application didn't initialize on time
@@ -138,6 +154,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				honorGracePeriod = false
 				state = Unknown
 				prevState = Unknown
+				numConsecutiveProbes = 1
 				committedState = Empty
 			// If grace period has not expired, check if we have consecutive valid probes
 			} else if (numConsecutiveProbes == numberOfProbes) && allowedHealthStatuses[state] {
@@ -155,7 +172,10 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				committedState = state
 				ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			}
-			numConsecutiveProbes = 0
+			// Only reset if we've observed consecutive probes in order to preserve previous observations when handling grace period
+			if (numConsecutiveProbes == numberOfProbes) {
+				numConsecutiveProbes = 0
+			}
 		}
 
 		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), SubstatusKeyNameAppHealthStatus, committedState.GetSubstatusMessage(), committedState)
