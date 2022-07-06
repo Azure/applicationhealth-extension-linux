@@ -20,7 +20,6 @@ const (
 	Initializing HealthStatus = "Initializing"
 	Healthy      HealthStatus = "Healthy"
 	Unhealthy    HealthStatus = "Unhealthy"
-	Busy         HealthStatus = "Busy"
 	Unknown      HealthStatus = "Unknown"
 	Empty        HealthStatus = ""
 )

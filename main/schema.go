@@ -45,11 +45,10 @@ const (
       "maximum": 24
     },
     "gracePeriod": {
-      "description": "The amount of time in minutes the application will default to 'Initializing' state if no valid health state is observed numberOfProbes consecutive times.",
+      "description": "The amount of time in seconds the application will default to 'Initializing' state if no valid health state is observed numberOfProbes consecutive times.",
       "type": "integer",
-      "default": 0,
-      "minimum": 0,
-      "maximum": 60
+      "minimum": 5,
+      "maximum": 3600
     }
   },
   "additionalProperties": false

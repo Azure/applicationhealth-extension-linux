@@ -39,7 +39,7 @@ type FormattedMessage struct {
 }
 
 type AdditionalProperties struct {
-	AppHealthState HealthStatus `json:"applicationHealthState"`
+	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
 }
 
 type SubstatusItem struct {
@@ -79,7 +79,7 @@ func (r StatusReport) AddSubstatus(t StatusType, name, message string, state Hea
 					Message: message,
 				},
 				AdditionalProperties: AdditionalProperties {
-					AppHealthState: state,
+					ApplicationHealthState: state,
 				},
 			},
 		}

@@ -86,18 +86,18 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	var (
 		intervalBetweenProbesInMs = time.Duration(cfg.intervalInSeconds()) * time.Millisecond * 1000
 		numberOfProbes            = cfg.numberOfProbes()
-		gracePeriodInMinutes      = time.Duration(cfg.gracePeriod()) * time.Minute
+		gracePeriodInSeconds      = time.Duration(cfg.gracePeriod()) * time.Second
 		numConsecutiveProbes      = 0
 		prevState                 = Empty
 		committedState            = Empty
-		honorGracePeriod          = gracePeriodInMinutes > 0
+		honorGracePeriod          = gracePeriodInSeconds > 0
 		gracePeriodStartTime      = time.Now()
 	)
 
 	if !honorGracePeriod {
 		ctx.Log("event", "Grace period not set")
 	} else {
-		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInMinutes))
+		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 	// The committed health status (the state written to the status file) initially does not have a state
 	// In order to change the state in the status file, the following must be observed:
@@ -133,7 +133,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application didn't initialize on time
-			if timeElapsed >= gracePeriodInMinutes {
+			if timeElapsed >= gracePeriodInSeconds {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				state = Unknown

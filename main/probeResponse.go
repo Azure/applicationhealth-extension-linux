@@ -9,7 +9,6 @@ var (
 	allowedHealthStatuses = map[HealthStatus]bool{
 		Healthy:   true,
 		Unhealthy: true,
-		Busy:      true,
 	}
 )
 
