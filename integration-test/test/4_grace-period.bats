@@ -228,7 +228,7 @@ teardown(){
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Grace period set to 60s'* ]]
+    [[ "$output" == *'Grace period set to 1m'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
     [[ "$output" == *'No longer honoring grace period - expired'* ]]
     
@@ -266,7 +266,7 @@ teardown(){
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Grace period set to 60s'* ]]
+    [[ "$output" == *'Grace period set to 1m'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
     [[ "$output" == *'No longer honoring grace period - expired'* ]]
 
