@@ -107,7 +107,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	// In order to change committed state to unhealthy, the probe needs to be unhealthy 3 consecutive times
 	//
 	// The committed health state will remain in 'Initializing' state until any of the following occurs:
-	//	1. Grace period expires, then application will be in 'Unknown' state
+	//	1. Grace period expires, then application will either be Unknown/Unhealthy depending on probe type
 	//	2. A valid health state is observed numberOfProbes consecutive times
 	for {
 		startTime := time.Now()
@@ -136,12 +136,12 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			if timeElapsed >= gracePeriodInSeconds {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
-				state = Unknown
-				prevState = Unknown
+				state = probe.healthStatusAfterGracePeriodExpires()
+				prevState = probe.healthStatusAfterGracePeriodExpires()
 				numConsecutiveProbes = 1
 				committedState = Empty
 			// If grace period has not expired, check if we have consecutive valid probes
-			} else if (numConsecutiveProbes == numberOfProbes) && allowedHealthStatuses[state] {
+			} else if (numConsecutiveProbes == numberOfProbes) && probe.isHealthStatusAllowedToBypassGracePeriod(state) {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 			// Application will be in Initializing state since we have not received consecutive valid health states

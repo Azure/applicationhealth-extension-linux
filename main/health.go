@@ -40,6 +40,8 @@ func (p HealthStatus) GetSubstatusMessage() string {
 type HealthProbe interface {
 	evaluate(ctx *log.Context) (HealthStatus, error)
 	address() string
+	healthStatusAfterGracePeriodExpires() HealthStatus
+	isHealthStatusAllowedToBypassGracePeriod(healthStatus HealthStatus) bool
 }
 
 type TcpHealthProbe struct {
@@ -57,9 +59,9 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 
 	switch cfg.protocol() {
 	case "tcp":
-		p = &TcpHealthProbe{
-			Address: "localhost:" + strconv.Itoa(cfg.port()),
-		}
+		p = &TcpHealthProbe {
+				Address: "localhost:" + strconv.Itoa(cfg.port()),
+			}
 		ctx.Log("event", "creating tcp probe targeting "+p.address())
 	case "http":
 		fallthrough
@@ -91,6 +93,14 @@ func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 
 func (p *TcpHealthProbe) address() string {
 	return p.Address
+}
+
+func (p *TcpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+	return Unhealthy
+}
+
+func (p *TcpHealthProbe) isHealthStatusAllowedToBypassGracePeriod(healthStatus HealthStatus) bool {
+	return healthStatus != p.healthStatusAfterGracePeriodExpires()
 }
 
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
@@ -171,6 +181,14 @@ func (p *HttpHealthProbe) address() string {
 	return p.Address
 }
 
+func (p *HttpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+	return Unknown
+}
+
+func (p *HttpHealthProbe) isHealthStatusAllowedToBypassGracePeriod(healthStatus HealthStatus) bool {
+	return healthStatus != p.healthStatusAfterGracePeriodExpires()
+}
+
 var (
 	errNoRedirect          = errors.New("No redirect allowed")
 	errUnableToConvertType = errors.New("Unable to convert type")
@@ -189,4 +207,12 @@ func (p DefaultHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 
 func (p DefaultHealthProbe) address() string {
 	return ""
+}
+
+func (p DefaultHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+	return Unhealthy
+}
+
+func (p DefaultHealthProbe) isHealthStatusAllowedToBypassGracePeriod(healthStatus HealthStatus) bool {
+	return healthStatus != p.healthStatusAfterGracePeriodExpires()
 }

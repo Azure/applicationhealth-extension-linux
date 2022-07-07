@@ -72,10 +72,10 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - http probe" {
+@test "handler command: enable - failed http probe" {
     mk_container sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
@@ -101,7 +101,7 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - https probe" {
+@test "handler command: enable - failed https probe" {
     mk_container sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
@@ -127,7 +127,39 @@ teardown(){
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
 }
 
-@test "handler command: enable - unknown after 10 seconds" {
+@test "handler command: enable - healthy tcp probe" {
+    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "port": 443
+    }' ''
+    run start_container
+    echo "$output"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+}
+
+@test "handler command: enable - healthy http probe" {
+    mk_container sh -c "webserver -states=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Grace period set to 5s'* ]]
+    [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+}
+
+@test "handler command: enable - https unknown after 10 seconds" {
     mk_container sh -c "fake-waagent install && fake-waagent enable && wait-for-enable && sleep 10 && rm /var/lib/waagent/Extension/status/0.status && wait-for-enable status"
     push_settings '
     {
@@ -156,20 +188,6 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
-}
-
-@test "handler command: enable - healthy tcp probe" {
-    mk_container sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
-    push_settings '
-    {
-        "protocol": "tcp",
-        "port": 443
-    }' ''
-    run start_container
-    echo "$output"
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
 }
 
 @test "handler command: enable - unknown http probe - no response body" {

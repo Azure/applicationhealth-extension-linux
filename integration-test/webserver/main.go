@@ -31,8 +31,7 @@ func main() {
 	flag.Parse()
 	originalHealthStates := strings.Split(*states, ",")
 	healthStates := strings.Split(*states, ",")
-	// If s does not contain sep and sep is not empty, Split returns a slice of length 1 whose only element is s.
-	var shouldExitOnEmptyHealthStates = len(healthStates) > 1
+	var shouldExitOnEmptyHealthStates = len(healthStates) > 0
 	
 	httpMutex := http.NewServeMux()
 	httpServer := http.Server{Addr: ":8080", Handler: httpMutex}
