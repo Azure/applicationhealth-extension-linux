@@ -10,24 +10,21 @@ teardown(){
     rm -rf "$certs_dir"
 }
 
-@test "handler command: enable - grace period not set - log shows" {
-    mk_container sh -c "webserver -states=2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - grace period defaults even when set to 0" {
+    mk_container sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
         "protocol": "http",
         "requestPath": "health",
         "port": 8080,
         "numberOfProbes": 2,
-        "intervalInSeconds": 5
+        "intervalInSeconds": 5,
+        "gracePeriod": 0
     }' ''
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Grace period not set'* ]]
-    [[ "$output" == *'Committed health state is unknown'* ]]
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+    [[ "$output" == *'json validation error: invalid public settings JSON: gracePeriod: Must be greater than or equal to 5'* ]]
 }
 
 @test "handler command: enable - honor grace period - http 2 probes" {
@@ -39,7 +36,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 5,
-        "gracePeriod": 10
+        "gracePeriod": 600
     }' ''
     run start_container
 
@@ -73,7 +70,7 @@ teardown(){
         "protocol": "http",
         "requestPath": "/health",
         "port": 8080,
-        "gracePeriod": 10
+        "gracePeriod": 600
     }' ''
     run start_container
 
@@ -103,7 +100,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriod": 10
+        "gracePeriod": 600
     }' ''
     run start_container
 
@@ -142,7 +139,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriod": 10
+        "gracePeriod": 600
     }' ''
     run start_container
 
@@ -184,7 +181,7 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 4,
         "intervalInSeconds": 5,
-        "gracePeriod": 10
+        "gracePeriod": 600
     }' ''
     run start_container
 
@@ -226,12 +223,12 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriod": 1
+        "gracePeriod": 60
     }' ''
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Grace period set to 60s'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
     [[ "$output" == *'No longer honoring grace period - expired'* ]]
     
@@ -264,12 +261,12 @@ teardown(){
         "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 10,
-        "gracePeriod": 1
+        "gracePeriod": 60
     }' ''
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Grace period set to 1m'* ]]
+    [[ "$output" == *'Grace period set to 60s'* ]]
     [[ "$output" == *'Honoring grace period'* ]]
     [[ "$output" == *'No longer honoring grace period - expired'* ]]
 
