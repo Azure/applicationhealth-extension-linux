@@ -141,7 +141,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				numConsecutiveProbes = 1
 				committedState = Empty
 			// If grace period has not expired, check if we have consecutive valid probes
-			} else if (numConsecutiveProbes == numberOfProbes) && probe.isHealthStatusAllowedToBypassGracePeriod(state) {
+			} else if (numConsecutiveProbes == numberOfProbes) && (state != probe.healthStatusAfterGracePeriodExpires()) {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 			// Application will be in Initializing state since we have not received consecutive valid health states
