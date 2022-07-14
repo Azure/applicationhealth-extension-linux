@@ -24,9 +24,9 @@ func reportStatus(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum 
 	return nil
 }
 
-func reportStatusWithSubstatus(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int, t StatusType, op string, msg string, subType StatusType, subName string, subMessage string) error {
+func reportStatusWithSubstatus(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int, t StatusType, op string, msg string, subType StatusType, subName string, subMessage string, subHealthState HealthStatus) error {
 	s := NewStatus(t, op, msg)
-	s.AddSubstatus(subType, subName, subMessage)
+	s.AddSubstatus(subType, subName, subMessage, subHealthState)
 	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
 		ctx.Log("event", "failed to save handler status", "error", err)
 		return errors.Wrap(err, "failed to save handler status")

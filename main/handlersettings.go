@@ -12,9 +12,9 @@ var (
 	errTcpMustNotIncludeRequestPath    = errors.New("'requestPath' cannot be specified when using 'tcp' protocol")
 	errTcpConfigurationMustIncludePort = errors.New("'port' must be specified when using 'tcp' protocol")
 	errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 120 seconds")
-	defaultIntervalInSeconds = 5
-	defaultNumberOfProbes = 1
-	maximumProbeSettleTime = 120
+	defaultIntervalInSeconds           = 5
+	defaultNumberOfProbes              = 1
+	maximumProbeSettleTime             = 120
 )
 
 // handlerSettings holds the configuration of the extension handler.
@@ -53,6 +53,15 @@ func (s *handlerSettings) numberOfProbes() int {
 	}
 }
 
+func (s *handlerSettings) gracePeriod() int {
+	var gracePeriod = s.publicSettings.GracePeriod
+	if gracePeriod == 0 {
+		return s.intervalInSeconds() * s.numberOfProbes()
+	} else {
+		return gracePeriod
+	}
+}
+
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
 func (h handlerSettings) validate() error {
@@ -75,11 +84,12 @@ func (h handlerSettings) validate() error {
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {
-	Protocol          string `json:"protocol"`
-	Port              int    `json:"port,int"`
-	RequestPath       string `json:"requestPath"`
-	IntervalInSeconds int    `json:"intervalInSeconds,int"`
-	NumberOfProbes    int    `json:"numberOfProbes,int"`
+	Protocol             string `json:"protocol"`
+	Port                 int    `json:"port,int"`
+	RequestPath          string `json:"requestPath"`
+	IntervalInSeconds    int    `json:"intervalInSeconds,int"`
+	NumberOfProbes       int    `json:"numberOfProbes,int"`
+	GracePeriod 		 int    `json:"gracePeriod,int"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected

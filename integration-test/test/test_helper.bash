@@ -148,3 +148,21 @@ verify_state_change_timestamps() {
         done
     done <<< "$1"
 }
+
+# first argument is the string containing healthextension logs separated by newline
+# it also expects event={"description of state event"} to be in each log line
+# second argument is an array of expected state log strings
+verify_states() {
+    expectedStateLogs="$2"
+    regex='event="(.*)"'
+    index=0
+    while IFS=$'\n' read -ra stateLogs; do
+        for i in "${!stateLogs[@]}"; do
+            [[ $stateLogs[i] =~ $regex ]]
+            stateEvent=${BASH_REMATCH[1]}
+            echo "Actual: '$stateEvent' and expected is: '${expectedStateLogs[index]}'"
+            [[ "$stateEvent" == "${expectedStateLogs[index]}" ]]
+        index=$index+1
+        done
+    done <<< "$1"
+}

@@ -1,6 +1,8 @@
 # Azure ApplicationHealth Extension for Linux (1.0.0)
 [![Build Status](https://travis-ci.org/Azure/applicationhealth-extension-linux.svg?branch=master)](https://travis-ci.org/Azure/applicationhealth-extension-linux)
 
+[![GitHub Build Status](https://github.com/Azure/applicationhealth-extension-linux/actions/workflows/go.yml/badge.svg)](https://github.com/Azure/applicationhealth-extension-linux/actions/workflows/go.yml)
+
 The application health extension periodically probes for application health within a Linux VM when configured.
 The result of the health checks guide automatic actions that can take place on VMs such as stopping rolling upgrades
 across a set of VMs and repairing VMs as they become unhealthy.

@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
@@ -15,14 +17,30 @@ import (
 type HealthStatus string
 
 const (
-	Healthy   HealthStatus = "healthy"
-	Unhealthy HealthStatus = "unhealthy"
-	Unknown   HealthStatus = "unknown"
+	Initializing HealthStatus = "Initializing"
+	Healthy      HealthStatus = "Healthy"
+	Unhealthy    HealthStatus = "Unhealthy"
+	Unknown      HealthStatus = "Unknown"
+	Empty        HealthStatus = ""
 )
+
+func (p HealthStatus) GetStatusType() StatusType {
+	switch p {
+	case Unknown:
+		return StatusError
+	default:
+		return StatusSuccess
+	}
+}
+
+func (p HealthStatus) GetSubstatusMessage() string {
+	return "Application health found to be " + strings.ToLower(string(p))
+}
 
 type HealthProbe interface {
 	evaluate(ctx *log.Context) (HealthStatus, error)
 	address() string
+	healthStatusAfterGracePeriodExpires() HealthStatus
 }
 
 type TcpHealthProbe struct {
@@ -40,9 +58,9 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 
 	switch cfg.protocol() {
 	case "tcp":
-		p = &TcpHealthProbe{
-			Address: "localhost:" + strconv.Itoa(cfg.port()),
-		}
+		p = &TcpHealthProbe {
+				Address: "localhost:" + strconv.Itoa(cfg.port()),
+			}
 		ctx.Log("event", "creating tcp probe targeting "+p.address())
 	case "http":
 		fallthrough
@@ -74,6 +92,10 @@ func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 
 func (p *TcpHealthProbe) address() string {
 	return p.Address
+}
+
+func (p *TcpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+	return Unhealthy
 }
 
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
@@ -119,22 +141,43 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	if err != nil {
 		return Unknown, err
 	}
-
+	
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
 	resp, err := p.HttpClient.Do(req)
+	// non-2xx status code doesn't return err
+	// err is returned if a timeout occurred
 	if err != nil {
-		return Unhealthy, nil
+		return Unknown, err
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		return Healthy, nil
+	defer resp.Body.Close()
+
+	// non 2xx status code
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return Unknown, nil
 	}
 
-	return Unhealthy, nil
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Unknown, err
+	}
+
+	probeResponse := new(ProbeResponse)
+	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
+		return Unknown, err
+	} else if err := probeResponse.validate(); err != nil {
+		return Unknown, err
+	}
+
+	return probeResponse.ApplicationHealthState, nil
 }
 
 func (p *HttpHealthProbe) address() string {
 	return p.Address
+}
+
+func (p *HttpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+	return Unknown
 }
 
 var (
@@ -155,4 +198,8 @@ func (p DefaultHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 
 func (p DefaultHealthProbe) address() string {
 	return ""
+}
+
+func (p DefaultHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+	return Unhealthy
 }
