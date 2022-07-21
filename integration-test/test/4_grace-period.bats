@@ -28,7 +28,15 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - http 2 probes" {
-    mk_container sh -c "webserver -states=2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -64,7 +72,14 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - unresponsive http probe with numberOfProbes=1" {
-    mk_container sh -c "webserver -states=2t,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, Timeout: true },
+            { HttpStatusCode: 200, Timeout: true },
+            { HttpStatusCode: 200, Timeout: true }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -92,7 +107,18 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - consecutive valid health states" {
-    mk_container sh -c "webserver -states=2i,2h,2u,2h,2h,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200 },
+            { HttpStatusCode: 200 }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -131,7 +157,21 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - state change behavior retained" {
-    mk_container sh -c "webserver -states=2i,2h,2u,2h,2h,2u,2u,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -173,7 +213,29 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - larger numberOfProbes, consecutive rich states" {
-    mk_container sh -c "webserver -states=2i,2i,2i,2i,2h,2u,2h,2u,2u,2h,2h,2h,2h,2u,2i,2i,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } }, 
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -215,7 +277,18 @@ teardown(){
 }
 
 @test "handler command: enable - bypass / grace period expires - fail to bypass and expiration results in unknown" {
-    mk_container sh -c "webserver -states=2u,2m,2i,2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { Hello: "World" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -253,7 +326,22 @@ teardown(){
 }
 
 @test "handler command: enable - grace period expires - additional alternating health states" {
-    mk_container sh -c "webserver -states=2i,2u,2i,2u,2i,2u,2h,2u,2h,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",

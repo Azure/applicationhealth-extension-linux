@@ -12,10 +12,10 @@ import (
 )
 
 type Payload struct {
-	Items []Item	`json:"payload"`
+	Responses []Response	`json:"payload"`
 }
 
-type Item struct {
+type Response struct {
 	HttpStatusCode	int					`json:"httpStatusCode"`
 	Timeout 		*bool				`json:"timeout,omitempty"`
 	ResponseBody	*map[string]string	`json:"responseBody,omitempty"`
@@ -36,6 +36,8 @@ var (
 		Healthy:   true,
 		Unhealthy: true,
 	}
+	numOfResponsesServed = 0
+	numOfResponses = 1 // keep as 1, so that webserver can keep running if no payload is provided
 )
 
 const (
@@ -43,27 +45,27 @@ const (
 	ApplicationHealthStateResponseKey = "ApplicationHealthState" // Response body key name
 )
 
-func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup) {
+func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, payload *Payload) {
 	defer wg.Done()
-	payloadItem := Item {
+
+	response := Response {
 		HttpStatusCode: 200,
-		Timeout: func() *bool { b := false; return &b }(),
 		ResponseBody: nil,
 	}
 
-	if len(payload.Items) > 0 {
-		numServed += 1
-		item := payload.Items[0]
-		log.Printf("Serving payload %d/%d: %#v", numServed, numPayloadItems, item)
-		payloadItem.HttpStatusCode = item.HttpStatusCode
+	if payload != nil && len((*payload).Responses) > 0 {
+		numOfResponsesServed += 1
+		payloadResp := payload.Responses[0]
+		log.Printf("Serving payload %d/%d: %#v", numOfResponsesServed, numOfResponses, payloadResp)
+		response.HttpStatusCode = payloadResp.HttpStatusCode
 
-		if (item.Timeout != nil && *item.Timeout) {
+		if (payloadResp.Timeout != nil && *payloadResp.Timeout) {
 			log.Printf("Sleeping for %d seconds", TimeoutInSeconds)
 			time.Sleep(TimeoutInSeconds * time.Second)
 		}
 
-		if (item.ResponseBody != nil) {
-			if applicationHealthState, ok := (*item.ResponseBody)[ApplicationHealthStateResponseKey]; ok {
+		if (payloadResp.ResponseBody != nil) {
+			if applicationHealthState, ok := (*payloadResp.ResponseBody)[ApplicationHealthStateResponseKey]; ok {
 				if allowedHealthStatuses[HealthStatus(applicationHealthState)] {
 					log.Printf("Sending response with app health state: %s", applicationHealthState)
 				} else {
@@ -73,53 +75,31 @@ func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup) {
 				log.Printf("Sending response with missing app health state")
 			}
 			w.Header().Set("Content-Type", "application/json")
-			resp, err := json.Marshal(item.ResponseBody)
+			respBody, err := json.Marshal(*payloadResp.ResponseBody)
 			if err != nil {
 				log.Printf("Error happened in JSON marshal. Err: %s", err)
 			}
-			w.Write(resp)
+			w.Write(respBody)
 		} else {
-			log.Printf("Sending no response body with status code %v", payloadItem.HttpStatusCode)
+			log.Printf("Sending no response body with status code %v", response.HttpStatusCode)
 		} 
 	}
-	payload.Items = payload.Items[1:]
+	payload.Responses = payload.Responses[1:]
 		
-	w.WriteHeader(payloadItem.HttpStatusCode)
+	w.WriteHeader(response.HttpStatusCode)
+}
 
-	// if healthStates is non-empty, this means that the test is only meant to run till we iterate over all healthstates, so the servers are shutdown
-	log.Printf("Check if we should exit: %v, %v", shouldExitOnEmptyHealthStates, len(payload.Items) == 0)
-	if shouldExitOnEmptyHealthStates && len(payload.Items) == 0 {
-		go shutdownServers(httpServer, httpsServer)
+func startServers(httpServer *http.Server, httpsServer *http.Server, wg *sync.WaitGroup, payload *Payload) {
+	log.Printf("Start servers...")
+	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("HttpServer.ListenAndServe(): %v", err)
+	}
+	if err := httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem"); err != http.ErrServerClosed {
+		log.Fatalf("HttpsServer.ListenAndServe(): %v", err)
 	}
 }
 
-func startServers(wg *sync.WaitGroup) (*http.Server, *http.Server) {
-	httpMutex := http.NewServeMux()
-	httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		healthHandler(w,r,wg)
-	})
-	httpServer := http.Server{
-		Handler: httpMutex,
-		Addr: ":8080"
-	}
-	httpsServer := http.Server{
-		Handler: httpMutex,
-		Addr: ":443"
-	}
-	
-	log.Printf("Starting server...")
-	go func() {
-		if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("HttpServer.ListenAndServe(): %v", err)
-		}
-		if err := httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem"); err != http.ErrServerClosed {
-			log.Fatalf("HttpsServer.ListenAndServe(): %v", err)
-		}
-	}
-	return httpServer, httpsServer
-}
-
-func shutdownServers(httpServer *http.Server, httpsServer *http.Server) error, error {
+func shutdownServers(httpServer *http.Server, httpsServer *http.Server) {
 	log.Printf("Shutting down http and https server")
 	httpServer.Shutdown(context.Background())
 	httpsServer.Shutdown(context.Background())
@@ -128,26 +108,46 @@ func shutdownServers(httpServer *http.Server, httpsServer *http.Server) error, e
 func main() {
 	payloadStr := flag.String("payload", "", "json string containing probe responses")
 	flag.Parse()
-	var originalPayload Payload
+	var payload Payload
 	if payloadStr != nil && *payloadStr != "" {
 		*payloadStr = strings.TrimSpace(*payloadStr)
 		log.Printf("Processing payload: %v", *payloadStr)
-		if err := json.Unmarshal([]byte(*payloadStr), &originalPayload); err != nil {
+		if err := json.Unmarshal([]byte(*payloadStr), &payload); err != nil {
 			log.Printf("err: %v", err)
 			return
 		}
 	}
-	payload := originalPayload
-	shouldExitOnEmptyHealthStates := len(payload.Items) > 0
-	numServed := 0
-	numPayloadItems := len(originalPayload.Items)
+
+	originalPayload := payload
+
+	shouldExitOnEmptyHealthStates := len(payload.Responses) > 0
+	if shouldExitOnEmptyHealthStates {
+		numOfResponses = len(payload.Responses)
+	}
 	
 	wg:= &sync.WaitGroup{}
-	wg.Add(numPayloadItems)
+	wg.Add(numOfResponses)
+
+	httpMutex := http.NewServeMux()
+	httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		healthHandler(w, r, wg, &payload)
+	})
+	httpServer := http.Server{
+		Handler: httpMutex,
+		Addr: ":8080",
+	}
+	httpsServer := http.Server{
+		Handler: httpMutex,
+		Addr: ":443",
+	}
 	
-	httpServer, httpsServer := go startServers(wg)
+	go startServers(&httpServer, &httpsServer, wg, &payload)
 	wg.Wait()
 
-	log.Printf("Finished serving payload: %v", originalPayload)
-	go shutdownServers(httpServer, httpsServer)
+	// if healthStates is non-empty, this means that the test is only meant to run till we iterate over all healthstates, so the servers are shutdown
+	// otherwise, we keep the server running
+	if shouldExitOnEmptyHealthStates {
+		log.Printf("Finished serving payload: %v", originalPayload)
+		go shutdownServers(&httpServer, &httpsServer)
+	}
 }

@@ -166,3 +166,7 @@ verify_states() {
         done
     done <<< "$1"
 }
+
+format_json_as_cmd_arg() {
+    jq -n "$1" '.' | tr -d " \t\n\r"
+}

@@ -142,7 +142,13 @@ teardown(){
 }
 
 @test "handler command: enable - healthy http probe" {
-    mk_container sh -c "webserver -states=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -267,7 +273,14 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = unk,unk" {
-    mk_container sh -c "webserver -states=3,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(jq -n '{
+        Payload: [
+            { HttpStatusCode: 300 },
+            { HttpStatusCode: 400 }
+        ]}'
+    )
+    mk_container sh -c "webserver -payload=$(echo -n $payload | jq -Rsa '.' | tr -d " \t\n\r") & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    
     push_settings '
     {
         "protocol": "http",
@@ -295,7 +308,15 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk" {
-    mk_container sh -c "webserver -states=2h,2h,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 400 },
+            { HttpStatusCode: 400 }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -329,7 +350,16 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h" {
-    mk_container sh -c "webserver -states=2h,2h,4,4,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 400 },
+            { HttpStatusCode: 400 },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -364,7 +394,17 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h,h" {
-    mk_container sh -c "webserver -states=2h,2h,4,4,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 400 },
+            { HttpStatusCode: 400 },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",

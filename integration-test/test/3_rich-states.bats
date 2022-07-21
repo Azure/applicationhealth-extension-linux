@@ -11,7 +11,17 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - invalid app health state results in unknown" {
-    mk_container sh -c "webserver -states=2h,2h,2i,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -48,7 +58,18 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - basic states = m,h,h,u,u,i,i" {
-    mk_container sh -c "webserver -states=2m,2h,2h,2u,2u,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { Hello: "World" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -86,7 +107,20 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - alternating states=i,h,h,i,h,u,h,i,h" {
-    mk_container sh -c "webserver -states=2i,2h,2h,2i,2h,2u,2h,2i,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Invalid" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -125,7 +159,14 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - endpoint timeout results in unknown" {
-    mk_container sh -c "webserver -states=2h,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    payload=$(format_json_as_cmd_arg '{
+        Payload: [
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy" } },
+            { HttpStatusCode: 200, Timeout: true },
+            { HttpStatusCode: 200, Timeout: true }
+        ]
+    }')
+    mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
