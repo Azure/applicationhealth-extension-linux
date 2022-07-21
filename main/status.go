@@ -39,7 +39,8 @@ type FormattedMessage struct {
 }
 
 type AdditionalProperties struct {
-	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
+	ApplicationHealthState 	HealthStatus 	`json:"applicationHealthState"`
+	CustomMetrics 			*string			`json:"customMetrics,omitempty"`
 }
 
 type SubstatusItem struct {
@@ -68,7 +69,7 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 	}
 }
 
-func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
+func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus, customMetrics *string) {
 	if len(r) > 0 {
 		r[0].Status.SubstatusList = []SubstatusItem{
 			{
@@ -80,6 +81,7 @@ func (r StatusReport) AddSubstatus(t StatusType, name, message string, state Hea
 				},
 				AdditionalProperties: AdditionalProperties {
 					ApplicationHealthState: state,
+					CustomMetrics: customMetrics,
 				},
 			},
 		}

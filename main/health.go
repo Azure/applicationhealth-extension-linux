@@ -38,7 +38,7 @@ func (p HealthStatus) GetSubstatusMessage() string {
 }
 
 type HealthProbe interface {
-	evaluate(ctx *log.Context) (HealthStatus, error)
+	evaluate(ctx *log.Context) (ProbeResponse, error)
 	address() string
 	healthStatusAfterGracePeriodExpires() HealthStatus
 }
@@ -74,20 +74,25 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 	return p
 }
 
-func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
+func (p *TcpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
+	var probeResponse ProbeResponse
 	if err != nil {
-		return Unhealthy, nil
+		probeResponse.ApplicationHealthState = Unhealthy
+		return probeResponse, nil
 	}
 
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
-		return Unhealthy, errUnableToConvertType
+		probeResponse.ApplicationHealthState = Unhealthy
+		return probeResponse, errUnableToConvertType
 	}
 
 	tcpConn.SetLinger(0)
 	tcpConn.Close()
-	return Healthy, nil
+
+	probeResponse.ApplicationHealthState = Healthy
+	return probeResponse, nil
 }
 
 func (p *TcpHealthProbe) address() string {
@@ -136,10 +141,12 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
+func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
+	var probeResponse ProbeResponse
 	if err != nil {
-		return Unknown, err
+		probeResponse.ApplicationHealthState = Unknown
+		return probeResponse, err
 	}
 	
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
@@ -147,29 +154,33 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	// non-2xx status code doesn't return err
 	// err is returned if a timeout occurred
 	if err != nil {
-		return Unknown, err
+		probeResponse.ApplicationHealthState = Unknown
+		return probeResponse, err
 	}
 
 	defer resp.Body.Close()
 
 	// non 2xx status code
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return Unknown, nil
+		probeResponse.ApplicationHealthState = Unknown
+		return probeResponse, nil
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return Unknown, err
+		probeResponse.ApplicationHealthState = Unknown
+		return probeResponse, err
 	}
 
-	probeResponse := new(ProbeResponse)
-	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
-		return Unknown, err
+	if err := json.Unmarshal(bodyBytes, &probeResponse); err != nil {
+		probeResponse.ApplicationHealthState = Unknown
+		return probeResponse, err
 	} else if err := probeResponse.validate(); err != nil {
-		return Unknown, err
+		probeResponse.ApplicationHealthState = Unknown
+		return probeResponse, err
 	}
 
-	return probeResponse.ApplicationHealthState, nil
+	return probeResponse, nil
 }
 
 func (p *HttpHealthProbe) address() string {
@@ -192,8 +203,10 @@ func noRedirect(req *http.Request, via []*http.Request) error {
 type DefaultHealthProbe struct {
 }
 
-func (p DefaultHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
-	return Healthy, nil
+func (p DefaultHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
+	var probeResponse ProbeResponse
+	probeResponse.ApplicationHealthState = Healthy
+	return probeResponse, nil
 }
 
 func (p DefaultHealthProbe) address() string {

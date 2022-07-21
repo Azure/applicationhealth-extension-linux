@@ -111,7 +111,8 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	//	2. A valid health state is observed numberOfProbes consecutive times
 	for {
 		startTime := time.Now()
-		state, err := probe.evaluate(ctx)
+		probeResponse, err := probe.evaluate(ctx)
+		state := probeResponse.ApplicationHealthState
 		if err != nil {
 			ctx.Log("error", err)
 		}
@@ -162,7 +163,9 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			}
 		}
 
-		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), SubstatusKeyNameAppHealthStatus, committedState.GetSubstatusMessage(), committedState)
+		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, 
+										committedState.GetStatusType(), SubstatusKeyNameAppHealthStatus, 
+										committedState.GetSubstatusMessage(), committedState, probeResponse.CustomMetrics)
 		if err != nil {
 			ctx.Log("error", err)
 		}
