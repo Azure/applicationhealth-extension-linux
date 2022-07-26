@@ -23,8 +23,9 @@ func (p ProbeResponse) validate() error {
 		return errors.New(fmt.Sprintf("Response body key '%s' has invalid value '%#v'", ApplicationHealthStateResponseKey, string(p.ApplicationHealthState)))
 	}
     if p.CustomMetrics != nil {
-		if !json.Valid([]byte(*p.CustomMetrics)) {
-			return errors.New(fmt.Sprintf("Response body key '%s' has invalid json format '%#v'", CustomMetricsResponseKey, *p.CustomMetrics))
+		var js map[string]interface{}
+		if json.Unmarshal([]byte(*p.CustomMetrics), &js) == nil {
+			return errors.New(fmt.Sprintf("Response body key '%s' has invalid json objec: '%#v'", CustomMetricsResponseKey, *p.CustomMetrics))
 		}
 	}
 	return nil
