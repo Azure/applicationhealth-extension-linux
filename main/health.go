@@ -79,7 +79,7 @@ func (p *TcpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
 	if err != nil {
 		probeResponse.ApplicationHealthState = Unhealthy
-		return probeResponse, nil
+		return probeResponse, err
 	}
 
 	tcpConn, ok := conn.(*net.TCPConn)

@@ -20,11 +20,11 @@ type ProbeResponse struct {
 
 func (p ProbeResponse) validate() error {
 	if !allowedHealthStatuses[p.ApplicationHealthState] {
-		return errors.New(fmt.Sprintf("Invalid value '%s' for '%s'", string(p.ApplicationHealthState), ApplicationHealthStateResponseKey))
+		return errors.New(fmt.Sprintf("Response body key '%s' has invalid value '%#v'", ApplicationHealthStateResponseKey, string(p.ApplicationHealthState)))
 	}
     if p.CustomMetrics != nil {
 		if !json.Valid([]byte(*p.CustomMetrics)) {
-			return errors.New(fmt.Sprintf("Invalid json '%s' for '%s'", p.CustomMetrics, CustomMetricsResponseKey))
+			return errors.New(fmt.Sprintf("Response body key '%s' has invalid json format '%#v'", CustomMetricsResponseKey, *p.CustomMetrics))
 		}
 	}
 	return nil

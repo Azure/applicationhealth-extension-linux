@@ -132,7 +132,7 @@ teardown(){
     push_settings '
     {
         "protocol": "tcp",
-        "port": 443
+        "port": 8080
     }' ''
     run start_container
     echo "$output"

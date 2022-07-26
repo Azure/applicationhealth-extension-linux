@@ -6,9 +6,11 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"time"
 	"strings"
 	"sync"
+	"fmt"
 )
 
 type Payload struct {
@@ -19,6 +21,19 @@ type Response struct {
 	HttpStatusCode	int					`json:"httpStatusCode"`
 	Timeout 		*bool				`json:"timeout,omitempty"`
 	ResponseBody	*map[string]string	`json:"responseBody,omitempty"`
+}
+
+func (r *Response) toString() string {
+	var timeout = "nil"
+	if r.Timeout != nil {
+		timeout = fmt.Sprintf("%v", *r.Timeout)
+	}
+
+	var responseBody = "nil"
+	if r.ResponseBody != nil {
+		responseBody = fmt.Sprintf("%#v", *r.ResponseBody)
+	}
+	return fmt.Sprintf("HttpStatusCode: %d, Timeout: %s, ResponseBody: %s", r.HttpStatusCode, timeout, responseBody)
 }
 
 type HealthStatus string
@@ -41,9 +56,20 @@ var (
 )
 
 const (
-	TimeoutInSeconds                  = 35
-	ApplicationHealthStateResponseKey = "ApplicationHealthState" // Response body key name
+	TimeoutInSeconds                  	= 35
+	ApplicationHealthStateResponseKey 	= "ApplicationHealthState"
+	CustomMetricsResponseKey 			= "CustomMetrics"
 )
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	reqDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("REQUEST:\n%s", string(reqDump))
+	w.Write([]byte("Hello World"))
+}
 
 func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, payload *Payload) {
 	defer wg.Done()
@@ -56,7 +82,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, p
 	if payload != nil && len((*payload).Responses) > 0 {
 		numOfResponsesServed += 1
 		payloadResp := payload.Responses[0]
-		log.Printf("Serving payload %d/%d: %#v", numOfResponsesServed, numOfResponses, payloadResp)
+		log.Printf("Serving payload %d/%d: %s", numOfResponsesServed, numOfResponses, payloadResp.toString())
 		response.HttpStatusCode = payloadResp.HttpStatusCode
 
 		if (payloadResp.Timeout != nil && *payloadResp.Timeout) {
@@ -65,6 +91,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, p
 		}
 
 		if (payloadResp.ResponseBody != nil) {
+			response.ResponseBody = payloadResp.ResponseBody
 			if applicationHealthState, ok := (*payloadResp.ResponseBody)[ApplicationHealthStateResponseKey]; ok {
 				if allowedHealthStatuses[HealthStatus(applicationHealthState)] {
 					log.Printf("Sending response with app health state: %s", applicationHealthState)
@@ -74,12 +101,16 @@ func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, p
 			} else {
 				log.Printf("Sending response with missing app health state")
 			}
-			w.Header().Set("Content-Type", "application/json")
-			respBody, err := json.Marshal(*payloadResp.ResponseBody)
-			if err != nil {
-				log.Printf("Error happened in JSON marshal. Err: %s", err)
+
+			if customMetrics, ok := (*payloadResp.ResponseBody)[CustomMetricsResponseKey]; ok {
+				if json.Valid([]byte(customMetrics)) {
+					log.Printf("Sending custom metrics with valid json: %s", customMetrics)
+				} else {
+					log.Printf("Sending custom metrics with invalid json: %s", customMetrics)
+				}
+			} else {
+				log.Printf("Sending response with missing custom metrics")
 			}
-			w.Write(respBody)
 		} else {
 			log.Printf("Sending no response body with status code %v", response.HttpStatusCode)
 		} 
@@ -87,15 +118,23 @@ func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, p
 	payload.Responses = payload.Responses[1:]
 		
 	w.WriteHeader(response.HttpStatusCode)
+	if (response.ResponseBody != nil) {
+		w.Header().Set("Content-Type", "application/json")
+		respBody, err := json.Marshal(*response.ResponseBody)
+		if err != nil {
+			log.Printf("Error happened in JSON marshal. Err: %s", err)
+		}
+		w.Write(respBody)
+	}
 }
 
 func startServers(httpServer *http.Server, httpsServer *http.Server, wg *sync.WaitGroup, payload *Payload) {
 	log.Printf("Start servers...")
 	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatalf("HttpServer.ListenAndServe(): %v", err)
+		log.Printf("HttpServer.ListenAndServe(): %v", err)
 	}
 	if err := httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem"); err != http.ErrServerClosed {
-		log.Fatalf("HttpsServer.ListenAndServe(): %v", err)
+		log.Printf("HttpsServer.ListenAndServe(): %v", err)
 	}
 }
 
@@ -132,6 +171,9 @@ func main() {
 	httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		healthHandler(w, r, wg, &payload)
 	})
+	httpMutex.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		indexHandler(w, r)
+	})
 	httpServer := http.Server{
 		Handler: httpMutex,
 		Addr: ":8080",
@@ -150,4 +192,5 @@ func main() {
 		log.Printf("Finished serving payload: %v", originalPayload)
 		go shutdownServers(&httpServer, &httpsServer)
 	}
+	log.Printf("Webserver exiting...")
 }
