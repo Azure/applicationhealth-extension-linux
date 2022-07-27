@@ -170,7 +170,3 @@ verify_states() {
 format_json_as_cmd_arg() {
     jq -n "$1" '.' | tr -d " \t\n\r"
 }
-
-format_string_as_cmd_arg() {
-    echo -n "$1" | tr -d " \t\n\r"
-}
