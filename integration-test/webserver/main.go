@@ -103,10 +103,11 @@ func healthHandler(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup, p
 			}
 
 			if customMetrics, ok := (*payloadResp.ResponseBody)[CustomMetricsResponseKey]; ok {
-				if json.Valid([]byte(customMetrics)) {
-					log.Printf("Sending custom metrics with valid json: %s", customMetrics)
+				var js map[string]interface{}
+				if json.Unmarshal([]byte(customMetrics), &js) == nil {
+					log.Printf("Sending custom metrics with valid json object: %s", customMetrics)
 				} else {
-					log.Printf("Sending custom metrics with invalid json: %s", customMetrics)
+					log.Printf("Sending custom metrics with invalid json object: %s", customMetrics)
 				}
 			} else {
 				log.Printf("Sending response with missing custom metrics")
