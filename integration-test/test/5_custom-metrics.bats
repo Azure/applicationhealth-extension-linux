@@ -15,9 +15,9 @@ teardown(){
         Payload: [
             { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
             { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy", CustomMetrics: "{}" } },
             { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy", CustomMetrics: "{\"name\":\"Frank\", \"age\":23, \"locations\":[\"hawaii\", \"los angeles\", \"bellevue\"] }" } },
-            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Healthy", CustomMetrics: "{\"hello\": { \"hello2\": { \"hello3\": { \"hello4\": \"world\" } } } }" } },
-            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy", CustomMetrics: "{}" } },
+            { HttpStatusCode: 200, ResponseBody: { ApplicationHealthState: "Unhealthy", CustomMetrics: "{\"hello\": { \"hello2\": { \"hello3\": { \"hello4\": \"world\" } } } }" } }
         ]
     }')
     mk_container sh -c "webserver -payload='$payload' & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
@@ -52,6 +52,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'"customMetrics": "{\"hello\":{\"hello2\":{\"hello3\":{\"hello4\":\"world\"}}}}"'* ]]
 }
 
 
@@ -105,4 +106,5 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'"customMetrics": ""'* ]]
 }
