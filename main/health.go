@@ -26,6 +26,8 @@ const (
 
 func (p HealthStatus) GetStatusType() StatusType {
 	switch p {
+	case Initializing:
+		return StatusTransitioning
 	case Unknown:
 		return StatusError
 	default:
