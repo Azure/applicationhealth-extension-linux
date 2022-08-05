@@ -1,10 +1,10 @@
 package main
 
 const (
-	SubstatusKeyNameAppHealthStatus = "AppHealthStatus"
+	SubstatusKeyNameAppHealthStatus        = "AppHealthStatus"
 	SubstatusKeyNameApplicationHealthState = "ApplicationHealthState"
-	SubstatusKeyNameCustomMetrics = "CustomMetrics"
+	SubstatusKeyNameCustomMetrics          = "CustomMetrics"
 
 	ProbeResponseKeyNameApplicationHealthState = "ApplicationHealthState"
-	ProbeResponseKeyNameCustomMetrics = "CustomMetrics"
+	ProbeResponseKeyNameCustomMetrics          = "CustomMetrics"
 )

@@ -93,7 +93,7 @@ func (p *TcpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 
 	tcpConn.SetLinger(0)
 	tcpConn.Close()
-	
+
 	probeResponse.applicationHealthState = Healthy
 	return probeResponse, nil
 }

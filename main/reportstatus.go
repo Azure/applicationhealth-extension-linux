@@ -59,7 +59,7 @@ func generateApplicationHealthStateSubstatusItem(committedState HealthStatus) Su
 }
 
 func generateCustomMetricsSubstatusItem(committedState HealthStatus, customMetrics string) SubstatusItem {
-	return SubstatusItem {
+	return SubstatusItem{
 		Name:   SubstatusKeyNameCustomMetrics,
 		Status: committedState.GetStatusType(),
 		FormattedMessage: FormattedMessage{

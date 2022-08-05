@@ -15,7 +15,7 @@ var (
 
 type ProbeResponse struct {
 	applicationHealthState HealthStatus `json:"applicationHealthState"`
-	customMetrics string `json:"customMetrics,omitempty"`
+	customMetrics          string       `json:"customMetrics,omitempty"`
 }
 
 func (p ProbeResponse) validate() error {

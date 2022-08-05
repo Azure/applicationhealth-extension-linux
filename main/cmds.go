@@ -168,7 +168,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			generateApplicationHealthStateSubstatusItem(committedState),
 		}
 
-		if (probeResponse.customMetrics != "") {
+		if probeResponse.customMetrics != "" {
 			substatuses = append(substatuses, generateCustomMetricsSubstatusItem(committedState, probeResponse.customMetrics))
 		}
 
