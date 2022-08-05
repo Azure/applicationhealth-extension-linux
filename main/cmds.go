@@ -94,6 +94,29 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		gracePeriodStartTime      = time.Now()
 	)
 
+	appHealthStatusSubstatusItem := SubstatusItem {
+		Name: SubstatusKeyNameAppHealthStatus,
+		Status: Healthy.GetStatusType(),
+		FormattedMessage: FormattedMessage {
+			Lang: "en",
+			Message: Healthy.GetSubstatusMessage(),
+		},
+	}
+
+	applicationHealthStateSubstatusItem := SubstatusItem {
+		Name: SubstatusKeyNameApplicationHealthState,
+		Status: Healthy.GetStatusType(),
+		FormattedMessage: FormattedMessage {
+			Lang: "en",
+			Message: string(Healthy),
+		},
+	}
+
+	substatuses := []SubstatusItem {
+		appHealthStatusSubstatusItem,
+		applicationHealthStateSubstatusItem,
+	}
+
 	if !honorGracePeriod {
 		ctx.Log("event", "Grace period not set")
 	} else {
@@ -162,7 +185,13 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			}
 		}
 
-		err = reportStatusWithSubstatus(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, committedState.GetStatusType(), SubstatusKeyNameAppHealthStatus, committedState.GetSubstatusMessage(), committedState)
+		substatuses[0].Status = committedState.GetStatusType()
+		substatuses[0].FormattedMessage.Message = committedState.GetSubstatusMessage()
+		
+		substatuses[1].Status = committedState.GetStatusType()
+		substatuses[1].FormattedMessage.Message = string(committedState)
+
+		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
 			ctx.Log("error", err)
 		}
