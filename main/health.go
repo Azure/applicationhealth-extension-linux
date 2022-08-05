@@ -58,9 +58,9 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 
 	switch cfg.protocol() {
 	case "tcp":
-		p = &TcpHealthProbe {
-				Address: "localhost:" + strconv.Itoa(cfg.port()),
-			}
+		p = &TcpHealthProbe{
+			Address: "localhost:" + strconv.Itoa(cfg.port()),
+		}
 		ctx.Log("event", "creating tcp probe targeting "+p.address())
 	case "http":
 		fallthrough
@@ -141,7 +141,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	if err != nil {
 		return Unknown, err
 	}
-	
+
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
 	resp, err := p.HttpClient.Do(req)
 	// non-2xx status code doesn't return err

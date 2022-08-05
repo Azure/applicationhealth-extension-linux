@@ -39,23 +39,23 @@ type FormattedMessage struct {
 }
 
 type SubstatusItem struct {
-	Name                 string               `json:"name"`
-	Status               StatusType           `json:"status"`
-	FormattedMessage     FormattedMessage     `json:"formattedMessage"`
+	Name             string           `json:"name"`
+	Status           StatusType       `json:"status"`
+	FormattedMessage FormattedMessage `json:"formattedMessage"`
 }
 
 func NewStatus(t StatusType, operation, message string) StatusReport {
 	now := time.Now().UTC().Format(time.RFC3339)
 	return []StatusItem{
 		{
-			Version: 1.0,
+			Version:      1.0,
 			TimestampUTC: now,
-			Status: Status {
-				Operation: operation,
+			Status: Status{
+				Operation:                   operation,
 				ConfigurationAppliedTimeUTC: now,
 				Status: t,
 				FormattedMessage: FormattedMessage{
-					Lang: "en",
+					Lang:    "en",
 					Message: message,
 				},
 			},
@@ -65,11 +65,11 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 
 func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
 	if len(r) > 0 {
-		substatusItem := SubstatusItem {
-			Name: name,
+		substatusItem := SubstatusItem{
+			Name:   name,
 			Status: t,
-			FormattedMessage: FormattedMessage {
-				Lang: "en",
+			FormattedMessage: FormattedMessage{
+				Lang:    "en",
 				Message: message,
 			},
 		}

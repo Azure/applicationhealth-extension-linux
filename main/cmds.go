@@ -94,25 +94,25 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		gracePeriodStartTime      = time.Now()
 	)
 
-	appHealthStatusSubstatusItem := SubstatusItem {
-		Name: SubstatusKeyNameAppHealthStatus,
+	appHealthStatusSubstatusItem := SubstatusItem{
+		Name:   SubstatusKeyNameAppHealthStatus,
 		Status: Healthy.GetStatusType(),
-		FormattedMessage: FormattedMessage {
-			Lang: "en",
+		FormattedMessage: FormattedMessage{
+			Lang:    "en",
 			Message: Healthy.GetSubstatusMessage(),
 		},
 	}
 
-	applicationHealthStateSubstatusItem := SubstatusItem {
-		Name: SubstatusKeyNameApplicationHealthState,
+	applicationHealthStateSubstatusItem := SubstatusItem{
+		Name:   SubstatusKeyNameApplicationHealthState,
 		Status: Healthy.GetStatusType(),
-		FormattedMessage: FormattedMessage {
-			Lang: "en",
+		FormattedMessage: FormattedMessage{
+			Lang:    "en",
 			Message: string(Healthy),
 		},
 	}
 
-	substatuses := []SubstatusItem {
+	substatuses := []SubstatusItem{
 		appHealthStatusSubstatusItem,
 		applicationHealthStateSubstatusItem,
 	}
@@ -146,7 +146,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		// Only increment if it's a repeat of the previous
 		if prevState == state {
 			numConsecutiveProbes++
-		// Log stage changes and also reset consecutive count to 1 as a new state was observed
+			// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
 			ctx.Log("event", "Health state changed to "+strings.ToLower(string(state)))
 			numConsecutiveProbes = 1
@@ -163,11 +163,11 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				prevState = probe.healthStatusAfterGracePeriodExpires()
 				numConsecutiveProbes = 1
 				committedState = Empty
-			// If grace period has not expired, check if we have consecutive valid probes
+				// If grace period has not expired, check if we have consecutive valid probes
 			} else if (numConsecutiveProbes == numberOfProbes) && (state != probe.healthStatusAfterGracePeriodExpires()) {
 				ctx.Log("event", fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
-			// Application will be in Initializing state since we have not received consecutive valid health states
+				// Application will be in Initializing state since we have not received consecutive valid health states
 			} else {
 				ctx.Log("event", fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 				state = Initializing
@@ -180,14 +180,14 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				ctx.Log("event", fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			}
 			// Only reset if we've observed consecutive probes in order to preserve previous observations when handling grace period
-			if (numConsecutiveProbes == numberOfProbes) {
+			if numConsecutiveProbes == numberOfProbes {
 				numConsecutiveProbes = 0
 			}
 		}
 
 		substatuses[0].Status = committedState.GetStatusType()
 		substatuses[0].FormattedMessage.Message = committedState.GetSubstatusMessage()
-		
+
 		substatuses[1].Status = committedState.GetStatusType()
 		substatuses[1].FormattedMessage.Message = string(committedState)
 
