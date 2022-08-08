@@ -142,7 +142,7 @@ teardown(){
 }
 
 @test "handler command: enable - healthy http probe" {
-    mk_container sh -c "webserver -states=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -267,7 +267,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = unk,unk" {
-    mk_container sh -c "webserver -states=3,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=3,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -295,7 +295,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk" {
-    mk_container sh -c "webserver -states=2h,2h,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2h,2h,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -329,7 +329,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h" {
-    mk_container sh -c "webserver -states=2h,2h,4,4,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2h,2h,4,4,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -364,7 +364,7 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h,h" {
-    mk_container sh -c "webserver -states=2h,2h,4,4,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2h,2h,4,4,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
