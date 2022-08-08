@@ -14,18 +14,18 @@ var (
 )
 
 type ProbeResponse struct {
-	applicationHealthState HealthStatus `json:"applicationHealthState"`
-	customMetrics          string       `json:"customMetrics,omitempty"`
+	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
+	CustomMetrics          string       `json:"customMetrics,omitempty"`
 }
 
 func (p ProbeResponse) validate() error {
-	if !allowedHealthStatuses[p.applicationHealthState] {
-		return errors.New(fmt.Sprintf("Response body key '%s' has invalid value '%s'", ProbeResponseKeyNameApplicationHealthState, string(p.applicationHealthState)))
+	if !allowedHealthStatuses[p.ApplicationHealthState] {
+		return errors.New(fmt.Sprintf("Response body key '%s' has invalid value '%s'", ProbeResponseKeyNameApplicationHealthState, string(p.ApplicationHealthState)))
 	}
-	if p.customMetrics != "" {
+	if p.CustomMetrics != "" {
 		var js map[string]interface{}
-		if json.Unmarshal([]byte(p.customMetrics), &js) != nil {
-			return errors.New(fmt.Sprintf("Response body key '%s' value is not a valid json object: '%s'", ProbeResponseKeyNameCustomMetrics, p.customMetrics))
+		if json.Unmarshal([]byte(p.CustomMetrics), &js) != nil {
+			return errors.New(fmt.Sprintf("Response body key '%s' value is not a valid json object: '%s'", ProbeResponseKeyNameCustomMetrics, p.CustomMetrics))
 		}
 	}
 	return nil

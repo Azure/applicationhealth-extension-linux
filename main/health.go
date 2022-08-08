@@ -81,20 +81,20 @@ func (p *TcpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	var probeResponse ProbeResponse
 	if err != nil {
-		probeResponse.applicationHealthState = Unhealthy
+		probeResponse.ApplicationHealthState = Unhealthy
 		return probeResponse, err
 	}
 
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
-		probeResponse.applicationHealthState = Unhealthy
+		probeResponse.ApplicationHealthState = Unhealthy
 		return probeResponse, errUnableToConvertType
 	}
 
 	tcpConn.SetLinger(0)
 	tcpConn.Close()
 
-	probeResponse.applicationHealthState = Healthy
+	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
 }
 
@@ -148,7 +148,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	var probeResponse ProbeResponse
 	if err != nil {
-		probeResponse.applicationHealthState = Unknown
+		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
 	}
 
@@ -157,7 +157,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	// non-2xx status code doesn't return err
 	// err is returned if a timeout occurred
 	if err != nil {
-		probeResponse.applicationHealthState = Unknown
+		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
 	}
 
@@ -165,22 +165,21 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 
 	// non 2xx status code
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		probeResponse.applicationHealthState = Unknown
+		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, errors.New(fmt.Sprintf("Unsuccessful response status code %v", resp.StatusCode))
 	}
-
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		probeResponse.applicationHealthState = Unknown
+		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
 	}
-
+	
 	if err := json.Unmarshal(bodyBytes, &probeResponse); err != nil {
-		probeResponse.applicationHealthState = Unknown
+		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
 	} else if err := probeResponse.validate(); err != nil {
-		probeResponse.applicationHealthState = Unknown
-		probeResponse.customMetrics = ""
+		probeResponse.ApplicationHealthState = Unknown
+		probeResponse.CustomMetrics = ""
 		return probeResponse, err
 	}
 
@@ -209,7 +208,7 @@ type DefaultHealthProbe struct {
 
 func (p DefaultHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
-	probeResponse.applicationHealthState = Healthy
+	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
 }
 

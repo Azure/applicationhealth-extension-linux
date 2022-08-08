@@ -112,7 +112,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	for {
 		startTime := time.Now()
 		probeResponse, err := probe.evaluate(ctx)
-		state := probeResponse.applicationHealthState
+		state := probeResponse.ApplicationHealthState
 		if err != nil {
 			ctx.Log("error", err)
 		}
@@ -168,8 +168,8 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			generateApplicationHealthStateSubstatusItem(committedState),
 		}
 
-		if probeResponse.customMetrics != "" {
-			substatuses = append(substatuses, generateCustomMetricsSubstatusItem(committedState, probeResponse.customMetrics))
+		if probeResponse.CustomMetrics != "" {
+			substatuses = append(substatuses, generateCustomMetricsSubstatusItem(committedState, probeResponse.CustomMetrics))
 		}
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
