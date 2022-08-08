@@ -175,7 +175,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 		return probeResponse, err
 	}
 
-	if err := json.Unmarshal(bodyBytes, probeResponse); err != nil {
+	if err := json.Unmarshal(bodyBytes, &probeResponse); err != nil {
 		probeResponse.applicationHealthState = Unknown
 		return probeResponse, err
 	} else if err := probeResponse.validate(); err != nil {
