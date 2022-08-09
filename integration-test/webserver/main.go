@@ -28,7 +28,7 @@ const (
 	CustomMetricsEmptyFlag       = "empty"
 	CustomMetricsEmptyObjectFlag = "emptyobj"
 
-	CustomMetricsValidValue       = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
+	CustomMetricsValidValue       = `{"rollingUpgradePolicy": { "phase": 2, "doNotUpgrade": true, "dummy": "yes" } }`
 	CustomMetricsInvalidValue     = `[ "hello", "world" ]`
 	CustomMetricsEmptyValue       = ""
 	CustomMetricsEmptyObjectValue = "{}"
