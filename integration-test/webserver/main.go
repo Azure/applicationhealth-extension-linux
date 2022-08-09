@@ -1,4 +1,4 @@
-package main
+package webserver
 
 import (
 	"context"
@@ -13,24 +13,24 @@ import (
 
 const (
 	// Response body key names
-	ResponseBodyKeyApplicationHealthState = "ApplicationHealthState" 
-	ResponseBodyKeyCustomMetrics = "CustomMetrics"
-	
+	ResponseBodyKeyApplicationHealthState = "ApplicationHealthState"
+	ResponseBodyKeyCustomMetrics          = "CustomMetrics"
+
 	// Application Health State flags
 	ApplicationHealthStateInvalidFlag = "i"
-	ResponseTimeoutFlag = "t"
-	ResponseTimeoutInSeconds = 35
+	ResponseTimeoutFlag               = "t"
+	ResponseTimeoutInSeconds          = 35
 
 	// Custom Metrics flags
-	CustomMetricsValidFlag = "valid"
-	CustomMetricsInvalidFlag = "invalid"
-	CustomMetricsNilFlag = "nil"
-	CustomMetricsEmptyFlag = "empty"
+	CustomMetricsValidFlag       = "valid"
+	CustomMetricsInvalidFlag     = "invalid"
+	CustomMetricsNilFlag         = "nil"
+	CustomMetricsEmptyFlag       = "empty"
 	CustomMetricsEmptyObjectFlag = "emptyobj"
 
-	CustomMetricsValidValue = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
-	CustomMetricsInvalidValue = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
-	CustomMetricsEmptyValue = ""
+	CustomMetricsValidValue       = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
+	CustomMetricsInvalidValue     = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
+	CustomMetricsEmptyValue       = ""
 	CustomMetricsEmptyObjectValue = "{}"
 )
 
@@ -46,13 +46,13 @@ func HandleFlag(flagStr string) (int, map[string]interface{}) {
 	if flagStr == "" {
 		return statusCode, responseBody
 	}
-	
+
 	flags := strings.Split(flagStr, "-")
 	statusCodeAndHealthStateFlags := []rune(flags[0])
 
 	// E.g '3' -> StatusCode: 300
 	statusCode = HandleStatusCodeFlag(string(statusCodeAndHealthStateFlags[0]))
-	
+
 	// E.g '2h' -> StatusCode: 200, ResponseBody: { "ApplicationHealthState" : "Healthy" }
 	if healthStateOrTimeoutFlag := ApplicationHealthStateFlagPresent(flags); healthStateOrTimeoutFlag != "" {
 		switch healthStateOrTimeoutFlag {
@@ -68,7 +68,7 @@ func HandleFlag(flagStr string) (int, map[string]interface{}) {
 	// E.g '2h-valid' -> StatusCode: 200, ResponseBody: { "ApplicationHealthState" : "Healthy", "CustomMetrics": "<a valid json object>" }
 	if customMetricFlag := CustomMetricsFlagPresent(flags); customMetricFlag != "" {
 		key, value := HandleCustomMetricFlag(customMetricFlag)
-		responseBody[key] = value 
+		responseBody[key] = value
 	}
 
 	if len(responseBody) == 0 {
@@ -116,21 +116,35 @@ func HandleCustomMetricFlag(flag string) (string, interface{}) {
 	switch flag {
 	case CustomMetricsValidFlag:
 		return ResponseBodyKeyCustomMetrics, CustomMetricsValidValue
-	
+
 	case CustomMetricsInvalidFlag:
 		return ResponseBodyKeyCustomMetrics, CustomMetricsInvalidValue
-	
+
 	case CustomMetricsNilFlag:
 		return ResponseBodyKeyCustomMetrics, nil
-	
-	case CustomMetricsEmptyFlag: 
+
+	case CustomMetricsEmptyFlag:
 		return ResponseBodyKeyCustomMetrics, CustomMetricsEmptyValue
-	
-	case CustomMetricsEmptyObjectFlag: 
+
+	case CustomMetricsEmptyObjectFlag:
 		return ResponseBodyKeyCustomMetrics, CustomMetricsEmptyObjectValue
 	}
-	
+
 	return "Hello", "world"
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request, arguments *[]string) {
+	log.Printf("Arguments: %v, len: %v", arguments, len(*arguments))
+	statusCode, responseBody := HandleFlag((*arguments)[0])
+	*arguments = (*arguments)[1:]
+
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "application/json")
+	respBody, err := json.Marshal(responseBody)
+	if err != nil {
+		log.Printf("Error happened in JSON marshal. Err: %s", err)
+	}
+	w.Write(respBody)
 }
 
 func main() {
@@ -138,7 +152,7 @@ func main() {
 	flag.Parse()
 	originalArgs := strings.Split(*args, ",")
 	arguments := strings.Split(*args, ",")
-	var shouldExitOnEmptyArgs= len(arguments) > 0
+	var shouldExitOnEmptyArgs = len(arguments) > 0
 
 	httpMutex := http.NewServeMux()
 	httpServer := http.Server{Addr: ":8080", Handler: httpMutex}
@@ -147,17 +161,7 @@ func main() {
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
 	httpMutex.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Arguments: %v, len: %v", arguments, len(arguments))
-		statusCode, responseBody := HandleFlag(arguments[0])
-		arguments = arguments[1:]
-
-		w.WriteHeader(statusCode)
-		w.Header().Set("Content-Type", "application/json")
-		respBody, err := json.Marshal(responseBody)
-		if err != nil {
-			log.Printf("Error happened in JSON marshal. Err: %s", err)
-		}
-		w.Write(respBody)
+		healthHandler(w, r, &arguments)
 
 		// if arguments is non-empty, this means that the test is only meant to run till we iterate over all arguments, so the servers are shutdown
 		if shouldExitOnEmptyArgs && len(arguments) == 0 {
@@ -170,6 +174,8 @@ func main() {
 		}
 	})
 
+	log.Printf("Starting servers...")
+	log.Printf("Arguments: %v, len: %v", arguments, len(arguments))
 	go httpServer.ListenAndServe()
 	httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem")
 }
