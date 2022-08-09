@@ -34,8 +34,8 @@ func main() {
 	var shouldExitOnEmptyHealthStates = len(healthStates) > 0
 
 	httpMutex := http.NewServeMux()
-	httpServer := http.Server{Addr: ":8080", Handler: httpMutex}
-	httpsServer := http.Server{Addr: ":443", Handler: httpMutex}
+	httpServer := http.Server{Addr: ":8080"}
+	httpsServer := http.Server{Addr: ":443"}
 
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
@@ -92,6 +92,13 @@ func main() {
 		}
 	})
 
+	httpServer.Handler = httpMutex
+	httpsServer.Handler = httpMutex
+
+	log.Printf("Starting http server...")
 	go httpServer.ListenAndServe()
-	httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem")
+	log.Printf("Starting https server...")
+	log.Fatal(httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem"))
+	log.Printf("Servers stopped...")
+	log.Printf("Finished serving health states: %v", originalHealthStates)
 }
