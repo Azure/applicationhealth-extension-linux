@@ -1,4 +1,4 @@
-package webserver
+package main
 
 import (
 	"context"
@@ -29,7 +29,7 @@ const (
 	CustomMetricsEmptyObjectFlag = "emptyobj"
 
 	CustomMetricsValidValue       = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
-	CustomMetricsInvalidValue     = `'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'`
+	CustomMetricsInvalidValue     = `[ "hello", "world" ]`
 	CustomMetricsEmptyValue       = ""
 	CustomMetricsEmptyObjectValue = "{}"
 )
@@ -65,7 +65,7 @@ func HandleFlag(flagStr string) (int, map[string]interface{}) {
 		}
 	}
 
-	// E.g '2h-valid' -> StatusCode: 200, ResponseBody: { "ApplicationHealthState" : "Healthy", "CustomMetrics": "<a valid json object>" }
+	// E.g '2h-valid' -> StatusCode: 200, ResponseBody: { "ApplicationHealthState" : "Healthy", "CustomMetrics": "<a raw json string>" }
 	if customMetricFlag := CustomMetricsFlagPresent(flags); customMetricFlag != "" {
 		key, value := HandleCustomMetricFlag(customMetricFlag)
 		responseBody[key] = value
@@ -155,8 +155,8 @@ func main() {
 	var shouldExitOnEmptyArgs = len(arguments) > 0
 
 	httpMutex := http.NewServeMux()
-	httpServer := http.Server{Addr: ":8080", Handler: httpMutex}
-	httpsServer := http.Server{Addr: ":443", Handler: httpMutex}
+	httpServer := http.Server{Addr: ":8080"}
+	httpsServer := http.Server{Addr: ":443"}
 
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
@@ -174,8 +174,13 @@ func main() {
 		}
 	})
 
-	log.Printf("Starting servers...")
+	httpServer.Handler = httpMutex
+	httpsServer.Handler = httpMutex
+
 	log.Printf("Arguments: %v, len: %v", arguments, len(arguments))
+	log.Printf("Starting http server...")
 	go httpServer.ListenAndServe()
+	log.Printf("Starting https server...")
 	httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem")
+	log.Printf("Servers stopped")
 }
