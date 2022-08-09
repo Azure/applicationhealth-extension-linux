@@ -106,6 +106,37 @@ teardown(){
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
+@test "handler command: enable - custom metrics - sending empty json object in custom metrics is omitted and not seen in status file " {
+    mk_container sh -c "webserver -args=2h-emptyobj,2h-emptyobj & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600
+    }' ''
+    run start_container
+
+    echo "$output"
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    
+    expectedTimeDifferences=(0 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
+    expectedStateLogs=(
+        "Health state changed to healthy"
+        "Committed health state is initializing"
+        "Committed health state is healthy"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    [[ "$status_file" != *'CustomMetrics'* ]]
+}
+
 @test "handler command: enable - custom metrics - sending invalid formatted custom metrics is omitted from status file" {
     mk_container sh -c "webserver -args=2h-invalid,2h-invalid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '

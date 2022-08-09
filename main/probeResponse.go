@@ -31,6 +31,9 @@ func (p ProbeResponse) validateCustomMetrics() error {
 		if json.Unmarshal([]byte(p.CustomMetrics), &js) != nil {
 			return errors.New(fmt.Sprintf("Response body key '%s' value is not a valid json object: '%s'", ProbeResponseKeyNameCustomMetrics, p.CustomMetrics))
 		}
+		if len(js) == 0 {
+			return errors.New(fmt.Sprintf("Response body key '%s' value must not be an empty json object: '%s'", ProbeResponseKeyNameCustomMetrics, p.CustomMetrics))
+		}
 	}
 	return nil
 }
