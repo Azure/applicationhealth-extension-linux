@@ -181,6 +181,6 @@ func main() {
 	log.Printf("Starting http server...")
 	go httpServer.ListenAndServe()
 	log.Printf("Starting https server...")
-	httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem")
+	log.Fatal(httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem"))
 	log.Printf("Servers stopped")
 }
