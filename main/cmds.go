@@ -164,12 +164,16 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		substatuses := []SubstatusItem{
-			generateAppHealthStatusSubstatusItem(committedState),
-			generateApplicationHealthStateSubstatusItem(committedState),
+			NewSubstatus(SubstatusKeyNameAppHealthStatus, committedState.GetStatusType(), committedState.GetSubstatusMessage()),
+			NewSubstatus(SubstatusKeyNameApplicationHealthState, committedState.GetStatusType(), string(committedState)),
 		}
 
 		if probeResponse.CustomMetrics != "" {
-			substatuses = append(substatuses, generateCustomMetricsSubstatusItem(committedState, probeResponse.CustomMetrics))
+			customMetricsStatusType := StatusError
+			if probeResponse.validateCustomMetrics() == nil {
+				customMetricsStatusType = StatusSuccess
+			}
+			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
 		}
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)

@@ -180,7 +180,6 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	} 
 
 	if err := probeResponse.validateCustomMetrics(); err != nil {
-		probeResponse.CustomMetrics = ""
 		ctx.Log("error", err)
 	}
 	

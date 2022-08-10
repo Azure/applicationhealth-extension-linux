@@ -36,39 +36,6 @@ func reportStatusWithSubstatuses(ctx *log.Context, hEnv vmextension.HandlerEnvir
 	return nil
 }
 
-func generateAppHealthStatusSubstatusItem(committedState HealthStatus) SubstatusItem {
-	return SubstatusItem{
-		Name:   SubstatusKeyNameAppHealthStatus,
-		Status: committedState.GetStatusType(),
-		FormattedMessage: FormattedMessage{
-			Lang:    "en",
-			Message: committedState.GetSubstatusMessage(),
-		},
-	}
-}
-
-func generateApplicationHealthStateSubstatusItem(committedState HealthStatus) SubstatusItem {
-	return SubstatusItem{
-		Name:   SubstatusKeyNameApplicationHealthState,
-		Status: committedState.GetStatusType(),
-		FormattedMessage: FormattedMessage{
-			Lang:    "en",
-			Message: string(committedState),
-		},
-	}
-}
-
-func generateCustomMetricsSubstatusItem(committedState HealthStatus, customMetrics string) SubstatusItem {
-	return SubstatusItem{
-		Name:   SubstatusKeyNameCustomMetrics,
-		Status: committedState.GetStatusType(),
-		FormattedMessage: FormattedMessage{
-			Lang:    "en",
-			Message: customMetrics,
-		},
-	}
-}
-
 // statusMsg creates the reported status message based on the provided operation
 // type and the given message string.
 //

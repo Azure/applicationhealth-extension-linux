@@ -106,7 +106,7 @@ teardown(){
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
-@test "handler command: enable - custom metrics - sending empty json object in custom metrics is omitted and not seen in status file " {
+@test "handler command: enable - custom metrics - sending empty json object in custom metrics appears in status file with error status" {
     mk_container sh -c "webserver -args=2h-emptyobj,2h-emptyobj & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -134,10 +134,12 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
-    [[ "$status_file" != *'CustomMetrics'* ]]
+    
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "\{\}"'
 }
 
-@test "handler command: enable - custom metrics - sending invalid formatted custom metrics is omitted from status file" {
+@test "handler command: enable - custom metrics - sending invalid formatted custom metrics appears in status file with error status" {
     mk_container sh -c "webserver -args=2h-invalid,2h-invalid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -165,7 +167,9 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
-    [[ "$status_file" != *'CustomMetrics'* ]]
+
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "\[ \\"hello\\", \\"world\\" ]"'
 }
 
 @test "handler command: enable - custom metrics - sending valid custom metrics is seen in status file" {
@@ -196,8 +200,8 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
-    [[ "$status_file" = *'CustomMetrics'* ]]
-    [[ "$status_file" = *'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'* ]]
+
+    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }"'
 }
 
 @test "handler command: enable - custom metrics - sending valid custom metrics is seen in status file even if health is unknown" {
@@ -227,6 +231,6 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
-    [[ "$status_file" = *'CustomMetrics'* ]]
-    [[ "$status_file" = *'{\"rollingUpgradePolicy\": { \"phase\": 2, \"doNotUpgrade\": true, \"dummy\": \"yes\" } }'* ]]
+
+    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }"'
 }
