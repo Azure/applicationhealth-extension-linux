@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"fmt"
 	"time"
 )
 
@@ -32,10 +32,10 @@ func main() {
 	originalHealthStates := strings.Split(*states, ",")
 	healthStates := strings.Split(*states, ",")
 	var shouldExitOnEmptyHealthStates = len(healthStates) > 0
-	
+
 	httpMutex := http.NewServeMux()
-	httpServer := http.Server{Addr: ":8080", Handler: httpMutex}
-	httpsServer := http.Server{Addr: ":443", Handler: httpMutex}
+	httpServer := http.Server{Addr: ":8080"}
+	httpsServer := http.Server{Addr: ":443"}
 
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
@@ -49,30 +49,30 @@ func main() {
 			statusCode *= 100
 			if len(strArr) > 1 {
 				stateFlag := string(strArr[1])
-				
+
 				switch stateFlag {
-					case TimeoutFlag:
-						log.Printf("Sleeping for %d seconds", TimeoutInSeconds)
-						time.Sleep(TimeoutInSeconds * time.Second)
+				case TimeoutFlag:
+					log.Printf("Sleeping for %d seconds", TimeoutInSeconds)
+					time.Sleep(TimeoutInSeconds * time.Second)
 
-					case ApplicationHealthStateMissingFlag:
-						log.Printf("Sending response with missing app health state")
-						response["Hello"] = "World"
+				case ApplicationHealthStateMissingFlag:
+					log.Printf("Sending response with missing app health state")
+					response["Hello"] = "World"
 
-					case InvalidApplicationHealthStateValueFlag:
-						log.Printf("Sending response with invalid app health state")
-						response[ApplicationHealthStateResponseKey] = "Hello!"
+				case InvalidApplicationHealthStateValueFlag:
+					log.Printf("Sending response with invalid app health state")
+					response[ApplicationHealthStateResponseKey] = "Hello!"
 
-					default:
-						log.Printf("Sending response with app health state: %s", stateMap[stateFlag])
-						response[ApplicationHealthStateResponseKey] = stateMap[stateFlag]
+				default:
+					log.Printf("Sending response with app health state: %s", stateMap[stateFlag])
+					response[ApplicationHealthStateResponseKey] = stateMap[stateFlag]
 				}
 			} else {
 				log.Printf("Sending no response body with status code %v", statusCode)
 			}
 		}
 		healthStates = healthStates[1:]
-			
+
 		w.WriteHeader(statusCode)
 		w.Header().Set("Content-Type", "application/json")
 		resp, err := json.Marshal(response)
@@ -92,6 +92,13 @@ func main() {
 		}
 	})
 
+	httpServer.Handler = httpMutex
+	httpsServer.Handler = httpMutex
+
+	log.Printf("Starting http server...")
 	go httpServer.ListenAndServe()
-	httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem")
+	log.Printf("Starting https server...")
+	log.Fatal(httpsServer.ListenAndServeTLS("webservercert.pem", "webserverkey.pem"))
+	log.Printf("Servers stopped...")
+	log.Printf("Finished serving health states: %v", originalHealthStates)
 }

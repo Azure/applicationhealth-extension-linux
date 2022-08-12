@@ -1,6 +1,7 @@
 package main
 
 const (
-	SubstatusKeyNameAppHealthStatus   = "AppHealthStatus"
-	ApplicationHealthStateResponseKey = "ApplicationHealthState"
+	SubstatusKeyNameAppHealthStatus        = "AppHealthStatus"
+	SubstatusKeyNameApplicationHealthState = "ApplicationHealthState"
+	ApplicationHealthStateResponseKey      = "ApplicationHealthState"
 )

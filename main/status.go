@@ -38,29 +38,24 @@ type FormattedMessage struct {
 	Message string `json:"message"`
 }
 
-type AdditionalProperties struct {
-	ApplicationHealthState HealthStatus `json:"applicationHealthState"`
-}
-
 type SubstatusItem struct {
-	Name                 string               `json:"name"`
-	Status               StatusType           `json:"status"`
-	FormattedMessage     FormattedMessage     `json:"formattedMessage"`
-	AdditionalProperties AdditionalProperties `json:"additionalProperties"`
+	Name             string           `json:"name"`
+	Status           StatusType       `json:"status"`
+	FormattedMessage FormattedMessage `json:"formattedMessage"`
 }
 
 func NewStatus(t StatusType, operation, message string) StatusReport {
 	now := time.Now().UTC().Format(time.RFC3339)
 	return []StatusItem{
 		{
-			Version: 1.0,
+			Version:      1.0,
 			TimestampUTC: now,
-			Status: Status {
-				Operation: operation,
+			Status: Status{
+				Operation:                   operation,
 				ConfigurationAppliedTimeUTC: now,
 				Status: t,
 				FormattedMessage: FormattedMessage{
-					Lang: "en",
+					Lang:    "en",
 					Message: message,
 				},
 			},
@@ -70,19 +65,21 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 
 func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
 	if len(r) > 0 {
-		r[0].Status.SubstatusList = []SubstatusItem{
-			{
-				Name: name,
-				Status: t,
-				FormattedMessage: FormattedMessage {
-					Lang: "en",
-					Message: message,
-				},
-				AdditionalProperties: AdditionalProperties {
-					ApplicationHealthState: state,
-				},
+		substatusItem := SubstatusItem{
+			Name:   name,
+			Status: t,
+			FormattedMessage: FormattedMessage{
+				Lang:    "en",
+				Message: message,
 			},
 		}
+		r[0].Status.SubstatusList = append(r[0].Status.SubstatusList, substatusItem)
+	}
+}
+
+func (r StatusReport) AddSubstatusItem(substatus SubstatusItem) {
+	if len(r) > 0 {
+		r[0].Status.SubstatusList = append(r[0].Status.SubstatusList, substatus)
 	}
 }
 
