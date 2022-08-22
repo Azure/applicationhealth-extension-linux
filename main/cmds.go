@@ -94,29 +94,6 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		gracePeriodStartTime      = time.Now()
 	)
 
-	appHealthStatusSubstatusItem := SubstatusItem{
-		Name:   SubstatusKeyNameAppHealthStatus,
-		Status: Healthy.GetStatusType(),
-		FormattedMessage: FormattedMessage{
-			Lang:    "en",
-			Message: Healthy.GetSubstatusMessage(),
-		},
-	}
-
-	applicationHealthStateSubstatusItem := SubstatusItem{
-		Name:   SubstatusKeyNameApplicationHealthState,
-		Status: Healthy.GetStatusType(),
-		FormattedMessage: FormattedMessage{
-			Lang:    "en",
-			Message: string(Healthy),
-		},
-	}
-
-	substatuses := []SubstatusItem{
-		appHealthStatusSubstatusItem,
-		applicationHealthStateSubstatusItem,
-	}
-
 	if !honorGracePeriod {
 		ctx.Log("event", "Grace period not set")
 	} else {
@@ -134,7 +111,8 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	//	2. A valid health state is observed numberOfProbes consecutive times
 	for {
 		startTime := time.Now()
-		state, err := probe.evaluate(ctx)
+		probeResponse, err := probe.evaluate(ctx)
+		state := probeResponse.ApplicationHealthState
 		if err != nil {
 			ctx.Log("error", err)
 		}
@@ -185,11 +163,18 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			}
 		}
 
-		substatuses[0].Status = committedState.GetStatusType()
-		substatuses[0].FormattedMessage.Message = committedState.GetSubstatusMessage()
+		substatuses := []SubstatusItem{
+			NewSubstatus(SubstatusKeyNameAppHealthStatus, committedState.GetStatusType(), committedState.GetSubstatusMessage()),
+			NewSubstatus(SubstatusKeyNameApplicationHealthState, committedState.GetStatusType(), string(committedState)),
+		}
 
-		substatuses[1].Status = committedState.GetStatusType()
-		substatuses[1].FormattedMessage.Message = string(committedState)
+		if probeResponse.CustomMetrics != "" {
+			customMetricsStatusType := StatusError
+			if probeResponse.validateCustomMetrics() == nil {
+				customMetricsStatusType = StatusSuccess
+			}
+			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
+		}
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {

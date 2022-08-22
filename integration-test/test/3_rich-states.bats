@@ -11,7 +11,7 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - invalid app health state results in unknown" {
-    mk_container sh -c "webserver -states=2h,2h,2i,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2h,2h,2i,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -48,7 +48,7 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - basic states = m,h,h,u,u,i,i" {
-    mk_container sh -c "webserver -states=2m,2h,2h,2u,2u,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2,2h,2h,2u,2u,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -86,7 +86,7 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - alternating states=i,h,h,i,h,u,h,i,h" {
-    mk_container sh -c "webserver -states=2i,2h,2h,2i,2h,2u,2h,2i,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -125,7 +125,7 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - endpoint timeout results in unknown" {
-    mk_container sh -c "webserver -states=2h,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container sh -c "webserver -args=2h,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",

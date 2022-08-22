@@ -63,6 +63,17 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 	}
 }
 
+func NewSubstatus(name string, t StatusType, message string) SubstatusItem {
+	return SubstatusItem {
+		Name:   name,
+		Status: t,
+		FormattedMessage: FormattedMessage{
+			Lang:    "en",
+			Message: message,
+		},
+	}
+}
+
 func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
 	if len(r) > 0 {
 		substatusItem := SubstatusItem{
