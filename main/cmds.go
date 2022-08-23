@@ -164,7 +164,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		substatuses := []SubstatusItem{
-			NewSubstatus(SubstatusKeyNameAppHealthStatus, committedState.GetStatusType(), committedState.GetSubstatusMessage()),
+			NewSubstatus(SubstatusKeyNameHealthStore, committedState.GetStatusTypeForHealthStore(), committedState.GetMessageForHealthStore()),
 			NewSubstatus(SubstatusKeyNameApplicationHealthState, committedState.GetStatusType(), string(committedState)),
 		}
 

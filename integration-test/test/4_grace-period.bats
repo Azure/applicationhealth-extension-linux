@@ -60,7 +60,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
 }
 
 @test "handler command: enable - honor grace period - unresponsive http probe with numberOfProbes=1" {
@@ -88,7 +89,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
 }
 
 @test "handler command: enable - bypass grace period - consecutive valid health states" {
@@ -127,7 +129,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
 }
 
 @test "handler command: enable - bypass grace period - state change behavior retained" {
@@ -169,7 +172,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
 }
 
 @test "handler command: enable - bypass grace period - larger numberOfProbes, consecutive rich states" {
@@ -211,7 +215,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
 }
 
 @test "handler command: enable - bypass / grace period expires - fail to bypass and expiration results in unknown" {
@@ -249,7 +254,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unknown'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
 }
 
 @test "handler command: enable - grace period expires - additional alternating health states" {
@@ -292,5 +298,6 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
 }

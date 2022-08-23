@@ -38,7 +38,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
     echo "status_file=$status_file"; [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
@@ -71,7 +72,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be unhealthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unhealthy"'
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
@@ -102,7 +104,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
@@ -133,8 +136,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
-    
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
     echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
     echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "\{\}"'
 }
@@ -166,8 +168,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
-
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
     echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
     echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "\[ \\"hello\\", \\"world\\" ]"'
 }
@@ -199,8 +200,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be healthy'* ]]
-
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
     echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }"'
 }
 
@@ -230,7 +231,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Application health found to be initializing'* ]]
-
+    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
     echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }"'
 }
