@@ -31,7 +31,8 @@ teardown(){
     diff="$(container_diff)"; echo "$diff"
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
 }
 
 @test "handler command: enable twice, process exits cleanly" {
@@ -49,8 +50,9 @@ teardown(){
     diff="$(container_diff)"; echo "$diff"
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
 @test "handler command: enable - validates json schema" {
@@ -73,8 +75,9 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - failed http probe" {
@@ -100,8 +103,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - failed https probe" {
@@ -127,8 +131,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - healthy tcp probe" {
@@ -142,8 +147,9 @@ teardown(){
     echo "$output"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
 @test "handler command: enable - healthy http probe" {
@@ -161,8 +167,9 @@ teardown(){
     [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
 @test "handler command: enable - https unknown after 10 seconds" {
@@ -193,8 +200,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
 @test "handler command: enable - unknown http probe - no response body" {
@@ -219,8 +227,9 @@ teardown(){
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - unknown http probe - no response body - prefixing requestPath with a slash" {
@@ -246,8 +255,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - unknown https probe - no response body" {
@@ -272,8 +282,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - numofprobes with states = unk,unk" {
@@ -301,8 +312,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
+    
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk" {
@@ -336,8 +348,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h" {
@@ -372,8 +385,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h,h" {
@@ -409,8 +423,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
 @test "handler command: uninstall - deletes the data dir" {

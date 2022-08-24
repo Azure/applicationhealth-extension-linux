@@ -44,8 +44,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
 @test "handler command: enable - rich states - basic states = m,h,h,u,u,i,i" {
@@ -83,8 +83,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
     
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
 @test "handler command: enable - rich states - alternating states=i,h,h,i,h,u,h,i,h" {
@@ -123,8 +123,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
 @test "handler command: enable - rich states - endpoint timeout results in unknown" {
@@ -158,6 +158,6 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unknown"'
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }

@@ -38,8 +38,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     echo "status_file=$status_file"; [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
@@ -72,8 +72,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as unhealthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Unhealthy"'
+    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Unhealthy
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
@@ -104,8 +104,8 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
 
@@ -136,9 +136,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
-    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "\{\}"'
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+    verify_substatus_item "$status_file" CustomMetrics error '\{\}'
 }
 
 @test "handler command: enable - custom metrics - sending invalid formatted custom metrics appears in status file with error status" {
@@ -168,9 +168,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
-    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "error",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "\[ \\"hello\\", \\"world\\" ]"'
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+    verify_substatus_item "$status_file" CustomMetrics error '\[ \\"hello\\", \\"world\\" ]'
 }
 
 @test "handler command: enable - custom metrics - sending valid custom metrics is seen in status file" {
@@ -200,9 +200,9 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Healthy"'
-    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }"'
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+    verify_substatus_item "$status_file" CustomMetrics success '{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }'
 }
 
 @test "handler command: enable - custom metrics - sending valid custom metrics is seen in status file even if health is unknown" {
@@ -231,7 +231,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo "status_file=$status_file"; [[ "$status_file" = *'Health store will interpret application health as healthy'* ]]
-    echo "$status_file" | egrep -z '"name": "ApplicationHealthState",\s+"status": "transitioning",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "Initializing"'
-    echo "$status_file" | egrep -z '"name": "CustomMetrics",\s+"status": "success",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }"'
+    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
+    verify_substatus_item "$status_file" CustomMetrics success '{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }'
 }
