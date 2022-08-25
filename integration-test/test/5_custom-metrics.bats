@@ -72,7 +72,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" HealthStore error"Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" HealthStore error "Health store will interpret application health as unhealthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Unhealthy
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
