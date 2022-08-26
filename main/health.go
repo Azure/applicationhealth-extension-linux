@@ -36,8 +36,21 @@ func (p HealthStatus) GetStatusType() StatusType {
 	}
 }
 
-func (p HealthStatus) GetSubstatusMessage() string {
-	return "Application health found to be " + strings.ToLower(string(p))
+func (p HealthStatus) GetStatusTypeForHealthStore() StatusType {
+	switch p {
+	case Unhealthy, Unknown:
+		return StatusError
+	default:
+		return StatusSuccess
+	}
+}
+
+func (p HealthStatus) GetMessageForHealthStore() string {
+	if p.GetStatusTypeForHealthStore() == StatusError {
+		return "Health store will interpret application health as unhealthy"
+	} else {
+		return "Health store will interpret application health as healthy"
+	}
 }
 
 type HealthProbe interface {
@@ -173,16 +186,16 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
 	}
-	
+
 	if err := json.Unmarshal(bodyBytes, &probeResponse); err != nil {
 		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
-	} 
+	}
 
 	if err := probeResponse.validateCustomMetrics(); err != nil {
 		ctx.Log("error", err)
 	}
-	
+
 	if err := probeResponse.validateApplicationHealthState(); err != nil {
 		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err

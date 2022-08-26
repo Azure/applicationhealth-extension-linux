@@ -64,7 +64,7 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 }
 
 func NewSubstatus(name string, t StatusType, message string) SubstatusItem {
-	return SubstatusItem {
+	return SubstatusItem{
 		Name:   name,
 		Status: t,
 		FormattedMessage: FormattedMessage{

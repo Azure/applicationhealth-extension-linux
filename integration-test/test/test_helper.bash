@@ -166,3 +166,14 @@ verify_states() {
         done
     done <<< "$1"
 }
+
+verify_substatus_item() {
+    # $1 status_file contents
+    # $2 substatus.name
+    # $3 substatus.status 
+    # $4 substatus.formattedMessage.message
+    FMT='"name": "'%s'",\s+"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
+    printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
+    echo "Searching status file for: $SUBSTATUS"
+    echo "$1" | egrep -z "$SUBSTATUS"
+}
