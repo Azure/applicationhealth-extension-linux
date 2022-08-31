@@ -47,9 +47,9 @@ func (p HealthStatus) GetStatusTypeForAppHealthStatus() StatusType {
 
 func (p HealthStatus) GetMessageForAppHealthStatus() string {
 	if p.GetStatusTypeForAppHealthStatus() == StatusError {
-		return "Application health found to be unhealthy"
+		return "Application found to be unhealthy"
 	} else {
-		return "Application health found to be healthy"
+		return "Application found to be healthy"
 	}
 }
 

@@ -38,7 +38,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     echo "status_file=$status_file"; [[ "$status_file" != *'CustomMetrics'* ]]
 }
@@ -72,7 +72,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus error "Application health found to be unhealthy"
+    verify_substatus_item "$status_file" AppHealthStatus error "Application found to be unhealthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Unhealthy
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
@@ -104,7 +104,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     [[ "$status_file" != *'CustomMetrics'* ]]
 }
@@ -136,7 +136,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" CustomMetrics error '\{\}'
 }
@@ -168,7 +168,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" CustomMetrics error '\[ \\"hello\\", \\"world\\" ]'
 }
@@ -200,7 +200,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" CustomMetrics success '{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }'
 }
@@ -231,7 +231,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
     verify_substatus_item "$status_file" CustomMetrics success '{\\"rollingUpgradePolicy\\": { \\"phase\\": 2, \\"doNotUpgrade\\": true, \\"dummy\\": \\"yes\\" } }'
 }
