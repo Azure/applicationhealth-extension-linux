@@ -32,7 +32,7 @@ teardown(){
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
 }
 
 @test "handler command: enable twice, process exits cleanly" {
@@ -51,7 +51,7 @@ teardown(){
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
@@ -76,7 +76,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -104,7 +104,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -132,7 +132,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -148,7 +148,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
@@ -168,7 +168,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
@@ -201,7 +201,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
 
-    verify_substatus_item "$status_file" HealthStore error "Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" AppHealthStatus error "Application health found to be unhealthy"
     verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
@@ -228,7 +228,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
 
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -256,7 +256,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
 
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -283,7 +283,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -313,7 +313,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
@@ -349,7 +349,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
 
-    verify_substatus_item "$status_file" HealthStore error "Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" AppHealthStatus error "Application health found to be unhealthy"
     verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
@@ -386,7 +386,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
 
-    verify_substatus_item "$status_file" HealthStore error "Health store will interpret application health as unhealthy"
+    verify_substatus_item "$status_file" AppHealthStatus error "Application health found to be unhealthy"
     verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
@@ -424,7 +424,7 @@ teardown(){
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
 
-    verify_substatus_item "$status_file" HealthStore success "Health store will interpret application health as healthy"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application health found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 

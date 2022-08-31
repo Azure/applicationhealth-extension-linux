@@ -36,7 +36,7 @@ func (p HealthStatus) GetStatusType() StatusType {
 	}
 }
 
-func (p HealthStatus) GetStatusTypeForHealthStore() StatusType {
+func (p HealthStatus) GetStatusTypeForAppHealthStatus() StatusType {
 	switch p {
 	case Unhealthy, Unknown:
 		return StatusError
@@ -45,11 +45,11 @@ func (p HealthStatus) GetStatusTypeForHealthStore() StatusType {
 	}
 }
 
-func (p HealthStatus) GetMessageForHealthStore() string {
-	if p.GetStatusTypeForHealthStore() == StatusError {
-		return "Health store will interpret application health as unhealthy"
+func (p HealthStatus) GetMessageForAppHealthStatus() string {
+	if p.GetStatusTypeForAppHealthStatus() == StatusError {
+		return "Application health found to be unhealthy"
 	} else {
-		return "Health store will interpret application health as healthy"
+		return "Application health found to be healthy"
 	}
 }
 
