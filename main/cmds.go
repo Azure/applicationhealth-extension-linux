@@ -164,7 +164,10 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		substatuses := []SubstatusItem{
-			NewSubstatus(SubstatusKeyNameHealthStore, committedState.GetStatusTypeForHealthStore(), committedState.GetMessageForHealthStore()),
+			// For V2 of extension, to remain backwards compatible with HostGAPlugin and to have HealthStore signals
+			// decided by extension instead of taking a change in HostGAPlugin, first substatus will be dedicated
+			// for health store.
+			NewSubstatus(SubstatusKeyNameAppHealthStatus, committedState.GetStatusTypeForAppHealthStatus(), committedState.GetMessageForAppHealthStatus()),
 			NewSubstatus(SubstatusKeyNameApplicationHealthState, committedState.GetStatusType(), string(committedState)),
 		}
 
