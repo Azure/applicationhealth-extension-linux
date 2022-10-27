@@ -11,10 +11,10 @@ import (
 var (
 	errTcpMustNotIncludeRequestPath    = errors.New("'requestPath' cannot be specified when using 'tcp' protocol")
 	errTcpConfigurationMustIncludePort = errors.New("'port' must be specified when using 'tcp' protocol")
-	errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 120 seconds")
+	errProbeSettleTimeExceedsThreshold = errors.New("Probe settle time (intervalInSeconds * numberOfProbes) cannot exceed 240 seconds")
 	defaultIntervalInSeconds           = 5
 	defaultNumberOfProbes              = 1
-	maximumProbeSettleTime             = 120
+	maximumProbeSettleTime             = 240
 )
 
 // handlerSettings holds the configuration of the extension handler.

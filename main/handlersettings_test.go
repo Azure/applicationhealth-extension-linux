@@ -16,9 +16,9 @@ func Test_handlerSettingsValidate(t *testing.T) {
 		protectedSettings{},
 	}.validate())
 
-	// probe settle time should be less than 120 seconds
+	// probe settle time cannot exceed 240 seconds
 	require.Equal(t, errProbeSettleTimeExceedsThreshold, handlerSettings{
-		publicSettings{Protocol: "http", IntervalInSeconds: 60, NumberOfProbes: 3},
+		publicSettings{Protocol: "http", IntervalInSeconds: 60, NumberOfProbes: 5},
 		protectedSettings{},
 	}.validate())
 
