@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:bullseye
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
