@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest]
     
     runs-on: ${{ matrix.os }}
 
@@ -19,6 +19,13 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
+    - name: Install Generic Dependencies
+      run: |
+        sudo apt-get update 
+        sudo apt-get install procps
+        sudo apt install npm
+        sudo npm install -g bats
+
     - name: Setup Go
       uses: actions/setup-go@v3
 
@@ -44,11 +51,6 @@ jobs:
       run: |
         godep restore
       working-directory: ${{ env.repo_root }}
-
-    - name: Install Bats
-      run: |
-        sudo apt install npm
-        sudo npm install -g bats
 
     - name: Install Docker
       run: |
