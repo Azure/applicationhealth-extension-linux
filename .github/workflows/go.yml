@@ -22,10 +22,6 @@ jobs:
     - name: Apt Get Update
       run: |
         sudo apt-get update 
-    
-    - name: Install procps
-      run: |
-        sudo apt-get install procps
 
     - name: Install Bash Automated Testing System via Node Package Manager 
       run: |
