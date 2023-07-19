@@ -19,10 +19,16 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
-    - name: Install Generic Dependencies
+    - name: Apt Get Update
       run: |
         sudo apt-get update 
+    
+    - name: Install procps
+      run: |
         sudo apt-get install procps
+
+    - name: Install Bash Automated Testing System via Node Package Manager 
+      run: |
         sudo apt install npm
         sudo npm install -g bats
 
