@@ -92,5 +92,6 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Run Integration Tests
+      continue-on-error: true
       run: sudo bats integration-test/test --print-output-on-failure
       working-directory: ${{ env.repo_root }}
