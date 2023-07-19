@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM ubuntu:20.04
 
 RUN apt-get -qqy update && \
         apt-get -qqy install apt-utils && \
