@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest, ubuntu-20.04, ubuntu-18.04]
     
     runs-on: ${{ matrix.os }}
 
@@ -19,15 +19,6 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
-    - name: Apt Get Update
-      run: |
-        sudo apt-get update 
-
-    - name: Install Bash Automated Testing System via Node Package Manager 
-      run: |
-        sudo apt install npm
-        sudo npm install -g bats
-
     - name: Setup Go
       uses: actions/setup-go@v3
 
@@ -53,6 +44,11 @@ jobs:
       run: |
         godep restore
       working-directory: ${{ env.repo_root }}
+
+    - name: Install Bats
+      run: |
+        sudo apt install npm
+        sudo npm install -g bats
 
     - name: Install Docker
       run: |
@@ -92,6 +88,5 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Run Integration Tests
-      continue-on-error: true
-      run: sudo bats integration-test/test --print-output-on-failure
+      run: sudo bats integration-test/test
       working-directory: ${{ env.repo_root }}

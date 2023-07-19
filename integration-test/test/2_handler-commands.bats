@@ -11,7 +11,7 @@ teardown(){
 }
 
 @test "handler command: install - creates the data dir" {
-    run in_container sh -c "fake-waagent install"
+    run in_container fake-waagent install
     echo "$output"
     [ "$status" -eq 0 ]
     [[ "$output" = *event=installed* ]]
