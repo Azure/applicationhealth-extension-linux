@@ -1,9 +1,8 @@
 FROM debian:bullseye
 
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
-
-RUN apt-get -qqy update && \
-        apt-get -qqy --no-install-recommends apt-utils && \
+RUN DEBIAN_FRONTEND=noninteractive \
+        apt-get -qqy update && \
+        apt-get -qqy install apt-utils && \
 	apt-get -qqy install jq openssl ca-certificates && \
         apt-get -qqy install procps && \
         apt-get -qqy clean && \ 
