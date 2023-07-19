@@ -2,8 +2,8 @@ FROM debian:bullseye
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
-        apt-get -qqy clean && \ 
         apt-get -qqy install procps \
+        apt-get -qqy clean && \ 
         rm -rf /var/lib/apt/lists/*
 
 # Create the directories and files that need to be present
