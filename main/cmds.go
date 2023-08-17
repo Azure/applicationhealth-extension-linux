@@ -92,6 +92,9 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		committedState            = Empty
 		honorGracePeriod          = gracePeriodInSeconds > 0
 		gracePeriodStartTime      = time.Now()
+		vmWatchSettings	      	  = cfg.vmWatchSettings()
+		vmWatchResult			  = VMWatchResult {Status: Disabled, Error: nil}
+		vmWatchResultChannel	  = make(chan VMWatchResult)
 	)
 
 	if !honorGracePeriod {
@@ -99,6 +102,19 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	} else {
 		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
+
+	if (vmWatchSettings.Enabled) {
+		ctx.Log("event", fmt.Sprintf("Attempting to run VMWatch with settings: %#v", vmWatchSettings))
+
+		vmWatchCommand, err := vmWatchSettings.ToExecutableCommand()
+		if (err != nil) {
+			ctx.Log("error", err)
+			vmWatchResult = VMWatchResult{Status: Failed, Error: err}
+		} else {
+			go executeVMWatch(ctx, vmWatchCommand, vmWatchResultChannel)
+		}
+	}
+
 	// The committed health status (the state written to the status file) initially does not have a state
 	// In order to change the state in the status file, the following must be observed:
 	//  1. Healthy status observed once when committed state is unknown
@@ -178,6 +194,9 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			}
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
 		}
+
+		// VMWatch will be built-in to GuestHealthFramework, so we will always display VMWatch as substatus
+		substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {

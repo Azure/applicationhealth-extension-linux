@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM ubuntu:20.04
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
@@ -25,3 +25,4 @@ RUN ln -s /var/lib/waagent/fake-waagent /sbin/fake-waagent && \
 COPY misc/HandlerManifest.json ./Extension/
 COPY misc/applicationhealth-shim ./Extension/bin/
 COPY bin/applicationhealth-extension ./Extension/bin/
+COPY integration-test/env/VMWatch/ ./Extension/bin/

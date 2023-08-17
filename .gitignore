@@ -12,6 +12,7 @@ applicationhealth-extension-linux
 _obj
 _test
 testbin
+integration-test/result
 
 # Architecture specific extensions/prefixes
 *.[568vq]
