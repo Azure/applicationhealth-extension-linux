@@ -60,12 +60,12 @@ const (
         },
         "properties": {
           "enabled": {
-            "description": "Required - Toggles whether VMWatch plugin will be started",
+            "description": "Optional - Toggles whether VMWatch plugin will be started",
             "type": "boolean",
             "default": false
           },
           "tests": {
-            "description": "Optional - Specific list of test names to run, will ignore running other tests that are not in the list",
+            "description": "Required - Specific list of test names to run, will ignore running other tests that are not in the list",
             "type": "array",
             "default": []
           },

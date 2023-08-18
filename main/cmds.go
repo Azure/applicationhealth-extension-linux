@@ -103,14 +103,16 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
-	if (vmWatchSettings.Enabled) {
-		ctx.Log("event", fmt.Sprintf("Attempting to run VMWatch with settings: %#v", vmWatchSettings))
-
-		vmWatchCommand, err := vmWatchSettings.ToExecutableCommand()
-		if (err != nil) {
+	ctx.Log("event", fmt.Sprintf("Attempting to run VMWatch with settings: %#v", vmWatchSettings))
+	if vmWatchSettings.Enabled == false {
+		ctx.Log("event", fmt.Sprintf("VMWatch is disabled, not starting process."))
+	} else {
+		vmWatchCommand, err = vmWatchSettings.ToExecutableCommand()
+		if err != nil {
 			ctx.Log("error", err)
 			vmWatchResult = VMWatchResult{Status: Failed, Error: err}
 		} else {
+			vmWatchResult = VMWatchResult{Status: Running, Error: nil}
 			go executeVMWatch(ctx, vmWatchCommand, vmWatchResultChannel)
 		}
 	}
@@ -135,6 +137,19 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 		if shutdown {
 			return "", errTerminated
+		}
+
+		// If VMWatch was never supposed to run, it will be in Disabled state, so we do not need to read from the channel
+		// If VMWatch failed to execute, we will do not need to read from the channel
+		// Only if VMWatch is currently running do we need to check if it is terminated
+		if (vmWatchResult.Status == Running) {
+			select {
+				case vmWatchResult = <-vmWatchResultChannel:
+					ctx.Log("error", fmt.Sprintf("VMWatch process failed. %s", vmWatchResult.Error.Error()))
+					close(vmWatchResultChannel)
+				default:
+					ctx.Log("event", "VMWatch is running")
+			}
 		}
 
 		// Only increment if it's a repeat of the previous

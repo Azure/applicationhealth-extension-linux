@@ -7,22 +7,22 @@ import (
 	"os/exec"
 	"strings"
 	"path/filepath"
+	"time"
 )
 
 type VMWatchStatus string
 
 const (
 	Disabled 	VMWatchStatus = "Disabled"
-	Failed 		VMWatchStatus = "Failed"
 	Running  	VMWatchStatus = "Running"
-	Terminated 	VMWatchStatus = "Terminated"
+	Failed 		VMWatchStatus = "Failed"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
 	switch p {
 	case Disabled:
 		return StatusWarning
-	case Failed, Terminated:
+	case Failed:
 		return StatusError
 	default:
 		return StatusSuccess
@@ -37,26 +37,37 @@ type VMWatchResult struct {
 func (r *VMWatchResult) GetMessage() string {
 	switch r.Status {
 	case Disabled:
-		return "VMWatch is disabled."
+		return "VMWatch is disabled"
 	case Failed:
-		return fmt.Sprintf("VMWatch process failed to start: %s.", r.Error.Error())
-	case Terminated:
-		return fmt.Sprintf("VMWatch process terminated: %s.", r.Error.Error())
+		return fmt.Sprintf("VMWatch failed: %s", r.Error.Error())
 	default:
-		return "VMWatch is running."
+		return "VMWatch is running"
 	}
 }
 
-func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchStatusChannel chan VMWatchResult) {
-	ctx.Log("event", fmt.Sprintf("Executing VMWatch %s", cmdToString(cmd)))
+func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan VMWatchResult) {
+	ctx.Log("event", fmt.Sprintf("Execute VMWatch %s", cmdToString(cmd)))
 
-	vmWatchStatusChannel <- VMWatchResult{Status:Running, Error: nil}
-	
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 
 	defer func() {
-		vmWatchStatusChannel <- VMWatchResult{Status:Terminated, Error: err}
+		vmWatchResultChannel <- VMWatchResult{Status:Failed, Error: fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC().String(), cmd.Process.Pid, err, string(output))}
 	}()
+}
+
+func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
+	if cmd == nil {
+		ctx.Log("event", fmt.Sprintf("VMWatch is not running, not killing process."))
+		return nil
+	}
+
+	if err := cmd.Process.Kill(); err != nil {
+		ctx.Log("error", fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %w", cmd.Process.Pid, err))
+		return err
+	}
+	
+	ctx.Log("event", fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
+	return nil
 }
 
 func cmdToString(cmd *exec.Cmd) string {
@@ -69,29 +80,18 @@ func (s *vmWatchSettings) ToExecutableCommand() (*exec.Cmd, error) {
 		return nil, err
 	}
 	
-	binaryFullPath, err := GetVMWatchBinaryFullPath(processDirectory)
-	if err != nil {
-		return nil, err
-	}
-
-	configFullPath, err := GetVMWatchConfigFullPath(processDirectory)
-	if err != nil {
-		return nil, err
-	} 
-	
-	args := []string{fmt.Sprintf("--config %s", configFullPath)}
+	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
 
 	if (s.Tests != nil && len(s.Tests) > 0) {
-		args = append(args, fmt.Sprintf("--input-filter %s", strings.Join(s.Tests, ":")))
+		args = append(args, "--input-filter")
+		args = append(args, strings.Join(s.Tests, ":"))
 	}
 
-	cmd := exec.Command(fmt.Sprintf("./%s", binaryFullPath), args...)
+	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
 
-	cmd.Dir = processDirectory
 	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides)
 
 	return cmd, nil
-	// fmt.Sprintf("%s ./%s --config %s --input-filter %s", environmentVariables, binaryFullPath, configFullPath, inputFilter)
 }
 
 func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}) []string {
@@ -115,28 +115,15 @@ func GetProcessDirectory() (string, error) {
 	return filepath.Dir(p), nil
 }
 
-func GetVMWatchBinaryFullPath(processDirectory string) (string, error) {
-	var binaryFullPath string
-
-	if (strings.Contains(os.Args[0], AppHealthBinaryNameArm64)) {
-		binaryFullPath = filepath.Join(processDirectory, VMWatchBinaryNameArm64)
-	}
-
-	binaryFullPath = filepath.Join(processDirectory, VMWatchBinaryNameAmd64)
-
-	if _, err := os.Stat(binaryFullPath); err != nil {
-		return "", err
-	}
-
-	return binaryFullPath, nil
+func GetVMWatchConfigFullPath(processDirectory string) string {
+	return filepath.Join(processDirectory, VMWatchConfigFileName)
 }
 
-func GetVMWatchConfigFullPath(processDirectory string) (string, error) {
-	configFullPath := filepath.Join(processDirectory, VMWatchConfigFileName)
-
-	if _, err := os.Stat(configFullPath); err != nil {
-		return "", err
+func GetVMWatchBinaryFullPath(processDirectory string) string {
+	binaryName := VMWatchBinaryNameAmd64
+	if (strings.Contains(os.Args[0], AppHealthBinaryNameArm64)) {
+		binaryName = VMWatchBinaryNameArm64
 	}
 
-	return configFullPath, nil
+	return filepath.Join(processDirectory, binaryName)
 }

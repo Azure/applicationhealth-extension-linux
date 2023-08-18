@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
-
+	
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 )
@@ -16,6 +17,10 @@ var (
 	dataDir = "/var/lib/waagent/apphealth"
 
 	shutdown = false
+
+	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
+	// when a shutdown signal is received
+	vmWatchCommand *exec.Cmd
 )
 
 func main() {
@@ -31,6 +36,8 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
+		ctx.Log("event", fmt.Sprintf("Received shutdown request"))
+		killVMWatch(ctx, vmWatchCommand)
 		shutdown = true
 	}()
 
