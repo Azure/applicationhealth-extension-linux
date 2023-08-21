@@ -29,12 +29,11 @@ in_container() {
     set -e
     rm_container
     mk_container "$@"
-    echo "Starting test container...">&2
     start_container
 }
 
 start_container() {
-    echo "Starting $TEST_CONTAINER container">&2 && \
+    echo "Starting $TEST_CONTAINER container...">&2 && \
         docker start -ai $TEST_CONTAINER
 }
 
