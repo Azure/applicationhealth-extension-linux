@@ -96,7 +96,7 @@ kill_existing_vmwatch_processes() {
             fi
         done
         out="$(ps aux)"
-        if [[ "$out" == **"$VMWATCH_BIN enable"** ]]; then
+        if [[ "$out" == **"$VMWATCH_BIN"** ]]; then
             echo "Force terminating existing $VMWATCH_BIN process"
             pkill -9 -f $VMWATCH_BIN >&2
         fi

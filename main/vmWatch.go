@@ -49,9 +49,15 @@ func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan V
 	ctx.Log("event", fmt.Sprintf("Execute VMWatch %s", cmdToString(cmd)))
 
 	output, err := cmd.CombinedOutput()
+	
+	pid := -1
+	if cmd.Process != nil {
+		pid = cmd.Process.Pid
+	}
 
 	defer func() {
-		vmWatchResultChannel <- VMWatchResult{Status:Failed, Error: fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC().String(), cmd.Process.Pid, err, string(output))}
+		err = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC(), pid, err, string(output))
+		vmWatchResultChannel <- VMWatchResult{Status:Failed, Error: err}
 	}()
 }
 

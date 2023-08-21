@@ -34,7 +34,8 @@ in_container() {
 }
 
 start_container() {
-    docker start --attach $TEST_CONTAINER
+    echo "Starting $TEST_CONTAINER container">&2 && \
+        docker start -ai $TEST_CONTAINER
 }
 
 container_diff() {
@@ -45,6 +46,22 @@ container_read_file() { # reads the file at container path $1
     set -eo pipefail
     docker cp $TEST_CONTAINER:"$1" - | tar x --to-stdout
 } 
+
+container_read_extension_log() { 
+    container_read_file /var/log/azure/applicationhealth-extension/handler.log
+} 
+
+container_read_extension_status() { 
+    container_read_file /var/lib/waagent/Extension/status/0.status
+}
+
+container_read_extension_settings() { 
+    container_read_file /var/lib/waagent/Extension/config/0.settings
+}
+
+container_list() {
+    docker ps -a>&2
+}
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail
@@ -167,13 +184,26 @@ verify_states() {
     done <<< "$1"
 }
 
+verify_status_item() {
+    # $1 status_file contents
+    # $2 status.operation
+    # $3 status.status 
+    # $4 status.formattedMessage.message
+    #       Note that this can contain regex 
+    FMT='"operation": "'%s'",((.*)|\s*?).*,\s*"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
+    printf -v STATUS "$FMT" "$2" "$3" "$4"
+    echo "Searching status file for status item: $STATUS"
+    echo "$1" | egrep -z "$STATUS"
+}
+
 verify_substatus_item() {
     # $1 status_file contents
     # $2 substatus.name
     # $3 substatus.status 
     # $4 substatus.formattedMessage.message
+    #       Note that this can contain regex 
     FMT='"name": "'%s'",\s+"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
     printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
-    echo "Searching status file for: $SUBSTATUS"
+    echo "Searching status file for substatus item: $SUBSTATUS"
     echo "$1" | egrep -z "$SUBSTATUS"
 }

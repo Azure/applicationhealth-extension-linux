@@ -45,18 +45,7 @@ jobs:
         godep restore
       working-directory: ${{ env.repo_root }}
 
-    - name: Install Bats
-      run: |
-        sudo apt install npm
-        sudo npm install -g bats
-
-    - name: Install Docker
-      run: |
-        sudo apt-get install runc
-        sudo apt-get install containerd
-        sudo apt-get install docker.io
-
-    - name: Formatting 
+    - name: Formatting
       continue-on-error: true
       run: test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
       working-directory: ${{ env.repo_root }}
@@ -71,7 +60,7 @@ jobs:
       run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
       working-directory: ${{ env.repo_root }}
 
-    - name: Unit Tests
+    - name: Run Unit Tests
       continue-on-error: true
       run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
       working-directory: ${{ env.repo_root }}
@@ -79,8 +68,19 @@ jobs:
     - name: Build Binaries
       run: make binary
       working-directory: ${{ env.repo_root }}
+
+    - name: Install Integration Test Dependencies - Bats
+      run: |
+        sudo apt install npm
+        sudo npm install -g bats
+
+    - name: Install Integration Test Dependencies - Docker
+      run: |
+        sudo apt-get install runc
+        sudo apt-get install containerd
+        sudo apt-get install docker.io
     
-    - name: Generate Webserver Credentials
+    - name: Generate Integration Test Webserver Credentials
       run: |
         openssl rand -out ~/.rnd 2048
         openssl genrsa -out testbin/webserverkey.pem 2048

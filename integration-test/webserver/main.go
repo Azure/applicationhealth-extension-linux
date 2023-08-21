@@ -148,6 +148,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request, arguments *[]string) 
 }
 
 func main() {
+	log.Printf("Setting up server...")
 	args := flag.String("args", "", `Example usage: '2h-valid' to send StatusCode: 200, ResponseBody: { "ApplicationHealthState": "Healthy", "CustomMetrics": "<valid json>"}`)
 	flag.Parse()
 	originalArgs := strings.Split(*args, ",")
