@@ -14,7 +14,7 @@ teardown(){
     run in_container fake-waagent install
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" = *event=installed* ]]
+    [[ "$output" = *'event=installed'* ]]
 
     diff="$(container_diff)"
     echo "$diff"
