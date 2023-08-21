@@ -54,7 +54,7 @@ func NewStatus(t StatusType, operation, message string) StatusReport {
 			Status: Status{
 				Operation:                   operation,
 				ConfigurationAppliedTimeUTC: now,
-				Status: t,
+				Status:                      t,
 				FormattedMessage: FormattedMessage{
 					Lang:    "en",
 					Message: message,

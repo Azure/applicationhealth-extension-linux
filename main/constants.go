@@ -4,7 +4,7 @@ const (
 	SubstatusKeyNameAppHealthStatus        = "AppHealthStatus"
 	SubstatusKeyNameApplicationHealthState = "ApplicationHealthState"
 	SubstatusKeyNameCustomMetrics          = "CustomMetrics"
-	SubstatusKeyNameVMWatch          	   = "VMWatch"
+	SubstatusKeyNameVMWatch                = "VMWatch"
 
 	ProbeResponseKeyNameApplicationHealthState = "ApplicationHealthState"
 	ProbeResponseKeyNameCustomMetrics          = "CustomMetrics"
@@ -14,5 +14,5 @@ const (
 
 	VMWatchBinaryNameAmd64 = "vmwatch_linux_amd64"
 	VMWatchBinaryNameArm64 = "vmwatch_linux_arm64"
-	VMWatchConfigFileName = "vmwatch.conf"
+	VMWatchConfigFileName  = "vmwatch.conf"
 )

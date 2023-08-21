@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	
+
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 )

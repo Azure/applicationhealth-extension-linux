@@ -5,17 +5,17 @@ import (
 	"github.com/go-kit/kit/log"
 	"os"
 	"os/exec"
-	"strings"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 type VMWatchStatus string
 
 const (
-	Disabled 	VMWatchStatus = "Disabled"
-	Running  	VMWatchStatus = "Running"
-	Failed 		VMWatchStatus = "Failed"
+	Disabled VMWatchStatus = "Disabled"
+	Running  VMWatchStatus = "Running"
+	Failed   VMWatchStatus = "Failed"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
@@ -30,8 +30,8 @@ func (p VMWatchStatus) GetStatusType() StatusType {
 }
 
 type VMWatchResult struct {
-	Status 	VMWatchStatus
-	Error	error
+	Status VMWatchStatus
+	Error  error
 }
 
 func (r *VMWatchResult) GetMessage() string {
@@ -49,7 +49,7 @@ func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan V
 	ctx.Log("event", fmt.Sprintf("Execute VMWatch %s", cmdToString(cmd)))
 
 	output, err := cmd.CombinedOutput()
-	
+
 	pid := -1
 	if cmd.Process != nil {
 		pid = cmd.Process.Pid
@@ -57,7 +57,7 @@ func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan V
 
 	defer func() {
 		err = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC(), pid, err, string(output))
-		vmWatchResultChannel <- VMWatchResult{Status:Failed, Error: err}
+		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: err}
 	}()
 }
 
@@ -71,7 +71,7 @@ func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
 		ctx.Log("error", fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %w", cmd.Process.Pid, err))
 		return err
 	}
-	
+
 	ctx.Log("event", fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
 	return nil
 }
@@ -82,13 +82,13 @@ func cmdToString(cmd *exec.Cmd) string {
 
 func (s *vmWatchSettings) ToExecutableCommand() (*exec.Cmd, error) {
 	processDirectory, err := GetProcessDirectory()
-	if (err != nil){
+	if err != nil {
 		return nil, err
 	}
-	
+
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
 
-	if (s.Tests != nil && len(s.Tests) > 0) {
+	if s.Tests != nil && len(s.Tests) > 0 {
 		args = append(args, "--input-filter")
 		args = append(args, strings.Join(s.Tests, ":"))
 	}
@@ -127,7 +127,7 @@ func GetVMWatchConfigFullPath(processDirectory string) string {
 
 func GetVMWatchBinaryFullPath(processDirectory string) string {
 	binaryName := VMWatchBinaryNameAmd64
-	if (strings.Contains(os.Args[0], AppHealthBinaryNameArm64)) {
+	if strings.Contains(os.Args[0], AppHealthBinaryNameArm64) {
 		binaryName = VMWatchBinaryNameArm64
 	}
 
