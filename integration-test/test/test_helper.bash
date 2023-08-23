@@ -34,7 +34,7 @@ in_container() {
 }
 
 start_container() {
-    docker start --attach $TEST_CONTAINER
+    echo "Starting test container...">&2 && docker start --attach $TEST_CONTAINER
 }
 
 container_diff() {
@@ -174,6 +174,6 @@ verify_substatus_item() {
     # $4 substatus.formattedMessage.message
     FMT='"name": "'%s'",\s+"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
     printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
-    echo "Searching status file for: $SUBSTATUS"
+    echo "Searching status file for substatus item: $SUBSTATUS"
     echo "$1" | egrep -z "$SUBSTATUS"
 }

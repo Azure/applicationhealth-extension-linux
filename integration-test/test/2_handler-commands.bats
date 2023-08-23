@@ -11,10 +11,13 @@ teardown(){
 }
 
 @test "handler command: install - creates the data dir" {
-    run in_container fake-waagent install
+    mk_container sh -c "fake-waagent install && sleep 2"
+    push_settings '' ''
+
+    run start_container
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" = *event=installed* ]]
+    [[ "$output" = *'event=installed'* ]]
 
     diff="$(container_diff)"
     echo "$diff"
