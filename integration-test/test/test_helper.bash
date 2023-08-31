@@ -33,7 +33,8 @@ in_container() {
 }
 
 start_container() {
-    echo "Starting test container...">&2 && docker start --attach $TEST_CONTAINER
+    echo "Starting test container...">&2 && \
+        docker start --attach $TEST_CONTAINER
 }
 
 container_diff() {
@@ -44,22 +45,6 @@ container_read_file() { # reads the file at container path $1
     set -eo pipefail
     docker cp $TEST_CONTAINER:"$1" - | tar x --to-stdout
 } 
-
-container_read_extension_log() { 
-    container_read_file /var/log/azure/applicationhealth-extension/handler.log
-} 
-
-container_read_extension_status() { 
-    container_read_file /var/lib/waagent/Extension/status/0.status
-}
-
-container_read_extension_settings() { 
-    container_read_file /var/lib/waagent/Extension/config/0.settings
-}
-
-container_list() {
-    docker ps -a>&2
-}
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail
