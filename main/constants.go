@@ -15,4 +15,5 @@ const (
 	VMWatchBinaryNameAmd64 = "vmwatch_linux_amd64"
 	VMWatchBinaryNameArm64 = "vmwatch_linux_arm64"
 	VMWatchConfigFileName  = "vmwatch.conf"
+	VMWatchVerboseLogFileName = "vmwatch.log"
 )

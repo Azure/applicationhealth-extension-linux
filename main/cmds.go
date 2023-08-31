@@ -103,11 +103,11 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
-	ctx.Log("event", fmt.Sprintf("Attempting to run VMWatch with settings: %#v", vmWatchSettings))
+	ctx.Log("event", fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
 	if vmWatchSettings.Enabled == false {
 		ctx.Log("event", fmt.Sprintf("VMWatch is disabled, not starting process."))
 	} else {
-		vmWatchCommand, err = vmWatchSettings.ToExecutableCommand()
+		vmWatchCommand, err = vmWatchSettings.ToExecutableCommand(h)
 		if err != nil {
 			ctx.Log("error", err)
 			vmWatchResult = VMWatchResult{Status: Failed, Error: err}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"os"
 	"os/exec"
@@ -47,14 +48,14 @@ func (r *VMWatchResult) GetMessage() string {
 
 func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan VMWatchResult) {
 	ctx.Log("event", fmt.Sprintf("Execute VMWatch %s", cmdToString(cmd)))
-
-	output, err := cmd.CombinedOutput()
-
-	pid := -1
-	if cmd.Process != nil {
-		pid = cmd.Process.Pid
-	}
-
+	
+		output, err := cmd.CombinedOutput()
+		
+		pid := -1
+		if cmd.Process != nil {
+			pid = cmd.Process.Pid
+		}
+	
 	defer func() {
 		err = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC(), pid, err, string(output))
 		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: err}
@@ -80,7 +81,7 @@ func cmdToString(cmd *exec.Cmd) string {
 	return fmt.Sprintf("Command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", cmd.Path, cmd.Args, cmd.Dir, cmd.Env)
 }
 
-func (s *vmWatchSettings) ToExecutableCommand() (*exec.Cmd, error) {
+func (s *vmWatchSettings) ToExecutableCommand(h vmextension.HandlerEnvironment) (*exec.Cmd, error) {
 	processDirectory, err := GetProcessDirectory()
 	if err != nil {
 		return nil, err
@@ -95,19 +96,19 @@ func (s *vmWatchSettings) ToExecutableCommand() (*exec.Cmd, error) {
 
 	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
 
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides)
+	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, h vmextension.HandlerEnvironment)
 
 	return cmd, nil
 }
 
-func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}) []string {
+func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h vmextension.HandlerEnvironment) []string {
 	var arr []string
 	for key, value := range parameterOverrides {
 		arr = append(arr, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	arr = append(arr, "SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events")
-	arr = append(arr, "VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/vmwatch.log")
+	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", HandlerEnvironmentEventsFolderPath))
+	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(h.HandlerEnvironment.LogFolder, VMWatchVerboseLogFileName)))
 
 	return arr
 }
