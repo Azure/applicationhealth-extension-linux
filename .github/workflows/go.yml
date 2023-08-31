@@ -19,6 +19,9 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
+    - name: Apt-Get Update
+      run: sudo apt-get update
+      
     - name: Setup Go
       uses: actions/setup-go@v3
 
