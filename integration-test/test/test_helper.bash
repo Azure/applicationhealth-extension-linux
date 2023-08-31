@@ -20,8 +20,9 @@ rm_container() {
         echo "Deleted test container." || true
 }
 
+# When container shuts down, process can take time to log/write to files. We add sleep to avoid flaky tests 
 mk_container() {
-    rm_container && echo "Creating test container with commands: $@">&2 && \
+    rm_container && echo "Creating test container with commands: $@ && sleep 2">&2 && \
         docker create --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
 }
 
@@ -45,6 +46,10 @@ container_read_file() { # reads the file at container path $1
     set -eo pipefail
     docker cp $TEST_CONTAINER:"$1" - | tar x --to-stdout
 } 
+
+container_read_extension_status() {
+    container_read_file /var/lib/waagent/Extension/status/0.status
+}
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail

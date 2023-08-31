@@ -31,7 +31,7 @@ teardown(){
     [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'Invoking: ./Extension/bin/applicationhealth-shim disable'* ]]
@@ -63,7 +63,7 @@ teardown(){
     [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'Invoking: ./Extension/bin/applicationhealth-shim uninstall'* ]]
@@ -99,7 +99,7 @@ teardown(){
 
     [[ "$output" == *'VMWatch is disabled'* ]]
 
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    status_file="$(container_read_extension_status)"
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
     verify_substatus_item "$status_file" VMWatch warning "VMWatch is disabled"
@@ -136,7 +136,7 @@ teardown(){
 
     [[ "$output" == *'VMWatch is disabled'* ]]
 
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    status_file="$(container_read_extension_status)"
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
     verify_substatus_item "$status_file" VMWatch warning "VMWatch is disabled"
@@ -175,10 +175,10 @@ teardown(){
     [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    status_file="$(container_read_extension_status)"
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" VMWatch success "VMWatch is running"
@@ -209,10 +209,10 @@ teardown(){
     [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    status_file="$(container_read_extension_status)"
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" VMWatch success "VMWatch is running"
@@ -241,7 +241,7 @@ teardown(){
     [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'VMWatch process failed'* ]]
 

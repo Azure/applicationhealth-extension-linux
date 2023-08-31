@@ -11,7 +11,7 @@ teardown(){
 }
 
 @test "handler command: install - creates the data dir" {
-    mk_container sh -c "fake-waagent install && sleep 2"
+    mk_container sh -c "fake-waagent install"
     push_settings '' ''
 
     run start_container
