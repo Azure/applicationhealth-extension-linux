@@ -96,7 +96,7 @@ func (s *vmWatchSettings) ToExecutableCommand(h vmextension.HandlerEnvironment) 
 
 	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
 
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, h vmextension.HandlerEnvironment)
+	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, h)
 
 	return cmd, nil
 }
