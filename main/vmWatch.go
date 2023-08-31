@@ -48,14 +48,14 @@ func (r *VMWatchResult) GetMessage() string {
 
 func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan VMWatchResult) {
 	ctx.Log("event", fmt.Sprintf("Execute VMWatch %s", cmdToString(cmd)))
-	
-		output, err := cmd.CombinedOutput()
-		
-		pid := -1
-		if cmd.Process != nil {
-			pid = cmd.Process.Pid
-		}
-	
+
+	output, err := cmd.CombinedOutput()
+
+	pid := -1
+	if cmd.Process != nil {
+		pid = cmd.Process.Pid
+	}
+
 	defer func() {
 		err = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC(), pid, err, string(output))
 		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: err}
