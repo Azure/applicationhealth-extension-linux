@@ -40,7 +40,7 @@ func main() {
 		ctx.Log("message", "failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := vmextension.FindSeqNumConfig(hEnv.HandlerEnvironment.ConfigFolder)
+	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		ctx.Log("messsage", "failed to find sequence number", "error", err)
 	}
