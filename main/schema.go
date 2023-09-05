@@ -48,7 +48,7 @@ const (
       "description": "The amount of time in seconds the application will default to 'Initializing' state if no valid health state is observed numberOfProbes consecutive times.",
       "type": "integer",
       "minimum": 5,
-      "maximum": 7200
+      "maximum": 14400
     }
   },
   "additionalProperties": false
