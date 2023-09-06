@@ -129,19 +129,25 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 		transport = &http.Transport{
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-
-		p.HttpClient = &http.Client{
-			CheckRedirect: noRedirect,
-			Timeout:       timeout,
-			Transport:     transport,
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS11,
+				MaxVersion:         tls.VersionTLS13,
+				InsecureSkipVerify: true,
+			},
 		}
 	} else if protocol == "http" {
-		p.HttpClient = &http.Client{
-			CheckRedirect: noRedirect,
-			Timeout:       timeout,
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS11,
+				MaxVersion: tls.VersionTLS13,
+			},
 		}
+	}
+
+	p.HttpClient = &http.Client{
+		CheckRedirect: noRedirect,
+		Timeout:       timeout,
+		Transport:     transport,
 	}
 
 	portString := ""
@@ -150,10 +156,10 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	} else if protocol == "https" && port != 0 && port != 443 {
 		portString = ":" + strconv.Itoa(port)
 	}
-	// remove first slash since we want requestPath to be defined without having to prefix with a slash
-	requestPath = strings.TrimPrefix(requestPath, "/")
 
-	p.Address = protocol + "://localhost" + portString + "/" + requestPath
+	requestPath = strings.TrimPrefix(requestPath, "/")
+	p.Address = fmt.Sprintf("%s://localhost%s/%s", protocol, portString, requestPath)
+
 	return p
 }
 
