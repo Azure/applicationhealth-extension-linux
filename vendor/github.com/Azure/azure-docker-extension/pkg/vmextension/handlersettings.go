@@ -31,7 +31,7 @@ type handlerSettings struct {
 // settingsPath returns the full path to the .settings file with the
 // highest sequence number found in configFolder.
 func settingsPath(configFolder string) (string, error) {
-	seq, err := FindSeqNumConfig(configFolder)
+	seq, err := FindSeqNum(configFolder)
 	if err != nil {
 		return "", fmt.Errorf("Cannot find seqnum: %v", err)
 	}

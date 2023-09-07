@@ -21,7 +21,7 @@ rm_container() {
 }
 
 mk_container() {
-    rm_container && echo "Creating test container with commands: $@">&2 && \
+    rm_container && echo "Creating test container with commands: $@ && sleep 2">&2 && \
         docker create --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
 }
 
