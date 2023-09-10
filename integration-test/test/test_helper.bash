@@ -177,3 +177,19 @@ verify_substatus_item() {
     echo "Searching status file for substatus item: $SUBSTATUS"
     echo "$1" | egrep -z "$SUBSTATUS"
 }
+
+create_certificate() {
+    # Create a random seed file
+    openssl rand -out ~/.rnd 2048
+
+    # Generate a private key
+    openssl genrsa -out testbin/webserverkey.pem 2048
+
+    # Generate a self-signed certificate
+    openssl req -new -x509 -sha256 -key testbin/webserverkey.pem -out testbin/webservercert.pem -days 3650 -subj '/CN=www.contoso.com/O=Contoso LTD./C=US'
+}
+
+delete_certificate() {
+    rm -f testbin/webserverkey.pem
+    rm -f testbin/webservercert.pem
+}

@@ -38,5 +38,5 @@ root:
 
 ```
 make binary
-bats integration-test/test
+./integration-test/run.sh
 ```
