@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -108,7 +109,7 @@ func HandleApplicationHealthStateFlag(flag string) (string, string) {
 		return ResponseBodyKeyApplicationHealthState, "Hello!"
 
 	default:
-		return ResponseBodyKeyApplicationHealthState, healthStateFlagMapping[flag]
+		return ResponseBodyKeyApplicationHealthState, getHealthState(flag)
 	}
 }
 
@@ -147,16 +148,49 @@ func healthHandler(w http.ResponseWriter, r *http.Request, arguments *[]string) 
 	w.Write(respBody)
 }
 
+func tlsVersionToUse(tlsVersion float64) uint16 {
+
+	switch tlsVersion {
+	case 1.1:
+		return tls.VersionTLS11
+	case 1.2:
+		return tls.VersionTLS12
+	case 1.3:
+		return tls.VersionTLS13
+	default:
+		return tls.VersionTLS13
+	}
+}
+
+func getHealthState(flag string) string {
+
+	if _, ok := healthStateFlagMapping[flag]; ok {
+		return healthStateFlagMapping[flag]
+	} else {
+		return ""
+	}
+}
+
 func main() {
 	args := flag.String("args", "", `Example usage: '2h-valid' to send StatusCode: 200, ResponseBody: { "ApplicationHealthState": "Healthy", "CustomMetrics": "<valid json>"}`)
+	tlsVersion := flag.Float64("tlsVersion", 1.3, "TLS version to use for https server. Options: 1.1, 1.2, 1.3")
 	flag.Parse()
 	originalArgs := strings.Split(*args, ",")
 	arguments := strings.Split(*args, ",")
 	var shouldExitOnEmptyArgs = len(arguments) > 0
 
 	httpMutex := http.NewServeMux()
-	httpServer := http.Server{Addr: ":8080"}
-	httpsServer := http.Server{Addr: ":443"}
+	httpServer := http.Server{
+		Addr:    ":8080",
+		Handler: httpMutex}
+
+	httpsServer := http.Server{
+		Addr:    ":4430", //changing default port from 443 to 4430 to avoid conflict with other services
+		Handler: httpMutex,
+		TLSConfig: &tls.Config{
+			MinVersion: tlsVersionToUse(*tlsVersion),
+			MaxVersion: tlsVersionToUse(*tlsVersion)},
+	}
 
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
@@ -173,9 +207,6 @@ func main() {
 			}()
 		}
 	})
-
-	httpServer.Handler = httpMutex
-	httpsServer.Handler = httpMutex
 
 	log.Printf("Arguments: %v, len: %v", arguments, len(arguments))
 	log.Printf("Starting http server...")
