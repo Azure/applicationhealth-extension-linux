@@ -71,7 +71,6 @@ type HttpHealthProbe struct {
 func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
-
 	switch cfg.protocol() {
 	case "tcp":
 		p = &TcpHealthProbe{
@@ -135,19 +134,16 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 				InsecureSkipVerify: true,
 			},
 		}
-	} else if protocol == "http" {
-		transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS11,
-				MaxVersion: tls.VersionTLS13,
-			},
+		p.HttpClient = &http.Client{
+			CheckRedirect: noRedirect,
+			Timeout:       timeout,
+			Transport:     transport,
 		}
-	}
-
-	p.HttpClient = &http.Client{
-		CheckRedirect: noRedirect,
-		Timeout:       timeout,
-		Transport:     transport,
+	} else {
+		p.HttpClient = &http.Client{
+			CheckRedirect: noRedirect,
+			Timeout:       timeout,
+		}
 	}
 
 	portString := ""
