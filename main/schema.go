@@ -48,7 +48,7 @@ const (
         "description": "Optional - The amount of time in seconds the application will default to 'Initializing' state if no valid health state is observed numberOfProbes consecutive times.",
         "type": "integer",
         "minimum": 5,
-        "maximum": 7200
+        "maximum": 14400
       },
       "vmWatchSettings": {
         "description": "Optional - VMWatch plugin settings",
@@ -79,7 +79,7 @@ const (
     },
     "additionalProperties": false
   }`
-
+  
 	protectedSettingsSchema = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Application Health - Protected Settings",
