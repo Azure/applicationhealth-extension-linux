@@ -79,7 +79,7 @@ const (
     },
     "additionalProperties": false
   }`
-  
+
 	protectedSettingsSchema = `{
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Application Health - Protected Settings",

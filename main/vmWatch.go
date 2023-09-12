@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
@@ -9,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"bytes"
 )
 
 type VMWatchStatus string
@@ -59,8 +59,8 @@ func executeVMWatch(ctx *log.Context, s vmWatchSettings, h vmextension.HandlerEn
 		if err != nil {
 			vmWatchErr = fmt.Errorf("[%v][PID %d] Err: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
 			ctx.Log("error", fmt.Sprintf("Attempt %d: VMWatch setup failed: %s", i, vmWatchErr.Error()))
-			continue;
-		} 
+			continue
+		}
 
 		ctx.Log("event", fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", i, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
 
@@ -76,7 +76,7 @@ func executeVMWatch(ctx *log.Context, s vmWatchSettings, h vmextension.HandlerEn
 		if err != nil {
 			vmWatchErr = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, err, combinedOutput.String())
 			ctx.Log("error", fmt.Sprintf("Attempt %d: VMWatch failed to start: %s", i, vmWatchErr.Error()))
-			continue;
+			continue
 		}
 		ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", i, pid))
 
@@ -85,7 +85,7 @@ func executeVMWatch(ctx *log.Context, s vmWatchSettings, h vmextension.HandlerEn
 		if err != nil {
 			vmWatchErr = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, err, combinedOutput.String())
 			ctx.Log("error", fmt.Sprintf("Attempt %d: VMWatch process exited: %s", i, vmWatchErr.Error()))
-			continue;
+			continue
 		}
 	}
 
