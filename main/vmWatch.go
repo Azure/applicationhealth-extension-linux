@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"bytes"
 )
 
 type VMWatchStatus string
@@ -46,19 +47,51 @@ func (r *VMWatchResult) GetMessage() string {
 	}
 }
 
-func executeVMWatch(ctx *log.Context, cmd *exec.Cmd, vmWatchResultChannel chan VMWatchResult) {
-	ctx.Log("event", fmt.Sprintf("Execute VMWatch %s", cmdToString(cmd)))
-
-	output, err := cmd.CombinedOutput()
-
+func executeVMWatch(ctx *log.Context, s vmWatchSettings, h vmextension.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
 	pid := -1
-	if cmd.Process != nil {
-		pid = cmd.Process.Pid
+	combinedOutput := &bytes.Buffer{}
+	var vmWatchErr error
+
+	// Best effort to start VMWatch process 3 times
+	for i := 1; i <= 3; i++ {
+		// Setup command
+		cmd, err := setupVMWatchCommand(s, h)
+		if err != nil {
+			vmWatchErr = fmt.Errorf("[%v][PID %d] Err: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
+			ctx.Log("error", fmt.Sprintf("Attempt %d: VMWatch setup failed: %s", i, vmWatchErr.Error()))
+			continue;
+		} 
+
+		ctx.Log("event", fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", i, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
+
+		combinedOutput.Reset()
+		cmd.Stdout = combinedOutput
+		cmd.Stderr = combinedOutput
+
+		// Start command
+		err = cmd.Start()
+		if cmd.Process != nil {
+			pid = cmd.Process.Pid
+		}
+		if err != nil {
+			vmWatchErr = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, err, combinedOutput.String())
+			ctx.Log("error", fmt.Sprintf("Attempt %d: VMWatch failed to start: %s", i, vmWatchErr.Error()))
+			continue;
+		}
+		ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", i, pid))
+
+		// VMWatch should run indefinitely, if process exists we capture error
+		err = cmd.Wait()
+		if err != nil {
+			vmWatchErr = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, err, combinedOutput.String())
+			ctx.Log("error", fmt.Sprintf("Attempt %d: VMWatch process exited: %s", i, vmWatchErr.Error()))
+			continue;
+		}
 	}
 
 	defer func() {
-		err = fmt.Errorf("[%v][PID %d] Err: %w\nOutput: %s", time.Now().UTC(), pid, err, string(output))
-		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: err}
+		ctx.Log("error", fmt.Sprintf("Signaling VMWatch process has failed after 3 retries"))
+		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
 	}()
 }
 
@@ -77,11 +110,7 @@ func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
 	return nil
 }
 
-func cmdToString(cmd *exec.Cmd) string {
-	return fmt.Sprintf("Command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", cmd.Path, cmd.Args, cmd.Dir, cmd.Env)
-}
-
-func (s *vmWatchSettings) ToExecutableCommand(h vmextension.HandlerEnvironment) (*exec.Cmd, error) {
+func setupVMWatchCommand(s vmWatchSettings, h vmextension.HandlerEnvironment) (*exec.Cmd, error) {
 	processDirectory, err := GetProcessDirectory()
 	if err != nil {
 		return nil, err
@@ -123,7 +152,7 @@ func GetProcessDirectory() (string, error) {
 }
 
 func GetVMWatchConfigFullPath(processDirectory string) string {
-	return filepath.Join(processDirectory, VMWatchConfigFileName)
+	return filepath.Join(processDirectory, "VMWatch", VMWatchConfigFileName)
 }
 
 func GetVMWatchBinaryFullPath(processDirectory string) string {
@@ -132,5 +161,5 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 		binaryName = VMWatchBinaryNameArm64
 	}
 
-	return filepath.Join(processDirectory, binaryName)
+	return filepath.Join(processDirectory, "VMWatch", binaryName)
 }

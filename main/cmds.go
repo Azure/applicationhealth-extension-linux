@@ -107,14 +107,8 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	if vmWatchSettings.Enabled == false {
 		ctx.Log("event", fmt.Sprintf("VMWatch is disabled, not starting process."))
 	} else {
-		vmWatchCommand, err = vmWatchSettings.ToExecutableCommand(h)
-		if err != nil {
-			ctx.Log("error", err)
-			vmWatchResult = VMWatchResult{Status: Failed, Error: err}
-		} else {
-			vmWatchResult = VMWatchResult{Status: Running, Error: nil}
-			go executeVMWatch(ctx, vmWatchCommand, vmWatchResultChannel)
-		}
+		vmWatchResult = VMWatchResult{Status: Running, Error: nil}
+		go executeVMWatch(ctx, vmWatchSettings, h, vmWatchResultChannel)
 	}
 
 	// The committed health status (the state written to the status file) initially does not have a state

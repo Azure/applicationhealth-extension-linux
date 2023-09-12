@@ -9,21 +9,5 @@
     "rebootAfterInstall": false,
     "reportHeartbeat": false,
     "updateMode": "UpdateWithInstall"
-  },
-  "resourceLimits": {
-    "services": [
-      {
-        "name": "applicationhealth-extension"
-      },
-      {
-        "name": "applicationhealth-extension-arm64"
-      },
-      {
-        "name": "vmwatch_linux_amd64"
-      },
-      {
-        "name": "vmwatch_linux_arm64"
-      }
-    ]
   }
 }]

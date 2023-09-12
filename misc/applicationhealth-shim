@@ -109,8 +109,8 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-kill_existing_vmwatch_processes
 kill_existing_apphealth_processes
+kill_existing_vmwatch_processes
 
 # Redirect logs of the handler process
 mkdir -p "$LOG_DIR"

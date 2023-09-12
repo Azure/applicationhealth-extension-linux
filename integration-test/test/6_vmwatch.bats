@@ -28,15 +28,16 @@ teardown(){
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'Invoking: ./Extension/bin/applicationhealth-shim disable'* ]]
-    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
+    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
 
     status_file="$(container_read_extension_status)"
     verify_status_item "$status_file" Disable success "Disable succeeded"
@@ -60,15 +61,16 @@ teardown(){
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'Invoking: ./Extension/bin/applicationhealth-shim uninstall'* ]]
-    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
+    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
     [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
 }
 
@@ -172,8 +174,9 @@ teardown(){
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
-    [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
@@ -206,8 +209,9 @@ teardown(){
     run start_container
 
     echo "$output"
-    [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
     [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
@@ -218,8 +222,8 @@ teardown(){
     verify_substatus_item "$status_file" VMWatch success "VMWatch is running"
 }
 
-@test "handler command: enable - vm watch failed - force kill vmwatch process" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2"
+@test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
+    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 7"
     push_settings '
     {
         "protocol": "http",
@@ -238,12 +242,14 @@ teardown(){
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
     echo "$output"
     echo "$status_file"
-    [[ "$output" == *'Execute VMWatch Command: /var/lib/waagent/Extension/bin/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/vmwatch.conf'* ]]
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
-    [[ "$output" == *'VMWatch process failed'* ]]
+    [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
+    [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
