@@ -94,12 +94,12 @@ type vmWatchSettings struct {
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {
-	Protocol          string          `json:"protocol"`
-	Port              int             `json:"port,int"`
-	RequestPath       string          `json:"requestPath"`
-	IntervalInSeconds int             `json:"intervalInSeconds,int"`
-	NumberOfProbes    int             `json:"numberOfProbes,int"`
-	GracePeriod       int             `json:"gracePeriod,int"`
+	Protocol          string           `json:"protocol"`
+	Port              int              `json:"port,int"`
+	RequestPath       string           `json:"requestPath"`
+	IntervalInSeconds int              `json:"intervalInSeconds,int"`
+	NumberOfProbes    int              `json:"numberOfProbes,int"`
+	GracePeriod       int              `json:"gracePeriod,int"`
 	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
 }
 

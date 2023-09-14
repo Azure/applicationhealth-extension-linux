@@ -205,7 +205,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		}
 
 		// VMWatch substatus should only be displayed when settings are present
-		if (vmWatchSettings != nil) {
+		if vmWatchSettings != nil {
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 

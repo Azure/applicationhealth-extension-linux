@@ -120,7 +120,7 @@ func setupVMWatchCommand(s *vmWatchSettings, h vmextension.HandlerEnvironment) (
 	}
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
-	
+
 	args = append(args, "--input-filter")
 	if s.Tests != nil && len(s.Tests) > 0 {
 		args = append(args, strings.Join(s.Tests, ":"))
