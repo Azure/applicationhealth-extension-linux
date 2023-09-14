@@ -53,11 +53,6 @@ const (
       "vmWatchSettings": {
         "description": "Optional - VMWatch plugin settings",
         "type": "object",
-        "default": {
-          "enabled": "false",
-          "tests": [],
-          "parameterOverrides": {}
-        },
         "properties": {
           "enabled": {
             "description": "Optional - Toggles whether VMWatch plugin will be started",
@@ -65,9 +60,8 @@ const (
             "default": false
           },
           "tests": {
-            "description": "Required - Specific list of test names to run, will ignore running other tests that are not in the list",
-            "type": "array",
-            "default": []
+            "description": "Optional - Specific list of test names to run, will ignore running other tests that are not in the list",
+            "type": "array"
           },
           "parameterOverrides": {
             "description": "Optional - Parameter overrides specific to VMWatch execution",

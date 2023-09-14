@@ -62,7 +62,7 @@ func (s *handlerSettings) gracePeriod() int {
 	}
 }
 
-func (s *handlerSettings) vmWatchSettings() vmWatchSettings {
+func (s *handlerSettings) vmWatchSettings() *vmWatchSettings {
 	return s.publicSettings.VMWatchSettings
 }
 
@@ -100,7 +100,7 @@ type publicSettings struct {
 	IntervalInSeconds int             `json:"intervalInSeconds,int"`
 	NumberOfProbes    int             `json:"numberOfProbes,int"`
 	GracePeriod       int             `json:"gracePeriod,int"`
-	VMWatchSettings   vmWatchSettings `json:"vmWatchSettings"`
+	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected

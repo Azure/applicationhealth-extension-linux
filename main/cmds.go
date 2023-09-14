@@ -104,7 +104,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	}
 
 	ctx.Log("event", fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
-	if vmWatchSettings.Enabled == false {
+	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
 		ctx.Log("event", fmt.Sprintf("VMWatch is disabled, not starting process."))
 	} else {
 		vmWatchResult = VMWatchResult{Status: Running, Error: nil}
@@ -139,7 +139,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		if vmWatchResult.Status == Running {
 			select {
 			case vmWatchResult = <-vmWatchResultChannel:
-				ctx.Log("error", fmt.Sprintf("VMWatch process failed. %s", vmWatchResult.Error.Error()))
+				ctx.Log("error", vmWatchResult.GetMessage())
 				close(vmWatchResultChannel)
 			default:
 				ctx.Log("event", "VMWatch is running")
@@ -204,8 +204,10 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
 		}
 
-		// VMWatch will be built-in to GuestHealthFramework, so we will always display VMWatch as substatus
-		substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
+		// VMWatch substatus should only be displayed when settings are present
+		if (vmWatchSettings != nil) {
+			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
+		}
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
