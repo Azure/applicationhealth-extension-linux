@@ -211,7 +211,7 @@ teardown(){
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
-    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Err: signal: terminated.*"
+    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: signal: terminated.*"
 }
 
 @test "handler command: enable/disable - vm watch killed when disable is called" {

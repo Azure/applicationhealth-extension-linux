@@ -139,9 +139,11 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		// Only if VMWatch is currently running do we need to check if it failed
 		if vmWatchResult.Status == Running {
 			select {
-			case vmWatchResult, ok := <-vmWatchResultChannel:
+			case result, ok := <-vmWatchResultChannel:
 				if !ok {
-					ctx.Log("error", "VMWatchResult channel has closed")
+					vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
+				} else {
+					vmWatchResult = result
 				}
 				ctx.Log("error", vmWatchResult.GetMessage())
 			default:
