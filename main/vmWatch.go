@@ -111,16 +111,14 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 }
 
 func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
-	if cmd == nil || cmd.Process == nil {
-		ctx.Log("event", fmt.Sprintf("VMWatch is not running, not killing process."))
+	if cmd == nil || cmd.Process == nil || cmd.ProcessState != nil {
+		ctx.Log("event", fmt.Sprintf("VMWatch is not running, killing process is not necessary."))
 		return nil
 	}
 
-	if cmd.ProcessState != nil && !cmd.ProcessState.Exited() {
-		if err := cmd.Process.Kill(); err != nil {
-			ctx.Log("error", fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err))
-			return err
-		}
+	if err := cmd.Process.Kill(); err != nil {
+		ctx.Log("error", fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err))
+		return err
 	}
 
 	ctx.Log("event", fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
