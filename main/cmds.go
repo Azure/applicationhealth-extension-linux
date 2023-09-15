@@ -95,6 +95,7 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		vmWatchSettings           = cfg.vmWatchSettings()
 		vmWatchResult             = VMWatchResult{Status: Disabled, Error: nil}
 		vmWatchResultChannel      = make(chan VMWatchResult)
+		timeOfLastVMWatchLog      = time.Time{}
 	)
 
 	if !honorGracePeriod {
@@ -135,14 +136,19 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 		// If VMWatch was never supposed to run, it will be in Disabled state, so we do not need to read from the channel
 		// If VMWatch failed to execute, we will do not need to read from the channel
-		// Only if VMWatch is currently running do we need to check if it is terminated
+		// Only if VMWatch is currently running do we need to check if it failed
 		if vmWatchResult.Status == Running {
 			select {
-			case vmWatchResult = <-vmWatchResultChannel:
+			case vmWatchResult, ok := <-vmWatchResultChannel:
+				if !ok {
+					ctx.Log("error", "VMWatchResult channel has closed")
+				}
 				ctx.Log("error", vmWatchResult.GetMessage())
-				close(vmWatchResultChannel)
 			default:
-				ctx.Log("event", "VMWatch is running")
+				if time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
+					timeOfLastVMWatchLog = time.Now()
+					ctx.Log("event", "VMWatch is running")
+				}
 			}
 		}
 
