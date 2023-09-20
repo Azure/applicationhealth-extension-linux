@@ -8,7 +8,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 )
 
@@ -42,12 +41,12 @@ func main() {
 	}()
 
 	// parse extension environment
-	hEnv, err := vmextension.GetHandlerEnv()
+	hEnv, err := GetHandlerEnv()
 	if err != nil {
 		ctx.Log("message", "failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		ctx.Log("messsage", "failed to find sequence number", "error", err)
 	}
