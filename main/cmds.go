@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/go-kit/kit/log"
+	"github.com/pkg/errors"
 )
 
-type cmdFunc func(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int) (msg string, err error)
+type cmdFunc func(ctx *log.Context, hEnv HandlerEnvironment, seqNum int) (msg string, err error)
 type preFunc func(ctx *log.Context, seqNum int) error
 
 type cmd struct {
@@ -39,12 +39,12 @@ var (
 	}
 )
 
-func noop(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func noop(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	ctx.Log("event", "noop")
 	return "", nil
 }
 
-func install(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func install(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -54,7 +54,7 @@ func install(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (st
 	return "", nil
 }
 
-func uninstall(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
 		ctx = ctx.With("path", dataDir)
 		ctx.Log("event", "removing data dir", "path", dataDir)
@@ -75,7 +75,7 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
 	cfg, err := parseAndValidateSettings(ctx, h.HandlerEnvironment.ConfigFolder)
 	if err != nil {

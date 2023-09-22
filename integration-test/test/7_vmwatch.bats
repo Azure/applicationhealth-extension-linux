@@ -95,7 +95,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity:clockskew:az_storage_blob'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     status_file="$(container_read_extension_status)"
@@ -131,7 +131,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     status_file="$(container_read_extension_status)"
@@ -174,7 +174,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Microsoft.ManagedServices.ApplicationHealthLinux/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     status_file="$(container_read_extension_status)"

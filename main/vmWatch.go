@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/go-kit/kit/log"
 )
 
 type VMWatchStatus string
@@ -49,7 +49,7 @@ func (r *VMWatchResult) GetMessage() string {
 
 // We will setup and execute VMWatch as a separate process. Ideally VMWatch should run indefinitely,
 // but as a best effort we will attempt at most 3 times to run the process
-func executeVMWatch(ctx *log.Context, s *vmWatchSettings, h vmextension.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
+func executeVMWatch(ctx *log.Context, s *vmWatchSettings, hEnv HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
 	var vmWatchErr error
 	defer func() {
 		if r := recover(); r != nil {
@@ -63,11 +63,11 @@ func executeVMWatch(ctx *log.Context, s *vmWatchSettings, h vmextension.HandlerE
 
 	// Best effort to start VMWatch process each time it fails
 	for i := 1; i <= VMWatchMaxProcessAttempts; i++ {
-		vmWatchErr = executeVMWatchHelper(ctx, i, s, h)
+		vmWatchErr = executeVMWatchHelper(ctx, i, s, hEnv)
 	}
 }
 
-func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatchSettings, handlerEnvironment vmextension.HandlerEnvironment) (err error) {
+func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatchSettings, hEnv HandlerEnvironment) (err error) {
 	pid := -1
 	var cmd *exec.Cmd
 	defer func() {
@@ -79,9 +79,9 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	}()
 
 	// Setup command
-	cmd, err = setupVMWatchCommand(vmWatchSettings, handlerEnvironment)
+	cmd, err = setupVMWatchCommand(vmWatchSettings, hEnv)
 	if err != nil {
-		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, attempt, err)
+		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		ctx.Log("error", err.Error())
 		return err
 	}
@@ -125,7 +125,7 @@ func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
 	return nil
 }
 
-func setupVMWatchCommand(s *vmWatchSettings, h vmextension.HandlerEnvironment) (*exec.Cmd, error) {
+func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd, error) {
 	processDirectory, err := GetProcessDirectory()
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func setupVMWatchCommand(s *vmWatchSettings, h vmextension.HandlerEnvironment) (
 
 	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
 
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, h)
+	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
 
 	return cmd, nil
 }
@@ -169,14 +169,14 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 	return filepath.Join(processDirectory, "VMWatch", binaryName)
 }
 
-func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h vmextension.HandlerEnvironment) []string {
+func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv HandlerEnvironment) []string {
 	var arr []string
 	for key, value := range parameterOverrides {
 		arr = append(arr, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", HandlerEnvironmentEventsFolderPath))
-	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(h.HandlerEnvironment.LogFolder, VMWatchVerboseLogFileName)))
+	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.HandlerEnvironment.EventsFolder))
+	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.HandlerEnvironment.LogFolder, VMWatchVerboseLogFileName)))
 
 	return arr
 }
