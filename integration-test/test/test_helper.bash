@@ -16,11 +16,20 @@ in_tmp_container() {
 }
 
 rm_container() {
+    echo "DELETE: TEST_CONTAINER: $TEST_CONTAINER"
     docker rm -f $TEST_CONTAINER &>/dev/null && \
         echo "Deleted test container." || true
 }
 
 mk_container() {
+    
+     if [ $# -gt 3 ]; then # if less than two arguments are supplied
+        local container_name="${1:-$TEST_CONTAINER}" # assign the value of $TEST_CONTAINER if $1 is empty
+        echo "container_name: $container_name"
+        TEST_CONTAINER="$container_name"
+        shift
+    fi
+
     rm_container && echo "Creating test container with commands: $@">&2 && \
         docker create --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
 }

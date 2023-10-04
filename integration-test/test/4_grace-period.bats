@@ -4,6 +4,7 @@ load test_helper
 
 setup(){
     build_docker_image
+    container_name="grace-period"
 }
 
 teardown(){
@@ -11,7 +12,8 @@ teardown(){
 }
 
 @test "handler command: enable - grace period defaults even when set to 0" {
-    mk_container sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
+    container_name="${container_name}_1"
+    mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
         "protocol": "http",
@@ -28,7 +30,8 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - http 2 probes" {
-    mk_container sh -c "webserver -args=2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_2"
+    mk_container $container_name sh -c "webserver -args=2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -65,7 +68,8 @@ teardown(){
 }
 
 @test "handler command: enable - honor grace period - unresponsive http probe with numberOfProbes=1" {
-    mk_container sh -c "webserver -args=2t,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_3"
+    mk_container $container_name sh -c "webserver -args=2t,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -94,7 +98,8 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - consecutive valid health states" {
-    mk_container sh -c "webserver -args=2i,2h,2u,2h,2h,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_4"
+    mk_container $container_name sh -c "webserver -args=2i,2h,2u,2h,2h,2,2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -134,7 +139,8 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - state change behavior retained" {
-    mk_container sh -c "webserver -args=2i,2h,2u,2h,2h,2u,2u,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_5"
+    mk_container $container_name sh -c "webserver -args=2i,2h,2u,2h,2h,2u,2u,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -177,7 +183,8 @@ teardown(){
 }
 
 @test "handler command: enable - bypass grace period - larger numberOfProbes, consecutive rich states" {
-    mk_container sh -c "webserver -args=2i,2i,2i,2i,2h,2u,2h,2u,2u,2h,2h,2h,2h,2u,2i,2i,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_6"
+    mk_container $container_name sh -c "webserver -args=2i,2i,2i,2i,2h,2u,2h,2u,2u,2h,2h,2h,2h,2u,2i,2i,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -220,7 +227,8 @@ teardown(){
 }
 
 @test "handler command: enable - bypass / grace period expires - fail to bypass and expiration results in unknown" {
-    mk_container sh -c "webserver -args=2u,2,2i,2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_7"
+    mk_container $container_name sh -c "webserver -args=2u,2,2i,2i,2h,2u,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -259,7 +267,8 @@ teardown(){
 }
 
 @test "handler command: enable - grace period expires - additional alternating health states" {
-    mk_container sh -c "webserver -args=2i,2u,2i,2u,2i,2u,2h,2u,2h,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    container_name="${container_name}_8"
+    mk_container $container_name sh -c "webserver -args=2i,2u,2i,2u,2i,2u,2h,2u,2h,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",

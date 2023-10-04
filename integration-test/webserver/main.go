@@ -148,14 +148,18 @@ func healthHandler(w http.ResponseWriter, r *http.Request, arguments *[]string) 
 	w.Write(respBody)
 }
 
-func tlsVersionToUse(tlsVersion float64) uint16 {
+func tlsVersionToUse(tlsVersion string) uint16 {
 
 	switch tlsVersion {
-	case 1.1:
+	case "ssl3.0":
+		return tls.VersionSSL30
+	case "tls1.0":
+		return tls.VersionTLS10
+	case "tls1.1":
 		return tls.VersionTLS11
-	case 1.2:
+	case "tls1.2":
 		return tls.VersionTLS12
-	case 1.3:
+	case "tls1.3":
 		return tls.VersionTLS13
 	default:
 		return tls.VersionTLS13
@@ -173,7 +177,7 @@ func getHealthState(flag string) string {
 
 func main() {
 	args := flag.String("args", "", `Example usage: '2h-valid' to send StatusCode: 200, ResponseBody: { "ApplicationHealthState": "Healthy", "CustomMetrics": "<valid json>"}`)
-	tlsVersion := flag.Float64("tlsVersion", 1.3, "TLS version to use for https server. Options: 1.1, 1.2, 1.3")
+	tlsVersion := flag.String("tlsVersion", "tls1.3", "TLS version to use for https server. Options: 1.1, 1.2, 1.3")
 	flag.Parse()
 	originalArgs := strings.Split(*args, ",")
 	arguments := strings.Split(*args, ",")
