@@ -50,6 +50,10 @@ jobs:
         sudo apt install npm
         sudo npm install -g bats
 
+    - name: Install Parallel
+      run: |
+        sudo apt install parallel
+
     - name: Install Docker
       run: |
         sudo apt-get install runc
@@ -88,5 +92,5 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Run Integration Tests
-      run: sudo bats integration-test/test
+      run: ./integration-test/run.sh
       working-directory: ${{ env.repo_root }}
