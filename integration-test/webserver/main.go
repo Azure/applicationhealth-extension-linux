@@ -148,9 +148,9 @@ func healthHandler(w http.ResponseWriter, r *http.Request, arguments *[]string) 
 	w.Write(respBody)
 }
 
-func tlsVersionToUse(tlsVersion string) uint16 {
+func getSecurityProtocolVersion(securityProtocol string) uint16 {
 
-	switch tlsVersion {
+	switch securityProtocol {
 	case "ssl3.0":
 		return tls.VersionSSL30
 	case "tls1.0":
@@ -177,7 +177,7 @@ func getHealthState(flag string) string {
 
 func main() {
 	args := flag.String("args", "", `Example usage: '2h-valid' to send StatusCode: 200, ResponseBody: { "ApplicationHealthState": "Healthy", "CustomMetrics": "<valid json>"}`)
-	tlsVersion := flag.String("tlsVersion", "tls1.3", "TLS version to use for https server. Options: 1.1, 1.2, 1.3")
+	securityProtocol := flag.String("securityProtocol", "tls1.3", "Specifies the security protocol to use for the HTTPS server. Valid options are: tls1.0, tls1.1, tls1.2, tls1.3, ssl3.0. Default is tls1.3.")
 	flag.Parse()
 	originalArgs := strings.Split(*args, ",")
 	arguments := strings.Split(*args, ",")
@@ -192,8 +192,8 @@ func main() {
 		Addr:    ":4430", //changing default port from 443 to 4430 to avoid conflict with other services
 		Handler: httpMutex,
 		TLSConfig: &tls.Config{
-			MinVersion: tlsVersionToUse(*tlsVersion),
-			MaxVersion: tlsVersionToUse(*tlsVersion)},
+			MinVersion: getSecurityProtocolVersion(*securityProtocol),
+			MaxVersion: getSecurityProtocolVersion(*securityProtocol)},
 	}
 
 	// sends json resonse body with application health state expected by extension
