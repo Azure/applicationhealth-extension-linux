@@ -4,7 +4,7 @@ load test_helper
 
 setup(){
     build_docker_image
-    container_name="handler-command"
+    container_name="handler-command_$BATS_TEST_NUMBER"
 }
 
 teardown(){
@@ -12,7 +12,6 @@ teardown(){
 }
 
 @test "handler command: install - creates the data dir" {
-    container_name="${container_name}_1"
     mk_container $container_name sh -c "fake-waagent install && sleep 2"
     push_settings '' ''
 
@@ -27,7 +26,6 @@ teardown(){
 }
 
 @test "handler command: enable - default" {
-    container_name="${container_name}_2"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '' ''
 
@@ -42,7 +40,6 @@ teardown(){
 }
 
 @test "handler command: enable twice, process exits cleanly" {
-    container_name="${container_name}_3"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable && rm /var/lib/waagent/Extension/status/0.status && fake-waagent enable && wait-for-enable status"
     push_settings '' ''
 
@@ -63,7 +60,6 @@ teardown(){
 }
 
 @test "handler command: enable - validates json schema" {
-    container_name="${container_name}_4"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '{"badElement":null}' ''
    
@@ -73,7 +69,6 @@ teardown(){
 }
 
 @test "handler command: enable - failed tcp probe" {
-    container_name="${container_name}_5"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
@@ -90,7 +85,6 @@ teardown(){
 }
 
 @test "handler command: enable - failed http probe" {
-    container_name="${container_name}_6"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
@@ -119,7 +113,6 @@ teardown(){
 }
 
 @test "handler command: enable - failed https probe" {
-    container_name="${container_name}_7"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
@@ -148,7 +141,6 @@ teardown(){
 }
 
 @test "handler command: enable - healthy tcp probe" {
-    container_name="${container_name}_8"
     mk_container $container_name sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable"
     push_settings '
     {
@@ -165,7 +157,6 @@ teardown(){
 }
 
 @test "handler command: enable - healthy http probe" {
-    container_name="${container_name}_9"
     mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -186,7 +177,6 @@ teardown(){
 }
 
 @test "handler command: enable - https unknown after 10 seconds" {
-    container_name="${container_name}_10"
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable && sleep 10 && rm /var/lib/waagent/Extension/status/0.status && wait-for-enable status"
     push_settings '
     {
@@ -220,7 +210,6 @@ teardown(){
 }
 
 @test "handler command: enable - unknown http probe - no response body" {
-    container_name="${container_name}_11"
     mk_container $container_name sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -248,7 +237,6 @@ teardown(){
 }
 
 @test "handler command: enable - unknown http probe - no response body - prefixing requestPath with a slash" {
-    container_name="${container_name}_12"
     mk_container $container_name sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -277,7 +265,6 @@ teardown(){
 }
 
 @test "handler command: enable - unknown https probe - no response body" {
-    container_name="${container_name}_13"
     mk_container $container_name sh -c "webserver_shim && fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -305,7 +292,6 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = unk,unk" {
-    container_name="${container_name}_14"
     mk_container $container_name sh -c "webserver -args=3,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -336,7 +322,6 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk" {
-    container_name="${container_name}_15"
     mk_container $container_name sh -c "webserver -args=2h,2h,4,4 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -373,7 +358,6 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h" {
-    container_name="${container_name}_16"
     mk_container $container_name sh -c "webserver -args=2h,2h,4,4,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -411,7 +395,6 @@ teardown(){
 }
 
 @test "handler command: enable - numofprobes with states = h,h,unk,unk,h,h" {
-    container_name="${container_name}_17"
     mk_container $container_name sh -c "webserver -args=2h,2h,4,4,2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {

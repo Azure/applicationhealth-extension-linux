@@ -4,7 +4,7 @@ load test_helper
 
 setup(){
     build_docker_image
-    container_name="tls-config"
+    container_name="tls-config_$BATS_TEST_NUMBER"
 }
 
 teardown(){
@@ -12,7 +12,6 @@ teardown(){
 }
 
 @test "handler command: enable - Testing SSLv3" {
-    container_name="${container_name}_1"
     mk_container $container_name sh -c "webserver -args=2t,2t,2t -securityProtocol=ssl3.0 & fake-waagent install && fake-waagent enable && sleep 10 && wait-for-enable"
     push_settings '
     {
@@ -44,7 +43,6 @@ teardown(){
 
 
 @test "handler command: enable - Testing TLS 1.0 " {
-    container_name="${container_name}_2"
     mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.0 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -86,7 +84,6 @@ teardown(){
 
 
 @test "handler command: enable - Testing TLS 1.1" {
-    container_name="${container_name}_3"
     mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.1 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -128,7 +125,6 @@ teardown(){
 
 
 @test "handler command: enable - Testing TLS 1.2" {
-    container_name="${container_name}_4"
     mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -169,7 +165,6 @@ teardown(){
 }
 
 @test "handler command: enable - Testing TLS 1.3" {
-    container_name="${container_name}_5"
     mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.3 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {

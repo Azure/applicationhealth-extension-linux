@@ -16,7 +16,6 @@ in_tmp_container() {
 }
 
 rm_container() {
-    echo "DELETE: TEST_CONTAINER: $TEST_CONTAINER"
     docker rm -f $TEST_CONTAINER &>/dev/null && \
         echo "Deleted test container." || true
 }

@@ -4,7 +4,7 @@ load test_helper
 
 setup(){
     build_docker_image
-    container_name="rich-states"
+    container_name="rich-states_$BATS_TEST_NUMBER"
 }
 
 teardown(){
@@ -12,7 +12,6 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - invalid app health state results in unknown" {
-    container_name="${container_name}_1"
     mk_container $container_name sh -c "webserver -args=2h,2h,2i,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -51,7 +50,6 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - basic states = m,h,h,u,u,i,i" {
-    container_name="${container_name}_2"
     mk_container $container_name sh -c "webserver -args=2,2h,2h,2u,2u,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -91,7 +89,6 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - alternating states=i,h,h,i,h,u,h,i,h" {
-    container_name="${container_name}_3"
     mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
@@ -132,7 +129,6 @@ teardown(){
 }
 
 @test "handler command: enable - rich states - endpoint timeout results in unknown" {
-    container_name="${container_name}_4"
     mk_container $container_name sh -c "webserver -args=2h,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
