@@ -129,8 +129,6 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
 			TLSClientConfig: &tls.Config{
-				MinVersion:         tls.VersionTLS10,
-				MaxVersion:         tls.VersionTLS13,
 				InsecureSkipVerify: true,
 			},
 		}
