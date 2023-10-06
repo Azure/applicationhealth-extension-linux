@@ -130,6 +130,8 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 			// endpoint responds with HTTP.OK
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
+				MinVersion:         tls.VersionTLS10,
+				MaxVersion:         tls.VersionTLS13,
 			},
 		}
 		p.HttpClient = &http.Client{
