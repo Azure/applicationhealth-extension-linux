@@ -9,6 +9,7 @@ setup(){
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 

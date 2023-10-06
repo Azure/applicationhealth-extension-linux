@@ -9,6 +9,7 @@ setup(){
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 @test "handler command: enable - grace period defaults even when set to 0" {

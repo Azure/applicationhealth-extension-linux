@@ -9,6 +9,7 @@ setup(){
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 @test "handler command: enable - rich states - invalid app health state results in unknown" {

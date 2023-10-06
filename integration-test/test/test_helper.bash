@@ -6,8 +6,17 @@ TEST_CONTAINER=test
 
 certs_dir="$BATS_TEST_DIRNAME/certs"
 
+# This function builds a Docker image for testing purposes. 
+# If the image already exists, a random number is appended to the name.
+# a unique name is needed to avoid conflicts with other tests while running in parallel.
 build_docker_image() {
-    echo "Building test image..."
+    if [ -n "$(docker images -q $IMAGE)" ]; then
+        echo "Docker image $IMAGE already exists.">&2
+        local random_number=$((1 + RANDOM % 1000000))
+        local image_name="$IMAGE-$random_number"
+        IMAGE="$image_name"
+    fi
+    echo "Building test image $IMAGE..."
     docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
 }
 
@@ -15,9 +24,26 @@ in_tmp_container() {
     docker run --rm $IMAGE "$@"
 }
 
+cleanup() {
+    echo "Cleaning up...">&2
+    rm_container
+    rm_image
+}
+
 rm_container() {
+    echo "Deleting test container $TEST_CONTAINER ...">&2 && \
     docker rm -f $TEST_CONTAINER &>/dev/null && \
         echo "Deleted test container." || true
+}
+
+# Function to delete a Docker image.
+# Usage: rm_image
+# Returns: None
+rm_image() {
+    local image_id=$(docker images -q $IMAGE)
+    echo "Deleting Docker Image ID: $image_id ...">&2 && \
+    docker rmi -f $image_id &>/dev/null && \
+        echo "Deleted test image." || true
 }
 
 mk_container() {
