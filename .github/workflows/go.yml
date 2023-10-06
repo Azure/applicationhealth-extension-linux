@@ -92,5 +92,7 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Run Integration Tests
-      run: ./integration-test/run.sh
+      run: |
+        sudo bats integration-test/test/1_basic.bats
+        sudo bats $(find integration-test/test/ -type f -name "*.bats" ! -name "1_basic.bats") --jobs 10
       working-directory: ${{ env.repo_root }}
