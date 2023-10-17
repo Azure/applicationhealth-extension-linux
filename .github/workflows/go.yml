@@ -24,6 +24,8 @@ jobs:
       
     - name: Setup Go
       uses: actions/setup-go@v3
+      with:
+        go-version: '1.18.10'
 
     - name: Setup Go Environment 
       run: |
@@ -35,18 +37,11 @@ jobs:
     - name: Install Go Packages
       run: |
         sudo apt install golint
-        go get -u github.com/ahmetalpbalkan/govvv
-        go get -u github.com/tools/godep
 
     - name: Pull Repository
       uses: actions/checkout@v3
       with:
         path: ${{ env.repo_root }}
-
-    - name: Restore Go Dependencies
-      run: |
-        godep restore
-      working-directory: ${{ env.repo_root }}
 
     - name: Install Bats
       run: |
