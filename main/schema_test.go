@@ -98,3 +98,59 @@ func TestValidateProtectedSettings_unrecognizedField(t *testing.T) {
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Additional property alien is not allowed")
 }
+
+func TestValidatePublicSettings_gracePeriod(t *testing.T) {
+	testCases := []struct {
+		name        string
+		input       string
+		expectedErr string
+	}{
+		{
+			name:        "invalid type",
+			input:       `{"gracePeriod": "foo"}`,
+			expectedErr: "Invalid type. Expected: integer, given: string",
+		},
+		{
+			name:        "invalid value (equal to 0)",
+			input:       `{"gracePeriod": 0}`,
+			expectedErr: "gracePeriod: Must be greater than or equal to 5",
+		},
+		{
+			name:        "invalid value (less than min value)",
+			input:       `{"gracePeriod": 4}`,
+			expectedErr: "gracePeriod: Must be greater than or equal to 5",
+		},
+		{
+			name:        "invalid value (greater than max value)",
+			input:       `{"gracePeriod": 15000}`,
+			expectedErr: "gracePeriod: Must be less than or equal to 14400",
+		},
+		{
+			name:        "valid value (equal to min value)",
+			input:       `{"gracePeriod": 5}`,
+			expectedErr: "",
+		},
+		{
+			name:        "valid value (between min and max value)",
+			input:       `{"gracePeriod": 7201}`,
+			expectedErr: "",
+		},
+		{
+			name:        "valid value (equal to max value)",
+			input:       `{"gracePeriod": 14400}`,
+			expectedErr: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validatePublicSettings(tc.input)
+			if tc.expectedErr == "" {
+				require.Nil(t, err)
+			} else {
+				require.NotNil(t, err)
+				require.Contains(t, err.Error(), tc.expectedErr)
+			}
+		})
+	}
+}
