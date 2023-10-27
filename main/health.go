@@ -128,6 +128,9 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 		transport = &http.Transport{
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
+			// MinVersion set to tls1.0 because as after go 1.18, default min version changed
+			// from tls1.0 to tls1.2 and we want to support customers who are using tls1.0.
+			// tls MaxVersion is set to tls1.3 by default.
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS10,

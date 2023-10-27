@@ -91,6 +91,6 @@ jobs:
 
     - name: Run Integration Tests
       run: |
-        sudo bats integration-test/test/1_basic.bats
-        sudo bats $(find integration-test/test/ -type f -name "*.bats" ! -name "1_basic.bats") --jobs 10
+        sudo bats integration-test/test/1_basic.bats --pretty -T --trace
+        sudo bats $(find integration-test/test/ -type f -name "*.bats" ! -name "1_basic.bats") --jobs 10 --pretty -T --trace
       working-directory: ${{ env.repo_root }}
