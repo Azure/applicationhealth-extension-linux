@@ -90,18 +90,19 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Run Integration Tests Sequentially
+      continue-on-error: true
       run: |
+        mkdir -p integration-test/test/.bats/run-logs/
         sudo bats integration-test/test/1_basic.bats -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Run Integration Tests in Parallel
       continue-on-error: true
       run: |
-        mkdir -p integration-test/test/.bats/run-logs/
         sudo bats $(find integration-test/test/ -type f -name "*.bats" ! -name "1_basic.bats") --jobs 10 -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Integration Tests
       run: |
-        sudo bats integration-test/test --filter-status failed
+        sudo bats integration-test/test --filter-status failed -T --trace
       working-directory: ${{ env.repo_root }}
