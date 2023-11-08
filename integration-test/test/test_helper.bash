@@ -10,12 +10,14 @@ certs_dir="$BATS_TEST_DIRNAME/certs"
 # If the image already exists, a random number is appended to the name.
 # a unique name is needed to avoid conflicts with other tests while running in parallel.
 build_docker_image() {
-    if [ -n "$(docker images -q $IMAGE)" ]; then
-        echo "Docker image $IMAGE already exists.">&2
-        local random_number=$((1 + RANDOM % 1000000))
-        local image_name="$IMAGE-$random_number"
-        IMAGE="$image_name"
-    fi
+    # Generate a base name for the image
+    BASE_IMAGE_NAME=$IMAGE
+    # Loop until we find a unique image name
+    while [ -n "$(docker images -q $IMAGE)" ]; do
+        # Append the counter to the base image name
+        IMAGE="${BASE_IMAGE_NAME}_$RANDOM"
+    done
+    
     echo "Building test image $IMAGE..."
     docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
 }

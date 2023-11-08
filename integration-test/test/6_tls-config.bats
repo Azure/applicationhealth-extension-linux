@@ -24,6 +24,12 @@ teardown(){
     }' ''
     run start_container
     echo "$output"
+    # ApplicationHealth Extension should only Support from TLS 1.0 to TLS 1.3
+    # if only invalid Security Protocol is supported by the application like SSLv3 
+    # then the extension will receive a Standard TLS error. 
+    [[ "$output" == *'Grace period set to 10s'* ]]
+    [[ "$output" == *'remote error: tls: protocol version not supported'* ]]
+    [[ "$output" == *'No longer honoring grace period - expired'* ]]
     [[ "$output" == *'Grace period set to 10s'* ]]
     [[ "$output" == *'remote error: tls: protocol version not supported'* ]]
     [[ "$output" == *'No longer honoring grace period - expired'* ]]
