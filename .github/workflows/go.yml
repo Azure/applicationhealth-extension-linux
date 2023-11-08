@@ -89,14 +89,14 @@ jobs:
         openssl req -new -x509 -sha256 -key testbin/webserverkey.pem -out testbin/webservercert.pem -days 3650 -subj '/CN=www.contoso.com/O=Contoso LTD./C=US'
       working-directory: ${{ env.repo_root }}
 
-    - name: Run Integration Tests Sequentially
+    - name: Run Sequential Integration Tests
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/.bats/run-logs/
         sudo bats integration-test/test/1_basic.bats -T --trace
       working-directory: ${{ env.repo_root }}
 
-    - name: Run Integration Tests in Parallel
+    - name: Run Parallel Integration Tests
       continue-on-error: true
       run: |
         sudo bats $(find integration-test/test/ -type f -name "*.bats" ! -name "1_basic.bats") --jobs 10 -T --trace
