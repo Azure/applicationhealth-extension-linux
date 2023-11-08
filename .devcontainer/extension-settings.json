@@ -1,0 +1,24 @@
+{
+    "runtimeSettings": [
+        {
+            "handlerSettings": {
+                "protectedSettingsCertThumbprint": "$cert_tp",
+                "publicSettings": {
+                    "protocol": "http",
+                    "requestPath": "health",
+                    "port": 8080,
+                    "numberOfProbes": 1,
+                    "intervalInSeconds": 5,
+                    "gracePeriod": 600,
+                    "vmWatchSettings": {
+                        "enabled": true,
+                        "tests" : [
+                            "simple",
+                            "process"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -140,6 +140,11 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 		args = append(args, VMWatchDefaultTests)
 	}
 
+	// if we are running in a dev container don't call IMDS endpoint
+	if os.Getenv("RUNNING_IN_DEV_CONTAINER") != "" {
+		args = append(args, "--local")
+	}
+
 	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
 
 	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
