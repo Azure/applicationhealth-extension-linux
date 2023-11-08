@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"net/url"
+
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 )
@@ -118,6 +120,27 @@ func (p *TcpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
 	return Unhealthy
 }
 
+// constructAddress constructs a URL string from the given protocol, port, and request path.
+// If the protocol is "http" and the port is not 0 or 80, the port number is included in the URL string.
+// If the protocol is "https" and the port is not 0 or 443, the port number is included in the URL string.
+func constructAddress(protocol string, port int, requestPath string) string {
+	portString := ""
+	if protocol == "http" && port != 0 && port != 80 {
+		portString = ":" + strconv.Itoa(port)
+	} else if protocol == "https" && port != 0 && port != 443 {
+		portString = ":" + strconv.Itoa(port)
+	}
+
+	requestPath = strings.TrimPrefix(requestPath, "/")
+
+	u := url.URL{
+		Scheme: protocol,
+		Host:   "localhost" + portString,
+		Path:   requestPath,
+	}
+	return u.String()
+}
+
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
 	p := new(HttpHealthProbe)
 
@@ -148,15 +171,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 		}
 	}
 
-	portString := ""
-	if protocol == "http" && port != 0 && port != 80 {
-		portString = ":" + strconv.Itoa(port)
-	} else if protocol == "https" && port != 0 && port != 443 {
-		portString = ":" + strconv.Itoa(port)
-	}
-
-	requestPath = strings.TrimPrefix(requestPath, "/")
-	p.Address = fmt.Sprintf("%s://localhost%s/%s", protocol, portString, requestPath)
+	p.Address = constructAddress(protocol, port, requestPath)
 
 	return p
 }
