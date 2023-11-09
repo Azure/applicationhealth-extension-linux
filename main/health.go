@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"net/url"
@@ -130,8 +129,6 @@ func constructAddress(protocol string, port int, requestPath string) string {
 	} else if protocol == "https" && port != 0 && port != 443 {
 		portString = ":" + strconv.Itoa(port)
 	}
-
-	requestPath = strings.TrimPrefix(requestPath, "/")
 
 	u := url.URL{
 		Scheme: protocol,
