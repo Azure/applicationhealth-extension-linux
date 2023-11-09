@@ -30,9 +30,6 @@ teardown(){
     [[ "$output" == *'Grace period set to 10s'* ]]
     [[ "$output" == *'remote error: tls: protocol version not supported'* ]]
     [[ "$output" == *'No longer honoring grace period - expired'* ]]
-    [[ "$output" == *'Grace period set to 10s'* ]]
-    [[ "$output" == *'remote error: tls: protocol version not supported'* ]]
-    [[ "$output" == *'No longer honoring grace period - expired'* ]]
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
     
