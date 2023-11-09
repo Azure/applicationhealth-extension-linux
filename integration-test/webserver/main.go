@@ -168,8 +168,8 @@ func getSecurityProtocolVersion(securityProtocol string) uint16 {
 
 func getHealthState(flag string) string {
 
-	if _, ok := healthStateFlagMapping[flag]; ok {
-		return healthStateFlagMapping[flag]
+	if healthState, ok := healthStateFlagMapping[flag]; ok {
+		return healthState
 	} else {
 		return ""
 	}
