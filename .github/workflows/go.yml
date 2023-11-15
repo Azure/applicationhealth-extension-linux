@@ -92,7 +92,7 @@ jobs:
     - name: Run Sequential Integration Tests
       continue-on-error: true
       run: |
-        mkdir -p integration-test/test/.bats/run-logs/
+        mkdir -p integration-test/test/sequential/.bats/run-logs/
         sudo bats integration-test/test/sequential -T --trace
       working-directory: ${{ env.repo_root }}
 
@@ -104,6 +104,7 @@ jobs:
     - name: Run Parallel Integration Tests
       continue-on-error: true
       run: |
+        mkdir -p integration-test/test/parallel/.bats/run-logs/
         sudo bats integration-test/test/parallel --jobs 10 -T --trace
       working-directory: ${{ env.repo_root }}
 
