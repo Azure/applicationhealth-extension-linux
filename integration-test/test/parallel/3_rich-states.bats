@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../test_helper
 
 setup(){
     build_docker_image
-    container_name="tls-config_$BATS_TEST_NUMBER"
+    container_name="rich-states_$BATS_TEST_NUMBER"
 }
 
 teardown(){
@@ -12,47 +12,90 @@ teardown(){
     cleanup
 }
 
-@test "handler command: enable - Testing SSLv3" {
-    mk_container $container_name sh -c "webserver -args=2t,2t,2t -securityProtocol=ssl3.0 & fake-waagent install && fake-waagent enable && sleep 10 && wait-for-enable"
+@test "handler command: enable - rich states - invalid app health state results in unknown" {
+    mk_container $container_name sh -c "webserver -args=2h,2h,2i,2h,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
-        "protocol": "https",
+        "protocol": "http",
         "requestPath": "health",
-        "port": 4430,
+        "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 5
     }' ''
     run start_container
-    echo "$output"
-    # ApplicationHealth Extension should only Support from TLS 1.0 to TLS 1.3
-    # if only invalid Security Protocol is supported by the application like SSLv3 
-    # then the extension will receive a Standard TLS error. 
-    [[ "$output" == *'Grace period set to 10s'* ]]
-    [[ "$output" == *'remote error: tls: protocol version not supported'* ]]
-    [[ "$output" == *'No longer honoring grace period - expired'* ]]
 
+    echo "$output"
+    [[ "$output" == *'Grace period set to 10s'* ]]
+    [[ "$output" == *'Honoring grace period'* ]]
+    [[ "$output" == *'No longer honoring grace period - successful probes'* ]]
+    
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
     
+    expectedTimeDifferences=(0 5 5 5 5 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
     expectedStateLogs=(
-        "Health state changed to unknown"
+        "Health state changed to healthy"
         "Committed health state is initializing"
+        "Committed health state is healthy"
+        "Health state changed to unknown"
+        "Health state changed to healthy"
+        "Health state changed to unknown"
         "Committed health state is unknown"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    echo $status_file
     verify_substatus_item "$status_file" AppHealthStatus error "Application found to be unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
-
-@test "handler command: enable - Testing TLS 1.0 " {
-    mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.0 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - rich states - basic states = m,h,h,u,u,i,i" {
+    mk_container $container_name sh -c "webserver -args=2,2h,2h,2u,2u,2i,2i & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
-        "protocol": "https",
+        "protocol": "http",
         "requestPath": "health",
-        "port": 4430,
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 5
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Grace period set to 10s'* ]]
+    [[ "$output" == *'Honoring grace period'* ]]
+    [[ "$output" == *'No longer honoring grace period - expired'* ]]
+
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    
+    expectedTimeDifferences=(0 5 5 5 5 5 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+   
+    expectedStateLogs=(
+        "Health state changed to unknown"
+        "Committed health state is initializing"
+        "Health state changed to healthy"
+        "Committed health state is unknown"
+        "Health state changed to unhealthy"
+        "Committed health state is unhealthy"
+        "Health state changed to unknown"
+        "Committed health state is unknown"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+    
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    verify_substatus_item "$status_file" AppHealthStatus error "Application found to be unhealthy"
+    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
+}
+
+@test "handler command: enable - rich states - alternating states=i,h,h,i,h,u,h,i,h" {
+    mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 5
     }' ''
@@ -86,14 +129,13 @@ teardown(){
     verify_substatus_item "$status_file" ApplicationHealthState error Unknown
 }
 
-
-@test "handler command: enable - Testing TLS 1.1" {
-    mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.1 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+@test "handler command: enable - rich states - endpoint timeout results in unknown" {
+    mk_container $container_name sh -c "webserver -args=2h,2t,2t & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
-        "protocol": "https",
+        "protocol": "http",
         "requestPath": "health",
-        "port": 4430,
+        "port": 8080,
         "numberOfProbes": 2,
         "intervalInSeconds": 5
     }' ''
@@ -106,100 +148,14 @@ teardown(){
 
     enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
 
-    expectedTimeDifferences=(0 5 5 10 5 5 5 5)
+    expectedTimeDifferences=(0 35 0)
     verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
     
     expectedStateLogs=(
-        "Health state changed to unknown"
+        "Health state changed to healthy"
         "Committed health state is initializing"
-        "Health state changed to healthy"
+        "Health state changed to unknown"
         "Committed health state is unknown"
-        "Health state changed to healthy"
-        "Health state changed to unhealthy"
-        "Health state changed to healthy"
-        "Health state changed to unknown"
-        "Health state changed to healthy"
-    )
-    verify_states "$enableLog" "${expectedStateLogs[@]}"
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus error "Application found to be unhealthy"
-    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
-}
-
-
-@test "handler command: enable - Testing TLS 1.2" {
-    mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.2 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
-    push_settings '
-    {
-        "protocol": "https",
-        "requestPath": "health",
-        "port": 4430,
-        "numberOfProbes": 2,
-        "intervalInSeconds": 5
-    }' ''
-    run start_container
-
-    echo "$output"
-    [[ "$output" == *'Grace period set to 10s'* ]]
-    [[ "$output" == *'Honoring grace period'* ]]
-    [[ "$output" == *'No longer honoring grace period - expired'* ]]
-
-    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
-
-    expectedTimeDifferences=(0 5 5 10 5 5 5 5)
-    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
-    
-    expectedStateLogs=(
-        "Health state changed to unknown"
-        "Committed health state is initializing"
-        "Health state changed to healthy"
-        "Committed health state is unknown"
-        "Health state changed to healthy"
-        "Health state changed to unhealthy"
-        "Health state changed to healthy"
-        "Health state changed to unknown"
-        "Health state changed to healthy"
-    )
-    verify_states "$enableLog" "${expectedStateLogs[@]}"
-
-    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    verify_substatus_item "$status_file" AppHealthStatus error "Application found to be unhealthy"
-    verify_substatus_item "$status_file" ApplicationHealthState error Unknown
-}
-
-@test "handler command: enable - Testing TLS 1.3" {
-    mk_container $container_name sh -c "webserver -args=2i,2h,2h,2i,2h,2u,2h,2i,2h -securityProtocol=tls1.3 & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
-    push_settings '
-    {
-        "protocol": "https",
-        "requestPath": "health",
-        "port": 4430,
-        "numberOfProbes": 2,
-        "intervalInSeconds": 5
-    }' ''
-    run start_container
-
-    echo "$output"
-    [[ "$output" == *'Grace period set to 10s'* ]]
-    [[ "$output" == *'Honoring grace period'* ]]
-    [[ "$output" == *'No longer honoring grace period - expired'* ]]
-
-    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
-
-    expectedTimeDifferences=(0 5 5 10 5 5 5 5)
-    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
-    
-    expectedStateLogs=(
-        "Health state changed to unknown"
-        "Committed health state is initializing"
-        "Health state changed to healthy"
-        "Committed health state is unknown"
-        "Health state changed to healthy"
-        "Health state changed to unhealthy"
-        "Health state changed to healthy"
-        "Health state changed to unknown"
-        "Health state changed to healthy"
     )
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
