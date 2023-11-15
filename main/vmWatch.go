@@ -7,14 +7,24 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/containerd/cgroups"
 	"github.com/go-kit/kit/log"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type VMWatchStatus string
 
 const (
+	MaxCpuQuota      			= 1000     // 1% cpu
+	MaxMemoryInBytes 			= 40000000 // 40MB
+	HoursBetweenRetryAttempts 	= 3
+)
+
+const (
+	NotRunning VMWatchStatus = "NotRunning"
 	Disabled VMWatchStatus = "Disabled"
 	Running  VMWatchStatus = "Running"
 	Failed   VMWatchStatus = "Failed"
@@ -42,6 +52,8 @@ func (r *VMWatchResult) GetMessage() string {
 		return "VMWatch is disabled"
 	case Failed:
 		return fmt.Sprintf("VMWatch failed: %v", r.Error)
+	case NotRunning:
+		return "VMWatch is not running"
 	default:
 		return "VMWatch is running"
 	}
@@ -56,14 +68,21 @@ func executeVMWatch(ctx *log.Context, s *vmWatchSettings, hEnv HandlerEnvironmen
 			vmWatchErr = fmt.Errorf("%w\n Additonal Details: %+v", vmWatchErr, r)
 			ctx.Log("error", "Recovered %+v", r)
 		}
-		ctx.Log("error", fmt.Sprintf("Signaling VMWatchStatus is Failed due to reaching max of %d retries", VMWatchMaxProcessAttempts))
 		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
 		close(vmWatchResultChannel)
 	}()
 
-	// Best effort to start VMWatch process each time it fails
-	for i := 1; i <= VMWatchMaxProcessAttempts; i++ {
-		vmWatchErr = executeVMWatchHelper(ctx, i, s, hEnv)
+	// Best effort to start VMWatch process each time it fails start immediately up to VMWatchMaxProcessAttempts before waiting for
+	// a longer time before trying again
+	for !shutdown {
+		for i := 1; i <= VMWatchMaxProcessAttempts && !shutdown; i++ {
+			vmWatchResultChannel <- VMWatchResult{Status: Running}
+			vmWatchErr = executeVMWatchHelper(ctx, i, s, hEnv)
+			vmWatchResultChannel <- VMWatchResult{ Status: Failed, Error: vmWatchErr }
+		}
+		ctx.Log("error", fmt.Sprintf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts))
+		// we have exceeded the retries so now we go to sleep before starting again
+		time.Sleep(time.Minute * HoursBetweenRetryAttempts)
 	}
 }
 
@@ -75,7 +94,6 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 			err = fmt.Errorf("Error: %w\n Additonal Details: %+v", err, r)
 			ctx.Log("error", "Recovered %+v", r)
 		}
-		killVMWatch(ctx, cmd)
 	}()
 
 	// Setup command
@@ -103,11 +121,61 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	pid = cmd.Process.Pid // cmd.Process should be populated on success
 	ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
 
-	// VMWatch should run indefinitely, if process exists we expect an error
-	err = cmd.Wait()
+	err = createAndAssignCgroups(pid)
+	if err != nil {
+		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
+		ctx.Log("error", err.Error())
+	}
+
+	processDone := make(chan bool)
+
+	// create a waitgroup to coordinate the goroutines
+	var wg sync.WaitGroup
+	// add a task to wait for process completion
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = cmd.Wait()
+		processDone <- true
+		close(processDone)
+	}()
+	// add a task to monitor heartbeat
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		monitorHeartBeat(ctx, GetVMWatchHeartbeatFilePath(hEnv), processDone, cmd)
+	}()
+	wg.Wait()
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
 	ctx.Log("error", err.Error())
 	return err
+}
+
+func monitorHeartBeat(ctx *log.Context, heartBeatFile string, processDone chan bool, cmd *exec.Cmd) {
+	maxTimeBetweenHeartBeatsInSeconds := 60
+
+	timer := time.NewTimer(time.Second * time.Duration(maxTimeBetweenHeartBeatsInSeconds))
+
+	for {
+		select {
+		case <-timer.C:
+			info, err := os.Stat(heartBeatFile)
+			if err == nil && time.Since(info.ModTime()).Seconds() < float64(maxTimeBetweenHeartBeatsInSeconds) {
+				// heartbeat was updated
+			} else {
+				// heartbeat file was not updated within 60 seconds, process is hung
+				err = fmt.Errorf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
+				ctx.Log("error", err.Error())
+				err = killVMWatch(ctx, cmd)
+				if err != nil {
+					err = fmt.Errorf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
+					ctx.Log("error", err.Error())
+				}
+			}
+		case <-processDone:
+			return
+		}
+	}
 }
 
 func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
@@ -132,6 +200,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	}
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
+	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
 
 	args = append(args, "--input-filter")
 	if s.Tests != nil && len(s.Tests) > 0 {
@@ -152,6 +221,44 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	return cmd, nil
 }
 
+func createAndAssignCgroups(vmWatchPid int) error {
+	// get our process and use this to determine the appropriate mount points for
+	myPid := os.Getpid()
+
+	p := cgroups.PidPath(myPid)
+
+	cpuPath, err := p("cpu")
+	if err != nil {
+		return err
+	}
+
+	// max 1% of cpu and 40MB of memory should be more than enough
+	cpuQuota := int64(MaxCpuQuota)
+	memoryLimitInBytes := int64(MaxMemoryInBytes)
+
+	s := specs.LinuxResources{
+		CPU: &specs.LinuxCPU{
+			Quota: &cpuQuota,
+		},
+		Memory: &specs.LinuxMemory{
+			Limit: &memoryLimitInBytes,
+		},
+	}
+
+	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cpuPath+"/vmwatch.slice"), &s)
+	if err != nil {
+		return err
+	}
+	err = control.AddProc(uint64(vmWatchPid))
+	if err != nil {
+		return err
+	}
+
+	defer control.Delete()
+
+	return nil
+}
+
 func GetProcessDirectory() (string, error) {
 	p, err := filepath.Abs(os.Args[0])
 	if err != nil {
@@ -159,6 +266,10 @@ func GetProcessDirectory() (string, error) {
 	}
 
 	return filepath.Dir(p), nil
+}
+
+func GetVMWatchHeartbeatFilePath(hEnv HandlerEnvironment) string {
+	return filepath.Join(hEnv.HandlerEnvironment.LogFolder, "vmwatch-heartbeat.txt")
 }
 
 func GetVMWatchConfigFullPath(processDirectory string) string {

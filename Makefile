@@ -51,6 +51,7 @@ endif
 	cp misc/applicationhealth-shim /var/lib/waagent/Extension/bin/
 	cp bin/applicationhealth-extension /var/lib/waagent/Extension/bin
 	mkdir -p /var/log/azure/Extension/events
+	mkdir -p /var/lib/waagent/Extension/config/
 	cp ./.devcontainer/extension-settings.json /var/lib/waagent/Extension/config/0.settings
 
 devcontainer: binary testenv

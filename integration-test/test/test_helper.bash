@@ -26,6 +26,12 @@ mk_container() {
         docker create --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
 }
 
+# creates a container in priviged mode (allowing cgroup integration to work)
+mk_container_priviliged() {
+    rm_container && echo "Creating test container with commands: $@ && sleep 2">&2 && \
+        docker create --privileged --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
+}
+
 in_container() {
     set -e
     rm_container
@@ -45,10 +51,18 @@ container_diff() {
 container_read_file() { # reads the file at container path $1
     set -eo pipefail
     docker cp $TEST_CONTAINER:"$1" - | tar x --to-stdout
-} 
+}
 
 container_read_extension_status() {
     container_read_file /var/lib/waagent/Extension/status/0.status
+}
+
+container_read_vmwatch_log() {
+    container_read_file /var/log/azure/Extension/vmwatch.log
+}
+
+container_read_hanlder_log() {
+    container_read_file /var/log/azure/applicationhealth-extension/handler.log
 }
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT

@@ -8,7 +8,7 @@
     },
     "runArgs": [
         // add this if we need privileged access
-        // "--privileged",
+        "--privileged",
         "--env-file",
         ".devcontainer/devcontainer.env"
     ],

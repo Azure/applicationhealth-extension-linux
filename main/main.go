@@ -36,8 +36,8 @@ func main() {
 	go func() {
 		<-sigs
 		ctx.Log("event", fmt.Sprintf("Received shutdown request"))
-		killVMWatch(ctx, vmWatchCommand)
 		shutdown = true
+		killVMWatch(ctx, vmWatchCommand)
 	}()
 
 	// parse extension environment
