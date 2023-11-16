@@ -3,9 +3,13 @@ name: Go
 on:
   workflow_dispatch:
   push:
-    branches: [ "master", "develop/v2" ]
+    branches: 
+      - master
+      - feature/*
   pull_request:
-    branches: [ "master", "develop/v2" ]
+    branches: 
+      - master
+      - feature/*
 
 jobs:
   build:
