@@ -1,18 +1,20 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../test_helper
 
 setup(){
     build_docker_image
+    container_name="custom-metrics_$BATS_TEST_NUMBER"
 }
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 
 @test "handler command: enable - custom metrics - not sending custom metrics is not seen in status file" {
-    mk_container sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -44,7 +46,7 @@ teardown(){
 }
 
 @test "handler command: enable - custom metrics - sending null custom metrics is omitted and not seen in status file " {
-    mk_container sh -c "webserver -args=2h-null,2h-null,2u-null,2u-null & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h-null,2h-null,2u-null,2u-null & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -78,7 +80,7 @@ teardown(){
 }
 
 @test "handler command: enable - custom metrics - sending empty string custom metrics is omitted and not seen in status file " {
-    mk_container sh -c "webserver -args=2h-empty,2h-empty & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h-empty,2h-empty & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -110,7 +112,7 @@ teardown(){
 }
 
 @test "handler command: enable - custom metrics - sending empty json object in custom metrics appears in status file with error status" {
-    mk_container sh -c "webserver -args=2h-emptyobj,2h-emptyobj & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h-emptyobj,2h-emptyobj & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -142,7 +144,7 @@ teardown(){
 }
 
 @test "handler command: enable - custom metrics - sending invalid formatted custom metrics appears in status file with error status" {
-    mk_container sh -c "webserver -args=2h-invalid,2h-invalid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h-invalid,2h-invalid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -174,7 +176,7 @@ teardown(){
 }
 
 @test "handler command: enable - custom metrics - sending valid custom metrics is seen in status file" {
-    mk_container sh -c "webserver -args=2h-valid,2h-valid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h-valid,2h-valid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -206,7 +208,7 @@ teardown(){
 }
 
 @test "handler command: enable - custom metrics - sending valid custom metrics is seen in status file even if health is unknown" {
-    mk_container sh -c "webserver -args=2m-valid,2m-valid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2m-valid,2m-valid & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
