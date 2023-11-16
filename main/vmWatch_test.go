@@ -29,5 +29,4 @@ func TestGetMessageCorrectValue(t *testing.T) {
 	require.Equal(t, "VMWatch is not running", res.GetMessage())
 	res = VMWatchResult{Status: Running}
 	require.Equal(t, "VMWatch is running", res.GetMessage())
-
 }

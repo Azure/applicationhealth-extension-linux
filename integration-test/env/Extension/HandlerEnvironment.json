@@ -4,7 +4,7 @@
     "seqNo": "0",
     "version": 1,
     "handlerEnvironment": {
-      "logFolder": "/var/log/azure/Extension",
+      "logFolder": "/var/log/azure/Extension/VE.RS.ION",
       "configFolder": "/var/lib/waagent/Extension/config",
       "statusFolder": "/var/lib/waagent/Extension/status",
       "heartbeatFile": "/var/lib/waagent/Extension/heartbeat.log",

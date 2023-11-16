@@ -81,8 +81,7 @@ in_container() {
 }
 
 start_container() {
-    echo "Starting test container...">&2 && \
-        docker start --attach $TEST_CONTAINER
+    echo "Starting test container...">&2 && docker start --attach $TEST_CONTAINER
 }
 
 container_diff() {
@@ -244,7 +243,6 @@ verify_substatus_item() {
     # $2 substatus.name
     # $3 substatus.status 
     # $4 substatus.formattedMessage.message
-    #       Note that this can contain regex 
     #       Note that this can contain regex 
     FMT='"name": "'%s'",\s+"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
     printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
