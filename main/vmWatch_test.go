@@ -19,15 +19,15 @@ func TestGetStatusTypeReturnsCorrectValue(t *testing.T) {
 }
 
 func TestGetMessageCorrectValue(t *testing.T) {
-	res := VMWatchResult { Status: Disabled }
+	res := VMWatchResult{Status: Disabled}
 	require.Equal(t, "VMWatch is disabled", res.GetMessage())
-	res = VMWatchResult { Status: Failed }
+	res = VMWatchResult{Status: Failed}
 	require.Equal(t, "VMWatch failed: <nil>", res.GetMessage())
-	res = VMWatchResult { Status: Failed, Error: errors.New("this is an error" ) }
+	res = VMWatchResult{Status: Failed, Error: errors.New("this is an error")}
 	require.Equal(t, "VMWatch failed: this is an error", res.GetMessage())
-	res = VMWatchResult { Status: NotRunning }
+	res = VMWatchResult{Status: NotRunning}
 	require.Equal(t, "VMWatch is not running", res.GetMessage())
-	res = VMWatchResult { Status: Running }
+	res = VMWatchResult{Status: Running}
 	require.Equal(t, "VMWatch is running", res.GetMessage())
-	
+
 }
