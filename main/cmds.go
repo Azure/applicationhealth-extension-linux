@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Azure/azure-docker-extension/pkg/vmextension"
+	"github.com/go-kit/kit/log"
+	"github.com/pkg/errors"
 )
 
 type cmdFunc func(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int) (msg string, err error)

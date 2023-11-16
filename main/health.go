@@ -8,8 +8,9 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
+
+	"net/url"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -71,7 +72,6 @@ type HttpHealthProbe struct {
 func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
-
 	switch cfg.protocol() {
 	case "tcp":
 		p = &TcpHealthProbe{
@@ -119,6 +119,25 @@ func (p *TcpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
 	return Unhealthy
 }
 
+// constructAddress constructs a URL string from the given protocol, port, and request path.
+// If the protocol is "http" and the port is not 0 or 80, the port number is included in the URL string.
+// If the protocol is "https" and the port is not 0 or 443, the port number is included in the URL string.
+func constructAddress(protocol string, port int, requestPath string) string {
+	portString := ""
+	if protocol == "http" && port != 0 && port != 80 {
+		portString = ":" + strconv.Itoa(port)
+	} else if protocol == "https" && port != 0 && port != 443 {
+		portString = ":" + strconv.Itoa(port)
+	}
+
+	u := url.URL{
+		Scheme: protocol,
+		Host:   "localhost" + portString,
+		Path:   requestPath,
+	}
+	return u.String()
+}
+
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
 	p := new(HttpHealthProbe)
 
@@ -129,31 +148,28 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 		transport = &http.Transport{
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			// MinVersion set to tls1.0 because as after go 1.18, default min version changed
+			// from tls1.0 to tls1.2 and we want to support customers who are using tls1.0.
+			// tls MaxVersion is set to tls1.3 by default.
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				MinVersion:         tls.VersionTLS10,
+			},
 		}
-
 		p.HttpClient = &http.Client{
 			CheckRedirect: noRedirect,
 			Timeout:       timeout,
 			Transport:     transport,
 		}
-	} else if protocol == "http" {
+	} else {
 		p.HttpClient = &http.Client{
 			CheckRedirect: noRedirect,
 			Timeout:       timeout,
 		}
 	}
 
-	portString := ""
-	if protocol == "http" && port != 0 && port != 80 {
-		portString = ":" + strconv.Itoa(port)
-	} else if protocol == "https" && port != 0 && port != 443 {
-		portString = ":" + strconv.Itoa(port)
-	}
-	// remove first slash since we want requestPath to be defined without having to prefix with a slash
-	requestPath = strings.TrimPrefix(requestPath, "/")
+	p.Address = constructAddress(protocol, port, requestPath)
 
-	p.Address = protocol + "://localhost" + portString + "/" + requestPath
 	return p
 }
 

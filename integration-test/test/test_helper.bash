@@ -6,8 +6,19 @@ TEST_CONTAINER=test
 
 certs_dir="$BATS_TEST_DIRNAME/certs"
 
+# This function builds a Docker image for testing purposes. 
+# If the image already exists, a random number is appended to the name.
+# a unique name is needed to avoid conflicts with other tests while running in parallel.
 build_docker_image() {
-    echo "Building test image..."
+    # Generate a base name for the image
+    BASE_IMAGE_NAME=$IMAGE
+    # Loop until we find a unique image name
+    while [ -n "$(docker images -q $IMAGE)" ]; do
+        # Append the counter to the base image name
+        IMAGE="${BASE_IMAGE_NAME}_$RANDOM"
+    done
+    
+    echo "Building test image $IMAGE..."
     docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
 }
 
@@ -15,12 +26,37 @@ in_tmp_container() {
     docker run --rm $IMAGE "$@"
 }
 
+cleanup() {
+    echo "Cleaning up...">&2
+    rm_container
+    rm_image
+}
+
 rm_container() {
+    echo "Deleting test container $TEST_CONTAINER ...">&2 && \
     docker rm -f $TEST_CONTAINER &>/dev/null && \
         echo "Deleted test container." || true
 }
 
+# Function to delete a Docker image.
+# Usage: rm_image
+# Returns: None
+rm_image() {
+    local image_id=$(docker images -q $IMAGE)
+    echo "Deleting Docker Image ID: $image_id ...">&2 && \
+    docker rmi -f $image_id &>/dev/null && \
+        echo "Deleted test image." || true
+}
+
 mk_container() {
+    
+     if [ $# -gt 3 ]; then # if less than two arguments are supplied
+        local container_name="${1:-$TEST_CONTAINER}" # assign the value of $TEST_CONTAINER if $1 is empty
+        echo "container_name: $container_name"
+        TEST_CONTAINER="$container_name"
+        shift
+    fi
+
     rm_container && echo "Creating test container with commands: $@">&2 && \
         docker create --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
 }
@@ -176,4 +212,20 @@ verify_substatus_item() {
     printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
     echo "Searching status file for substatus item: $SUBSTATUS"
     echo "$1" | egrep -z "$SUBSTATUS"
+}
+
+create_certificate() {
+    # Create a random seed file
+    openssl rand -out ~/.rnd 2048
+
+    # Generate a private key
+    openssl genrsa -out testbin/webserverkey.pem 2048
+
+    # Generate a self-signed certificate
+    openssl req -new -x509 -sha256 -key testbin/webserverkey.pem -out testbin/webservercert.pem -days 3650 -subj '/CN=www.contoso.com/O=Contoso LTD./C=US'
+}
+
+delete_certificate() {
+    rm -f testbin/webserverkey.pem
+    rm -f testbin/webservercert.pem
 }

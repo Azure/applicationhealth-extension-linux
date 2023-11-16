@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -108,7 +109,7 @@ func HandleApplicationHealthStateFlag(flag string) (string, string) {
 		return ResponseBodyKeyApplicationHealthState, "Hello!"
 
 	default:
-		return ResponseBodyKeyApplicationHealthState, healthStateFlagMapping[flag]
+		return ResponseBodyKeyApplicationHealthState, getHealthState(flag)
 	}
 }
 
@@ -147,16 +148,53 @@ func healthHandler(w http.ResponseWriter, r *http.Request, arguments *[]string) 
 	w.Write(respBody)
 }
 
+func getSecurityProtocolVersion(securityProtocol string) uint16 {
+
+	switch securityProtocol {
+	case "ssl3.0":
+		return tls.VersionSSL30
+	case "tls1.0":
+		return tls.VersionTLS10
+	case "tls1.1":
+		return tls.VersionTLS11
+	case "tls1.2":
+		return tls.VersionTLS12
+	case "tls1.3":
+		return tls.VersionTLS13
+	default:
+		return tls.VersionTLS13
+	}
+}
+
+func getHealthState(flag string) string {
+
+	if healthState, ok := healthStateFlagMapping[flag]; ok {
+		return healthState
+	} else {
+		return ""
+	}
+}
+
 func main() {
 	args := flag.String("args", "", `Example usage: '2h-valid' to send StatusCode: 200, ResponseBody: { "ApplicationHealthState": "Healthy", "CustomMetrics": "<valid json>"}`)
+	securityProtocol := flag.String("securityProtocol", "tls1.3", "Specifies the security protocol to use for the HTTPS server. Valid options are: tls1.0, tls1.1, tls1.2, tls1.3, ssl3.0. Default is tls1.3.")
 	flag.Parse()
 	originalArgs := strings.Split(*args, ",")
 	arguments := strings.Split(*args, ",")
 	var shouldExitOnEmptyArgs = len(arguments) > 0
 
 	httpMutex := http.NewServeMux()
-	httpServer := http.Server{Addr: ":8080"}
-	httpsServer := http.Server{Addr: ":443"}
+	httpServer := http.Server{
+		Addr:    ":8080",
+		Handler: httpMutex}
+
+	httpsServer := http.Server{
+		Addr:    ":4430", //changing default port from 443 to 4430 to avoid conflict with other services
+		Handler: httpMutex,
+		TLSConfig: &tls.Config{
+			MinVersion: getSecurityProtocolVersion(*securityProtocol),
+			MaxVersion: getSecurityProtocolVersion(*securityProtocol)},
+	}
 
 	// sends json resonse body with application health state expected by extension
 	// looks at the first state in the healthStates array and dequeues that element after its iterated
@@ -173,9 +211,6 @@ func main() {
 			}()
 		}
 	})
-
-	httpServer.Handler = httpMutex
-	httpsServer.Handler = httpMutex
 
 	log.Printf("Arguments: %v, len: %v", arguments, len(arguments))
 	log.Printf("Starting http server...")

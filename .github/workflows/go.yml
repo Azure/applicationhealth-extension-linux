@@ -3,9 +3,13 @@ name: Go
 on:
   workflow_dispatch:
   push:
-    branches: [ "master" ]
+    branches: 
+      - master
+      - feature/*
   pull_request:
-    branches: [ "master" ]
+    branches: 
+      - master
+      - feature/*
 
 jobs:
   build:
@@ -48,6 +52,10 @@ jobs:
         sudo apt install npm
         sudo npm install -g bats
 
+    - name: Install Parallel
+      run: |
+        sudo apt install parallel
+
     - name: Install Docker
       run: |
         sudo apt-get install runc
@@ -85,6 +93,26 @@ jobs:
         openssl req -new -x509 -sha256 -key testbin/webserverkey.pem -out testbin/webservercert.pem -days 3650 -subj '/CN=www.contoso.com/O=Contoso LTD./C=US'
       working-directory: ${{ env.repo_root }}
 
-    - name: Run Integration Tests
-      run: sudo bats integration-test/test
+    - name: Run Sequential Integration Tests
+      continue-on-error: true
+      run: |
+        mkdir -p integration-test/test/sequential/.bats/run-logs/
+        sudo bats integration-test/test/sequential -T --trace
+      working-directory: ${{ env.repo_root }}
+
+    - name: Retry Failing Sequential Integration Tests
+      run: |
+        sudo bats integration-test/test/sequential --filter-status failed -T --trace
+      working-directory: ${{ env.repo_root }}
+
+    - name: Run Parallel Integration Tests
+      continue-on-error: true
+      run: |
+        mkdir -p integration-test/test/parallel/.bats/run-logs/
+        sudo bats integration-test/test/parallel --jobs 10 -T --trace
+      working-directory: ${{ env.repo_root }}
+
+    - name: Retry Failing Parallel Integration Tests
+      run: |
+        sudo bats integration-test/test/parallel --filter-status failed -T --trace
       working-directory: ${{ env.repo_root }}
