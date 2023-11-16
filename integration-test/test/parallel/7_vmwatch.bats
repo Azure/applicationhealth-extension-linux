@@ -4,6 +4,7 @@ load ../test_helper
 
 setup(){
     build_docker_image
+    container_name="tls-config_$BATS_TEST_NUMBER"
 }
 
 teardown(){
@@ -11,7 +12,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch disabled - vmwatch settings omitted" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -31,7 +32,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch disabled - empty vmwatch settings" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2"
     push_settings '
     {
         "protocol": "http",
@@ -52,7 +53,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch disabled - explicitly disable" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -75,7 +76,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - default vmwatch settings" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -103,7 +104,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - can override default settings" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -141,7 +142,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - app health works as expected" {
-    mk_container sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -184,7 +185,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 7"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 2 && pkill -f vmwatch_linux_amd64 && sleep 7"
     push_settings '
     {
         "protocol": "http",
@@ -215,7 +216,7 @@ teardown(){
 }
 
 @test "handler command: enable/disable - vm watch killed when disable is called" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent disable"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent disable"
     push_settings '
     {
         "protocol": "http",
@@ -244,7 +245,7 @@ teardown(){
 }
 
 @test "handler command: enable/uninstall - vm watch killed when uninstall is called" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
     push_settings '
     {
         "protocol": "http",
