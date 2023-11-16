@@ -4,7 +4,7 @@ load ../test_helper
 
 setup(){
     build_docker_image
-    container_name="tls-config_$BATS_TEST_NUMBER"
+    container_name="vmwatch_$BATS_TEST_NUMBER"
 }
 
 teardown(){
