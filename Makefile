@@ -56,5 +56,4 @@ endif
 
 devcontainer: binary testenv
 
-
 .PHONY: clean binary

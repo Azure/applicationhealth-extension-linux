@@ -61,7 +61,7 @@ container_read_vmwatch_log() {
     container_read_file /var/log/azure/Extension/vmwatch.log
 }
 
-container_read_hanlder_log() {
+container_read_handler_log() {
     container_read_file /var/log/azure/applicationhealth-extension/handler.log
 }
 

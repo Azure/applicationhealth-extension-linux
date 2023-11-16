@@ -200,7 +200,7 @@ teardown(){
     run start_container
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    hanlder_log="$(container_read_hanlder_log)"
+    hanlder_log="$(container_read_handler_log)"
     echo "$handler_log"
     vmwatch_log="$(container_read_vmwatch_log)"
     echo "$vmwatch_log"
@@ -240,7 +240,7 @@ teardown(){
     run start_container
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    hanlder_log="$(container_read_hanlder_log)"
+    hanlder_log="$(container_read_handler_log)"
     echo "$handler_log"
     vmwatch_log="$(container_read_vmwatch_log)"
     echo "$vmwatch_log"
@@ -252,7 +252,7 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
-    [[ "$output" == *'MWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
@@ -338,7 +338,7 @@ teardown(){
     run start_container
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    hanlder_log="$(container_read_hanlder_log)"
+    hanlder_log="$(container_read_handler_log)"
     echo "$handler_log"
     vmwatch_log="$(container_read_vmwatch_log)"
     echo "$vmwatch_log"
@@ -350,7 +350,7 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
-    [[ "$output" == *'MWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
@@ -378,7 +378,7 @@ teardown(){
     run start_container
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    hanlder_log="$(container_read_hanlder_log)"
+    hanlder_log="$(container_read_handler_log)"
     avg_cpu="$(container_read_file /var/log/azure/Extension/vmwatch-avg-cpu-check.txt)"
     echo "$handler_log"
     vmwatch_log="$(container_read_vmwatch_log)"
@@ -417,7 +417,7 @@ teardown(){
     run start_container
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    hanlder_log="$(container_read_hanlder_log)"
+    hanlder_log="$(container_read_handler_log)"
     avg_cpu="$(container_read_file /var/log/azure/Extension/vmwatch-avg-cpu-check.txt)"
     echo "$handler_log"
     vmwatch_log="$(container_read_vmwatch_log)"

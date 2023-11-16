@@ -1,5 +1,7 @@
 {
     "recommendations": [
-        "golang.go"
+        "golang.go",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh"
     ]
 }
