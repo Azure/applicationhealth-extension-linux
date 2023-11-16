@@ -1,9 +1,10 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../test_helper
 
 setup(){
     build_docker_image
+    container_name="vmwatch_$BATS_TEST_NUMBER"
 }
 
 teardown(){
@@ -11,7 +12,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch disabled - vmwatch settings omitted" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -31,7 +32,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch disabled - empty vmwatch settings" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 2"
     push_settings '
     {
         "protocol": "http",
@@ -52,7 +53,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch disabled - explicitly disable" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -75,7 +76,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - default vmwatch settings" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -103,7 +104,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - can override default settings" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -141,7 +142,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - app health works as expected" {
-    mk_container sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -174,7 +175,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
-    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/vmwatch.log]'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     status_file="$(container_read_extension_status)"
@@ -184,7 +185,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10"
     push_settings '
     {
         "protocol": "http",
@@ -220,7 +221,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch process exit - give up after 3 restarts" {
-    mk_container sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
+    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
     push_settings '
     {
         "protocol": "http",
@@ -259,9 +260,8 @@ teardown(){
     verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: exit status 1.*"
 }
 
-
 @test "handler command: enable/disable - vm watch killed when disable is called" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent disable"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent disable"
     push_settings '
     {
         "protocol": "http",
@@ -290,7 +290,7 @@ teardown(){
 }
 
 @test "handler command: enable/uninstall - vm watch killed when uninstall is called" {
-    mk_container sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
+    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
     push_settings '
     {
         "protocol": "http",
@@ -318,7 +318,7 @@ teardown(){
 
 
 @test "handler command: enable - vm watch oom - process should be killed" {
-    mk_container_priviliged sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
+    mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
     push_settings '
     {
         "protocol": "http",
@@ -358,7 +358,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch cpu - process should not use more than 1 percent cpu" {
-    mk_container_priviliged sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
+    mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
     push_settings '
     {
         "protocol": "http",
@@ -397,7 +397,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch cpu - process should use more than 1 percent cpu when non-privileged" {
-    mk_container sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
+    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
     push_settings '
     {
         "protocol": "http",

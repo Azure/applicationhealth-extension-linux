@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-load test_helper
+load ../test_helper
 
 @test "meta: docker is installed" {
     run docker version

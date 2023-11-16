@@ -154,7 +154,6 @@ func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) 
 			}
 		}
 
-
 		// Only increment if it's a repeat of the previous
 		if prevState == state {
 			numConsecutiveProbes++
@@ -211,6 +210,11 @@ func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) 
 				customMetricsStatusType = StatusSuccess
 			}
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
+		}
+
+		// VMWatch substatus should only be displayed when settings are present
+		if vmWatchSettings != nil {
+			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
 		// VMWatch substatus should only be displayed when settings are present

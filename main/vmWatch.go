@@ -18,16 +18,16 @@ import (
 type VMWatchStatus string
 
 const (
-	MaxCpuQuota      			= 1000     // 1% cpu
-	MaxMemoryInBytes 			= 40000000 // 40MB
-	HoursBetweenRetryAttempts 	= 3
+	MaxCpuQuota               = 1000     // 1% cpu
+	MaxMemoryInBytes          = 40000000 // 40MB
+	HoursBetweenRetryAttempts = 3
 )
 
 const (
 	NotRunning VMWatchStatus = "NotRunning"
-	Disabled VMWatchStatus = "Disabled"
-	Running  VMWatchStatus = "Running"
-	Failed   VMWatchStatus = "Failed"
+	Disabled   VMWatchStatus = "Disabled"
+	Running    VMWatchStatus = "Running"
+	Failed     VMWatchStatus = "Failed"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
@@ -78,7 +78,7 @@ func executeVMWatch(ctx *log.Context, s *vmWatchSettings, hEnv HandlerEnvironmen
 		for i := 1; i <= VMWatchMaxProcessAttempts && !shutdown; i++ {
 			vmWatchResultChannel <- VMWatchResult{Status: Running}
 			vmWatchErr = executeVMWatchHelper(ctx, i, s, hEnv)
-			vmWatchResultChannel <- VMWatchResult{ Status: Failed, Error: vmWatchErr }
+			vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
 		}
 		ctx.Log("error", fmt.Sprintf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts))
 		// we have exceeded the retries so now we go to sleep before starting again
