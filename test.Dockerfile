@@ -28,4 +28,3 @@ COPY misc/HandlerManifest.json ./Extension/
 COPY misc/applicationhealth-shim ./Extension/bin/
 COPY bin/applicationhealth-extension ./Extension/bin/
 
-# copy test helper
