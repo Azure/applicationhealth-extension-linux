@@ -68,8 +68,7 @@ in_container() {
 }
 
 start_container() {
-    echo "Starting test container...">&2 && \
-        docker start --attach $TEST_CONTAINER
+    echo "Starting test container...">&2 && docker start --attach $TEST_CONTAINER
 }
 
 container_diff() {
