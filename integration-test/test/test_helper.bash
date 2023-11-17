@@ -102,7 +102,7 @@ container_read_vmwatch_log() {
 }
 
 container_read_handler_log() {
-    container_read_file /var/log/azure/application-health/handler.log
+    container_read_file /var/log/azure/applicationhealth-extension/handler.log
 }
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
