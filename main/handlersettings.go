@@ -62,6 +62,10 @@ func (s *handlerSettings) gracePeriod() int {
 	}
 }
 
+func (s *handlerSettings) vmWatchSettings() *vmWatchSettings {
+	return s.publicSettings.VMWatchSettings
+}
+
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
 func (h handlerSettings) validate() error {
@@ -81,15 +85,22 @@ func (h handlerSettings) validate() error {
 	return nil
 }
 
+type vmWatchSettings struct {
+	Enabled            bool                   `json:"enabled,boolean"`
+	Tests              []string               `json:"tests,array"`
+	ParameterOverrides map[string]interface{} `json:"parameterOverrides,object"`
+}
+
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {
-	Protocol          string `json:"protocol"`
-	Port              int    `json:"port,int"`
-	RequestPath       string `json:"requestPath"`
-	IntervalInSeconds int    `json:"intervalInSeconds,int"`
-	NumberOfProbes    int    `json:"numberOfProbes,int"`
-	GracePeriod       int    `json:"gracePeriod,int"`
+	Protocol          string           `json:"protocol"`
+	Port              int              `json:"port,int"`
+	RequestPath       string           `json:"requestPath"`
+	IntervalInSeconds int              `json:"intervalInSeconds,int"`
+	NumberOfProbes    int              `json:"numberOfProbes,int"`
+	GracePeriod       int              `json:"gracePeriod,int"`
+	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected

@@ -49,7 +49,6 @@ rm_image() {
 }
 
 mk_container() {
-    
      if [ $# -gt 3 ]; then # if less than two arguments are supplied
         local container_name="${1:-$TEST_CONTAINER}" # assign the value of $TEST_CONTAINER if $1 is empty
         echo "container_name: $container_name"
@@ -65,7 +64,6 @@ in_container() {
     set -e
     rm_container
     mk_container "$@"
-    echo "Starting test container...">&2
     start_container
 }
 
@@ -81,6 +79,10 @@ container_read_file() { # reads the file at container path $1
     set -eo pipefail
     docker cp $TEST_CONTAINER:"$1" - | tar x --to-stdout
 } 
+
+container_read_extension_status() {
+    container_read_file /var/lib/waagent/Extension/status/0.status
+}
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail
@@ -203,11 +205,24 @@ verify_states() {
     done <<< "$1"
 }
 
+verify_status_item() {
+    # $1 status_file contents
+    # $2 status.operation
+    # $3 status.status 
+    # $4 status.formattedMessage.message
+    #       Note that this can contain regex 
+    FMT='"operation": "'%s'",((.*)|\s*?).*,\s*"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
+    printf -v STATUS "$FMT" "$2" "$3" "$4"
+    echo "Searching status file for status item: $STATUS"
+    echo "$1" | egrep -z "$STATUS"
+}
+
 verify_substatus_item() {
     # $1 status_file contents
     # $2 substatus.name
     # $3 substatus.status 
     # $4 substatus.formattedMessage.message
+    #       Note that this can contain regex 
     FMT='"name": "'%s'",\s+"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
     printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
     echo "Searching status file for substatus item: $SUBSTATUS"

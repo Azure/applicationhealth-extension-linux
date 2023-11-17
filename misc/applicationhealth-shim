@@ -5,9 +5,11 @@ readonly SCRIPT_DIR=$(dirname "$0")
 readonly LOG_DIR="/var/log/azure/applicationhealth-extension"
 readonly LOG_FILE=handler.log
 readonly ARCHITECTURE=$( [[ "$(uname -p)" == "unknown" ]] && echo "$(uname -m)" || echo "$(uname -p)" )
+VMWATCH_BIN="vmwatch_linux_amd64"
 HANDLER_BIN="applicationhealth-extension"
 if [ $ARCHITECTURE == "arm64" ] || [ $ARCHITECTURE == "aarch64" ]; then
-     HANDLER_BIN="applicationhealth-extension-arm64";
+    HANDLER_BIN="applicationhealth-extension-arm64";
+    VMWATCH_BIN="vmwatch_linux_arm64"
 fi
 
 # status_file returns the .status file path we are supposed to write
@@ -53,7 +55,7 @@ write_status() {
 	fi
 }
 
-kill_existing_processes() {
+kill_existing_apphealth_processes() {
     out="$(ps aux)"
     if [[ "$out" == **"$HANDLER_BIN enable"** ]]; then
         echo "Terminating existing $HANDLER_BIN process"
@@ -77,13 +79,38 @@ kill_existing_processes() {
     fi
 }
 
+kill_existing_vmwatch_processes() {
+    out="$(ps aux)"
+    if [[ "$out" == **"$VMWATCH_BIN"** ]]; then
+        echo "Terminating existing $VMWATCH_BIN process"
+        pkill -f $VMWATCH_BIN >&2
+        echo "Tried terminating existing $VMWATCH_BIN process"
+        for i in {1..33};
+        do
+            out="$(ps aux)"
+            if [[ "$out" == **"$VMWATCH_BIN"** ]]; then
+                sleep 1
+            else
+                echo "$VMWATCH_BIN process terminated"
+                break 
+            fi
+        done
+        out="$(ps aux)"
+        if [[ "$out" == **"$VMWATCH_BIN"** ]]; then
+            echo "Force terminating existing $VMWATCH_BIN process"
+            pkill -9 -f $VMWATCH_BIN >&2
+        fi
+    fi
+}
+
 if [ "$#" -ne 1 ]; then
     echo "Incorrect usage."
     echo "Usage: $0 <command>"
     exit 1
 fi
 
-kill_existing_processes
+kill_existing_apphealth_processes
+kill_existing_vmwatch_processes
 
 # Redirect logs of the handler process
 mkdir -p "$LOG_DIR"
