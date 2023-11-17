@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +22,7 @@ func Test_statusMsg(t *testing.T) {
 }
 
 func Test_reportStatus_fails(t *testing.T) {
-	fakeEnv := vmextension.HandlerEnvironment{}
+	fakeEnv := HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
 
 	err := reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 1, StatusSuccess, cmdEnable, "")
@@ -36,7 +35,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	fakeEnv := vmextension.HandlerEnvironment{}
+	fakeEnv := HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
 
 	require.Nil(t, reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
@@ -53,7 +52,7 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 		require.Nil(t, err)
 		defer os.RemoveAll(tmpDir)
 
-		fakeEnv := vmextension.HandlerEnvironment{}
+		fakeEnv := HandlerEnvironment{}
 		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
 		require.Nil(t, reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 2, StatusSuccess, c, ""))
 

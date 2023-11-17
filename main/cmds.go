@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 )
 
-type cmdFunc func(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int) (msg string, err error)
+type cmdFunc func(ctx *log.Context, hEnv HandlerEnvironment, seqNum int) (msg string, err error)
 type preFunc func(ctx *log.Context, seqNum int) error
 
 type cmd struct {
@@ -40,12 +39,12 @@ var (
 	}
 )
 
-func noop(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func noop(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	ctx.Log("event", "noop")
 	return "", nil
 }
 
-func install(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func install(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -55,7 +54,7 @@ func install(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (st
 	return "", nil
 }
 
-func uninstall(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
 		ctx = ctx.With("path", dataDir)
 		ctx.Log("event", "removing data dir", "path", dataDir)
@@ -76,7 +75,7 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
 	cfg, err := parseAndValidateSettings(ctx, h.HandlerEnvironment.ConfigFolder)
 	if err != nil {
@@ -93,6 +92,10 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 		committedState            = Empty
 		honorGracePeriod          = gracePeriodInSeconds > 0
 		gracePeriodStartTime      = time.Now()
+		vmWatchSettings           = cfg.vmWatchSettings()
+		vmWatchResult             = VMWatchResult{Status: Disabled, Error: nil}
+		vmWatchResultChannel      = make(chan VMWatchResult)
+		timeOfLastVMWatchLog      = time.Time{}
 	)
 
 	if !honorGracePeriod {
@@ -100,6 +103,15 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 	} else {
 		ctx.Log("event", fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
+
+	ctx.Log("event", fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
+	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
+		ctx.Log("event", fmt.Sprintf("VMWatch is disabled, not starting process."))
+	} else {
+		vmWatchResult = VMWatchResult{Status: Running, Error: nil}
+		go executeVMWatch(ctx, vmWatchSettings, h, vmWatchResultChannel)
+	}
+
 	// The committed health status (the state written to the status file) initially does not have a state
 	// In order to change the state in the status file, the following must be observed:
 	//  1. Healthy status observed once when committed state is unknown
@@ -120,6 +132,26 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 
 		if shutdown {
 			return "", errTerminated
+		}
+
+		// If VMWatch was never supposed to run, it will be in Disabled state, so we do not need to read from the channel
+		// If VMWatch failed to execute, we will do not need to read from the channel
+		// Only if VMWatch is currently running do we need to check if it failed
+		if vmWatchResult.Status == Running {
+			select {
+			case result, ok := <-vmWatchResultChannel:
+				if !ok {
+					vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
+				} else {
+					vmWatchResult = result
+				}
+				ctx.Log("error", vmWatchResult.GetMessage())
+			default:
+				if time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
+					timeOfLastVMWatchLog = time.Now()
+					ctx.Log("event", "VMWatch is running")
+				}
+			}
 		}
 
 		// Only increment if it's a repeat of the previous
@@ -178,6 +210,11 @@ func enable(ctx *log.Context, h vmextension.HandlerEnvironment, seqNum int) (str
 				customMetricsStatusType = StatusSuccess
 			}
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
+		}
+
+		// VMWatch substatus should only be displayed when settings are present
+		if vmWatchSettings != nil {
+			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)

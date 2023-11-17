@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
 
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 )
 
@@ -16,6 +16,10 @@ var (
 	dataDir = "/var/lib/waagent/apphealth"
 
 	shutdown = false
+
+	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
+	// when a shutdown signal is received
+	vmWatchCommand *exec.Cmd
 )
 
 func main() {
@@ -31,16 +35,18 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
+		ctx.Log("event", fmt.Sprintf("Received shutdown request"))
+		killVMWatch(ctx, vmWatchCommand)
 		shutdown = true
 	}()
 
 	// parse extension environment
-	hEnv, err := vmextension.GetHandlerEnv()
+	hEnv, err := GetHandlerEnv()
 	if err != nil {
 		ctx.Log("message", "failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		ctx.Log("messsage", "failed to find sequence number", "error", err)
 	}

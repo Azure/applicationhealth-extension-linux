@@ -1,19 +1,20 @@
-name: Go
+name: Go (Ext V2)
 
 on:
   workflow_dispatch:
   push:
     branches: 
       - master
-      - feature/*
+      - feature/**
   pull_request:
     branches: 
       - master
-      - feature/*
+      - feature/**
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, ubuntu-20.04]
     

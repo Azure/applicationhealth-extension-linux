@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 )
@@ -11,7 +10,7 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func reportStatus(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int, t StatusType, c cmd, msg string) error {
+func reportStatus(ctx *log.Context, hEnv HandlerEnvironment, seqNum int, t StatusType, c cmd, msg string) error {
 	if !c.shouldReportStatus {
 		ctx.Log("status", "not reported for operation (by design)")
 		return nil
@@ -24,7 +23,7 @@ func reportStatus(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum 
 	return nil
 }
 
-func reportStatusWithSubstatuses(ctx *log.Context, hEnv vmextension.HandlerEnvironment, seqNum int, t StatusType, op string, msg string, substatuses []SubstatusItem) error {
+func reportStatusWithSubstatuses(ctx *log.Context, hEnv HandlerEnvironment, seqNum int, t StatusType, op string, msg string, substatuses []SubstatusItem) error {
 	s := NewStatus(t, op, msg)
 	for _, substatus := range substatuses {
 		s.AddSubstatusItem(substatus)
