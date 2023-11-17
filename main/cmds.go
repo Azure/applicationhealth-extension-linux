@@ -217,11 +217,6 @@ func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) 
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
-		// VMWatch substatus should only be displayed when settings are present
-		if vmWatchSettings != nil {
-			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
-		}
-
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
 			ctx.Log("error", err)
