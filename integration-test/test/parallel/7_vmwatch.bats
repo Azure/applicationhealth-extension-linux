@@ -316,6 +316,7 @@ teardown(){
     [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
 }
 
+# bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch oom - process should be killed" {
     mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
     push_settings '
@@ -356,6 +357,7 @@ teardown(){
     verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: signal: killed.*"
 }
 
+# bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should not use more than 1 percent cpu" {
     mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
     push_settings '
@@ -395,6 +397,7 @@ teardown(){
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
 }
 
+# bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should use more than 1 percent cpu when non-privileged" {
     mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
     push_settings '
