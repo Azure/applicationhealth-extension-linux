@@ -82,7 +82,7 @@ func executeVMWatch(ctx *log.Context, s *vmWatchSettings, hEnv HandlerEnvironmen
 		}
 		ctx.Log("error", fmt.Sprintf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts))
 		// we have exceeded the retries so now we go to sleep before starting again
-		time.Sleep(time.Minute * HoursBetweenRetryAttempts)
+		time.Sleep(time.Hour * HoursBetweenRetryAttempts)
 	}
 }
 
