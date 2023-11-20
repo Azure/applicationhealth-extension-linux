@@ -359,7 +359,7 @@ teardown(){
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should not use more than 1 percent cpu" {
-    mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
+    mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 0.5 1.5"
     push_settings '
     {
         "protocol": "http",
@@ -398,8 +398,8 @@ teardown(){
 }
 
 # bats test_tags=linuxhostonly
-@test "handler command: enable - vm watch cpu - process should use more than 1 percent cpu when non-privileged" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/get-avg-vmwatch-cpu.sh"
+@test "handler command: enable - vm watch cpu - process should use more than 30 percent cpu when non-privileged" {
+    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 30 150"
     push_settings '
     {
         "protocol": "http",
@@ -428,7 +428,7 @@ teardown(){
     echo "$status_file"
     echo "$avg_cpu"
     
-    [[ "$avg_cpu" == *'FAIL'* ]]
+    [[ "$avg_cpu" == *'PASS'* ]]
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process started'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
