@@ -201,7 +201,7 @@ teardown(){
                 "enabledTags" : [ "Network" ],
                 "disabledTags" : [ "Accuracy" ],
                 "disabledSignals" : [ "outbound_connectivity", "disk_io" ],
-                "enabledOptionalSignals" : [ "simple" ],
+                "enabledOptionalSignals" : [ "simple" ]
             },
             "environmentAttributes" : {
                 "OutboundConnectivityEnabled" : true
