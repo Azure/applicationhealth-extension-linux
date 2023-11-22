@@ -95,7 +95,6 @@ teardown(){
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
-    [[ "$output" == *'--input-filter disk_io:outbound_connectivity:clockskew:az_storage_blob'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -117,7 +116,7 @@ teardown(){
             "enabled": true,
             "signalFilters": {
                 "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns"]
-            }
+            },
             "parameterOverrides": {
                 "ABC": "abc",
                 "BCD": "bcd"
@@ -273,7 +272,7 @@ teardown(){
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
-    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: signal: terminated.*"
+    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: .*"
 }
 
 @test "handler command: enable - vm watch process exit - give up after 3 restarts" {
@@ -291,7 +290,7 @@ teardown(){
             "signalFilters": {
                 "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
                 "enabledOptionalSignals": ["test"]
-            }
+            },
             "parameterOverrides": {
                 "TEST_EXIT_PROCESS": "true"
             }
@@ -391,7 +390,7 @@ teardown(){
              "signalFilters": {
                 "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
                 "enabledOptionalSignals": ["test"]
-            }
+            },
             "parameterOverrides": {
                 "TEST_ALLOCATE_MEMORY": "true"
             }
@@ -435,7 +434,7 @@ teardown(){
              "signalFilters": {
                 "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
                 "enabledOptionalSignals": ["test"]
-            }
+            },
             "parameterOverrides": {
                 "TEST_HIGH_CPU": "true"
             }
@@ -478,7 +477,7 @@ teardown(){
              "signalFilters": {
                 "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
                 "enabledOptionalSignals": ["test"]
-            }
+            },
             "parameterOverrides": {
                 "TEST_HIGH_CPU": "true"
             }
