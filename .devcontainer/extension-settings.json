@@ -11,10 +11,13 @@
                     "gracePeriod": 600,
                     "vmWatchSettings": {
                         "enabled": true,
-                        "tests" : [
-                            "simple",
-                            "process"
-                        ]
+                        "signalFilters": {
+                            "disabledSignals" : [ "outbound_connectivity", "disk_io", "az_storage_blob", "clockskew", "process", "dns" ],
+                            "enabledOptionalSignals" : [ "simple" ]
+                        },
+                        "environmentAttributes" : {
+                            "OutboundConnectivityEnabled" : true
+                        }
                     }
                 }
             }

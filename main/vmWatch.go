@@ -202,11 +202,37 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
 
-	args = append(args, "--input-filter")
-	if s.Tests != nil && len(s.Tests) > 0 {
-		args = append(args, strings.Join(s.Tests, ":"))
-	} else {
-		args = append(args, VMWatchDefaultTests)
+	if s.SignalFilters != nil {
+		if s.SignalFilters.DisabledSignals != nil && len(s.SignalFilters.DisabledSignals) > 0 {
+			args = append(args, "--disabled-signals")
+			args = append(args, strings.Join(s.SignalFilters.DisabledSignals, ":"))
+		}
+
+		if s.SignalFilters.DisabledTags != nil && len(s.SignalFilters.DisabledTags) > 0 {
+			args = append(args, "--disabled-tags")
+			args = append(args, strings.Join(s.SignalFilters.DisabledTags, ":"))
+		}
+
+		if s.SignalFilters.EnabledTags != nil && len(s.SignalFilters.EnabledTags) > 0 {
+			args = append(args, "--enabled-tags")
+			args = append(args, strings.Join(s.SignalFilters.EnabledTags, ":"))
+		}
+
+		if s.SignalFilters.EnabledOptionalSignals != nil && len(s.SignalFilters.EnabledOptionalSignals) > 0 {
+			args = append(args, "--enabled-optional-signals")
+			args = append(args, strings.Join(s.SignalFilters.EnabledOptionalSignals, ":"))
+		}
+	}
+
+	if s.EnvironmentAttributes != nil {
+		if len(s.EnvironmentAttributes) > 0 {
+			args = append(args, "--env-attributes")
+			var envAttributes []string
+			for k, v := range s.EnvironmentAttributes {
+				envAttributes = append(envAttributes, fmt.Sprintf("%v=%v", k, v))
+			}
+			args = append(args, strings.Join(envAttributes, ":"))
+		}
 	}
 
 	// if we are running in a dev container don't call IMDS endpoint

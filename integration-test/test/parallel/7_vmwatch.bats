@@ -115,10 +115,9 @@ teardown(){
         "gracePeriod": 600,
         "vmWatchSettings": {
             "enabled": true,
-            "tests": [
-                "disk_io", 
-                "outbound_connectivity"
-            ],
+            "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns"]
+            }
             "parameterOverrides": {
                 "ABC": "abc",
                 "BCD": "bcd"
@@ -131,7 +130,7 @@ teardown(){
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
-    [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
+    [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
     [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -153,7 +152,9 @@ teardown(){
         "gracePeriod": 600,
         "vmWatchSettings": {
             "enabled": true,
-            "tests": ["disk_io", "outbound_connectivity"]
+            "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns"]
+            }
         }
     }' ''
     run start_container
@@ -174,7 +175,62 @@ teardown(){
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
-    [[ "$output" == *'--input-filter disk_io:outbound_connectivity'* ]]
+    [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
+    [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+
+    status_file="$(container_read_extension_status)"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+    verify_substatus_item "$status_file" VMWatch success "VMWatch is running"
+}
+
+@test "handler command: enable - vm watch enabled - with disabled and enabled tests works as expected" {
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "numberOfProbes": 2,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true,
+            "signalFilters": {
+                "enabledTags" : [ "Network" ],
+                "disabledTags" : [ "Accuracy" ],
+                "disabledSignals" : [ "outbound_connectivity", "disk_io" ],
+                "enabledOptionalSignals" : [ "simple" ],
+            },
+            "environmentAttributes" : {
+                "OutboundConnectivityEnabled" : true
+            }
+        }
+    }' ''
+    run start_container
+
+    echo "$output"
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    
+    expectedTimeDifferences=(0 5)
+    verify_state_change_timestamps "$enableLog" "${expectedTimeDifferences[@]}"
+
+    expectedStateLogs=(
+        "Health state changed to healthy"
+        "Committed health state is initializing"
+        "Committed health state is healthy"
+    )
+    verify_states "$enableLog" "${expectedStateLogs[@]}"
+
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
+    [[ "$output" == *'--disabled-signals outbound_connectivity:disk_io'* ]]
+    [[ "$output" == *'--enabled-tags Network'* ]]
+    [[ "$output" == *'--disabled-tags Accuracy'* ]]
+    [[ "$output" == *'--enabled-optional-signals simple'* ]]
+    [[ "$output" == *'--env-attributes OutboundConnectivityEnabled=true'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -232,7 +288,10 @@ teardown(){
         "gracePeriod": 600,
         "vmWatchSettings": {
             "enabled": true,
-            "tests": ["test"],
+            "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
+                "enabledOptionalSignals": ["test"]
+            }
             "parameterOverrides": {
                 "TEST_EXIT_PROCESS": "true"
             }
@@ -329,7 +388,10 @@ teardown(){
         "gracePeriod": 600,
         "vmWatchSettings": {
             "enabled": true,
-            "tests": ["test"],
+             "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
+                "enabledOptionalSignals": ["test"]
+            }
             "parameterOverrides": {
                 "TEST_ALLOCATE_MEMORY": "true"
             }
@@ -370,7 +432,10 @@ teardown(){
         "gracePeriod": 600,
         "vmWatchSettings": {
             "enabled": true,
-            "tests": ["test"],
+             "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
+                "enabledOptionalSignals": ["test"]
+            }
             "parameterOverrides": {
                 "TEST_HIGH_CPU": "true"
             }
@@ -410,7 +475,10 @@ teardown(){
         "gracePeriod": 600,
         "vmWatchSettings": {
             "enabled": true,
-            "tests": ["test"],
+             "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
+                "enabledOptionalSignals": ["test"]
+            }
             "parameterOverrides": {
                 "TEST_HIGH_CPU": "true"
             }
