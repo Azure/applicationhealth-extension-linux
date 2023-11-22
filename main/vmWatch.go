@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -313,8 +314,17 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 
 func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv HandlerEnvironment) []string {
 	var arr []string
-	for key, value := range parameterOverrides {
-		arr = append(arr, fmt.Sprintf("%s=%s", key, value))
+	// make sure we get the keys out in order
+	keys := make([]string, 0, len(parameterOverrides))
+
+	for k := range parameterOverrides {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+	for _, k := range keys {
+		arr = append(arr, fmt.Sprintf("%s=%s", k, parameterOverrides[k]))
+		fmt.Println(k, parameterOverrides[k])
 	}
 
 	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.HandlerEnvironment.EventsFolder))
