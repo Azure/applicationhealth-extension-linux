@@ -56,13 +56,4 @@ endif
 
 devcontainer: binary testenv
 
-packagezip: binary
-	mkdir -p ./bin/package
-	cp ./bin/applicationhealth-extension ./bin/package/
-	cp ./bin/applicationhealth-extension-arm64 ./bin/package/
-	cp ./bin/applicationhealth-shim ./bin/package/
-	cp -r ./integration-test/env/Extension/bin/VMWatch/ ./bin/package/VMWatch/
-	cd ./bin/; zip -r ./package.zip ./package
-
-
 .PHONY: clean binary
