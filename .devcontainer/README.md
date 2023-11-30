@@ -28,6 +28,6 @@ This works either on windows/mac machine or via a remote SSH session on a linux 
 
 1. configure the appropriate settings in the file `.devcontainer/extension-settings.json` (the default one enables the `simple` and `process` tests for vmwatch but you can change it)
 1. click the debug icon on the left and select `devcontainer run - enable` target
-    - you can add more in `luanch.json` as needed
+    - you can add more in `launch.json` as needed
 1. set breakpoints as required
 1. hit f5 to launch the extension code
