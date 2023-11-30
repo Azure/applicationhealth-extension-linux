@@ -23,4 +23,4 @@ cp ../../../../bin/* /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/Serv
 cd /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped && zip -r /tmp/vmwatch.zip . && cd -
 
 # upload it to the storage account
-az storage blob upload --account-name vmwatchtest --subscription 3f3e281a-dc49-4930-b5cf-7ac71cd31603 --container-name linux --name vmwatch.zip --file /tmp/vmwatch.zip
+az storage blob upload --account-name vmwatchtest --subscription 3f3e281a-dc49-4930-b5cf-7ac71cd31603 --container-name packages --name linux.zip --file /tmp/vmwatch.zip --overwrite
