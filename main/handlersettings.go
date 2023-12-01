@@ -85,10 +85,18 @@ func (h handlerSettings) validate() error {
 	return nil
 }
 
+type vmWatchSignalFilters struct {
+    EnabledTags                 []string      `json:"enabledTags,array"`
+    DisabledTags                []string      `json:"disabledTags,array"`
+    EnabledOptionalSignals      []string      `json:"enabledOptionalSignals,array"`
+    DisabledSignals             []string      `json:"disabledSignals,array"`
+}
+
 type vmWatchSettings struct {
-	Enabled            bool                   `json:"enabled,boolean"`
-	Tests              []string               `json:"tests,array"`
-	ParameterOverrides map[string]interface{} `json:"parameterOverrides,object"`
+	Enabled                bool                   `json:"enabled,boolean"`
+	SignalFilters          *vmWatchSignalFilters  `json:"signalFilters"`
+	ParameterOverrides     map[string]interface{} `json:"parameterOverrides,object"`
+    EnvironmentAttributes  map[string]interface{} `json:"environmentAttributes,object"`
 }
 
 // publicSettings is the type deserialized from public configuration section of

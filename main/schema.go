@@ -20,12 +20,12 @@ const (
       "type": "string",
       "enum": ["tcp", "http", "https"]
     },
-	"port": {
-	  "description": "Required when the protocol is 'tcp'. Optional when the protocol is 'http' or 'https'.",
+    "port": {
+      "description": "Required when the protocol is 'tcp'. Optional when the protocol is 'http' or 'https'.",
       "type": "integer",
       "minimum": 1,
       "maximum": 65535
-	},
+	  },
     "requestPath": {
       "description": "Path on which the web request should be sent. Required when the protocol is 'http' or 'https'.",
       "type": "string"
@@ -59,12 +59,48 @@ const (
           "type": "boolean",
           "default": false
         },
-        "tests": {
-          "description": "Optional - Specific list of test names to run, will ignore running other tests that are not in the list",
-          "type": "array"
+        "signalFilters" : {
+          "description": "Optional - specify filtering for signals, if not specified, all core signals will be enabled",
+          "type": "object",
+          "properties": {
+            "enabledTags": {
+              "description": "Optional - list of tags to enable",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "disabledTags": {
+              "description": "Optional - list of tags to disabledTags",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "enabledOptionalSignals": {
+              "description": "Optional - list of optional signals to enable",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "disabledSignals": {
+              "description": "Optional - list of signals to disable (both core and optional signals are allowed in this list))",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "default": {}
         },
         "parameterOverrides": {
           "description": "Optional - Parameter overrides specific to VMWatch execution",
+          "type": "object",
+          "default": {}
+        },
+        "environmentAttributes": {
+          "description": "Optional - environment attributes (eg OutboundConnectivityEnabled : true)",
           "type": "object",
           "default": {}
         }

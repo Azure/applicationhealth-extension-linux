@@ -1,0 +1,26 @@
+{
+    "runtimeSettings": [
+        {
+            "handlerSettings": {
+                "protectedSettingsCertThumbprint": "$cert_tp",
+                "publicSettings": {
+                    "requestPath": "health",
+                    "port": 8080,
+                    "numberOfProbes": 1,
+                    "intervalInSeconds": 5,
+                    "gracePeriod": 600,
+                    "vmWatchSettings": {
+                        "enabled": true,
+                        "signalFilters": {
+                            "disabledSignals" : [ "outbound_connectivity", "disk_io", "az_storage_blob", "clockskew", "process", "dns" ],
+                            "enabledOptionalSignals" : [ "simple" ]
+                        },
+                        "environmentAttributes" : {
+                            "OutboundConnectivityEnabled" : true
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
