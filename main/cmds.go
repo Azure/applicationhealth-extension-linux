@@ -108,7 +108,7 @@ func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) 
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
 		ctx.Log("event", fmt.Sprintf("VMWatch is disabled, not starting process."))
 	} else {
-		vmWatchResult = VMWatchResult{Status: Running, Error: nil}
+		vmWatchResult = VMWatchResult{Status: NotRunning, Error: nil}
 		go executeVMWatch(ctx, vmWatchSettings, h, vmWatchResultChannel)
 	}
 
@@ -137,20 +137,20 @@ func enable(ctx *log.Context, h HandlerEnvironment, seqNum int) (string, error) 
 		// If VMWatch was never supposed to run, it will be in Disabled state, so we do not need to read from the channel
 		// If VMWatch failed to execute, we will do not need to read from the channel
 		// Only if VMWatch is currently running do we need to check if it failed
-		if vmWatchResult.Status == Running {
-			select {
-			case result, ok := <-vmWatchResultChannel:
-				if !ok {
-					vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
-				} else {
-					vmWatchResult = result
-				}
+		select {
+		case result, ok := <-vmWatchResultChannel:
+			vmWatchResult = result
+			if !ok {
+				vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
+			} else if result.Status == Running {
+				ctx.Log("event", "VMWatch is running")
+			} else if result.Status == Failed {
 				ctx.Log("error", vmWatchResult.GetMessage())
-			default:
-				if time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
-					timeOfLastVMWatchLog = time.Now()
-					ctx.Log("event", "VMWatch is running")
-				}
+			}
+		default:
+			if vmWatchResult.Status == Running && time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
+				timeOfLastVMWatchLog = time.Now()
+				ctx.Log("event", "VMWatch is running")
 			}
 		}
 
