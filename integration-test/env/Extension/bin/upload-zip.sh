@@ -5,10 +5,10 @@
 
 set -uex
 
-$org=$1
-$projectGuid=$2
-$pipelineId=$3
-$subscription=$4
+org=$1
+projectGuid=$2
+pipelineId=$3
+subscription=$4
 
 # get the latest build of the linux pipeline from devops
 latestbuild=$(az pipelines runs list  --org $org --project "$projectGuid"  --pipeline-ids $pipelineId | jq "[.[].id] | sort | last")
