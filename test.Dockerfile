@@ -2,7 +2,7 @@ FROM ubuntu:20.04
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
-        apt-get -y install sysstat bc && \
+        apt-get -y install sysstat bc netcat && \
         apt-get -qqy clean && \
         rm -rf /var/lib/apt/lists/*
 

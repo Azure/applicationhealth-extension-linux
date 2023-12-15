@@ -76,7 +76,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - default vmwatch settings" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -103,7 +103,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - can override default settings" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -140,7 +140,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - app health works as expected" {
-    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -185,7 +185,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - with disabled and enabled tests works as expected" {
-    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
@@ -240,7 +240,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10"
+    mk_container $container_name sh -c "fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10"
     push_settings '
     {
         "protocol": "http",
@@ -276,12 +276,12 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch process exit - give up after 3 restarts" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
     push_settings '
     {
-        "protocol": "http",
-        "requestPath": "health",
-        "port": 8080,
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
         "numberOfProbes": 1,
         "intervalInSeconds": 5,
         "gracePeriod": 600,
@@ -314,17 +314,50 @@ teardown(){
     [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
-    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: exit status 1.*"
 }
 
-@test "handler command: enable/disable - vm watch killed when disable is called" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent disable"
+@test "handler command: enable - vm watch process does not start when cgroup assignment fails" {
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
     push_settings '
     {
-        "protocol": "http",
-        "requestPath": "health",
-        "port": 8080,
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true,
+            "signalFilters": {
+                "disabledSignals": ["clockskew", "az_storage_blob", "process", "dns", "outbound_connectivity", "disk_io"],
+                "enabledOptionalSignals": ["test"]
+            }
+        }
+    }' ''
+    run start_container
+
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
+    hanlder_log="$(container_read_handler_log)"
+    echo "$handler_log"
+    echo "$output"
+    echo "$status_file"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'Killing VMWatch process as cgroup assigment failed'* ]]
+    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+}
+
+@test "handler command: enable/disable - vm watch killed when disable is called" {
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent disable"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
         "numberOfProbes": 1,
         "intervalInSeconds": 5,
         "gracePeriod": 600,
@@ -348,12 +381,12 @@ teardown(){
 }
 
 @test "handler command: enable/uninstall - vm watch killed when uninstall is called" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
     push_settings '
     {
-        "protocol": "http",
-        "requestPath": "health",
-        "port": 8080,
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
         "numberOfProbes": 1,
         "intervalInSeconds": 5,
         "gracePeriod": 600,
@@ -376,12 +409,12 @@ teardown(){
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch oom - process should be killed" {
-    mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
+    mk_container_priviliged $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
     push_settings '
     {
-        "protocol": "http",
-        "requestPath": "health",
-        "port": 8080,
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
         "numberOfProbes": 1,
         "intervalInSeconds": 5,
         "gracePeriod": 600,
@@ -414,18 +447,18 @@ teardown(){
     [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
-    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
     verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: signal: killed.*"
 }
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should not use more than 1 percent cpu" {
-    mk_container_priviliged $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 0.5 1.5"
+    mk_container_priviliged $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 0.5 1.5"
     push_settings '
     {
-        "protocol": "http",
-        "requestPath": "health",
-        "port": 8080,
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
         "numberOfProbes": 1,
         "intervalInSeconds": 5,
         "gracePeriod": 600,
@@ -458,17 +491,17 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
-    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should use more than 30 percent cpu when non-privileged" {
-    mk_container $container_name sh -c "webserver & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 30 150"
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 30 150"
     push_settings '
     {
-        "protocol": "http",
-        "requestPath": "health",
-        "port": 8080,
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
         "numberOfProbes": 1,
         "intervalInSeconds": 5,
         "gracePeriod": 600,
@@ -501,5 +534,5 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
-    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
