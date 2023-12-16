@@ -21,15 +21,6 @@ import (
 
 type VMWatchStatus string
 
-// Custom errors
-type CGroupError struct {
-	message string
-}
-
-func (e *CGroupError) Error() string {
-	return "Failed to assign process to cgroup"
-}
-
 const (
 	MaxCpuQuota               = 1        // 1% cpu
 	MaxMemoryInBytes          = 40000000 // 40MB
@@ -280,8 +271,9 @@ func createAndAssignCgroups(ctx *log.Context, vmWatchPid int) error {
 	// check cgroups mode
 	if cgroups.Mode() == cgroups.Unified {
 		ctx.Log("event", "cgroups v2 detected")
-		// in cgroup v2, we need to set the period and quota
-		// relative to one another
+		// in cgroup v2, we need to set the period and quota relative to one another.
+		// Quota is the number of microseconds in the period that process can run
+		// Period is the length of the period in microseconds
 		period := uint64(1000000)
 		cpuQuota := int64(MaxCpuQuota * 10000)
 		resources := cgroup2.Resources{
