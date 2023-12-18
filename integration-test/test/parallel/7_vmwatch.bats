@@ -349,6 +349,7 @@ teardown(){
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Failed to assign VMWatch process to cgroup.*"
 }
 
 @test "handler command: enable/disable - vm watch killed when disable is called" {
