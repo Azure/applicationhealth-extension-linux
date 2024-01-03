@@ -11,7 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containerd/cgroups"
+	"github.com/containerd/cgroups/v3"
+	"github.com/containerd/cgroups/v3/cgroup1"
+	"github.com/containerd/cgroups/v3/cgroup2"
 	"github.com/go-kit/kit/log"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -19,9 +21,10 @@ import (
 type VMWatchStatus string
 
 const (
-	MaxCpuQuota               = 1000     // 1% cpu
+	MaxCpuQuota               = 1        // 1% cpu
 	MaxMemoryInBytes          = 40000000 // 40MB
 	HoursBetweenRetryAttempts = 3
+	CGroupV2PeriodMs          = 1000000 // 1 second	
 )
 
 const (
@@ -29,6 +32,11 @@ const (
 	Disabled   VMWatchStatus = "Disabled"
 	Running    VMWatchStatus = "Running"
 	Failed     VMWatchStatus = "Failed"
+)
+
+const (
+	AllowVMWatchCgroupAssignmentFailureVariableName string = "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE"
+	RunningInDevContainerVariableName string = "RUNNING_IN_DEV_CONTAINER"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
@@ -122,10 +130,22 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	pid = cmd.Process.Pid // cmd.Process should be populated on success
 	ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
 
-	err = createAndAssignCgroups(pid)
+	err = createAndAssignCgroups(ctx, pid)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
 		ctx.Log("error", err.Error())
+		// On real VMs we want this to stop vwmwatch from runing at all since we want to make sure we are protected
+		// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
+		// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
+		// work at all because the base OS doesn't support it).
+		// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
+		// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
+		// this allows us to test both cases
+		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
+			ctx.Log("event", fmt.Sprintf("Killing VMWatch process as cgroup assigment failed"))
+			_ = killVMWatch(ctx, cmd)
+			return err
+		}
 	}
 
 	processDone := make(chan bool)
@@ -248,40 +268,71 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	return cmd, nil
 }
 
-func createAndAssignCgroups(vmWatchPid int) error {
-	// get our process and use this to determine the appropriate mount points for
+func createAndAssignCgroups(ctx *log.Context, vmWatchPid int) error {
+	// get our process and use this to determine the appropriate mount points for the cgroups
 	myPid := os.Getpid()
-
-	p := cgroups.PidPath(myPid)
-
-	cpuPath, err := p("cpu")
-	if err != nil {
-		return err
-	}
-
-	// max 1% of cpu and 40MB of memory should be more than enough
-	cpuQuota := int64(MaxCpuQuota)
 	memoryLimitInBytes := int64(MaxMemoryInBytes)
 
-	s := specs.LinuxResources{
-		CPU: &specs.LinuxCPU{
-			Quota: &cpuQuota,
-		},
-		Memory: &specs.LinuxMemory{
-			Limit: &memoryLimitInBytes,
-		},
-	}
+	// check cgroups mode
+	if cgroups.Mode() == cgroups.Unified {
+		ctx.Log("event", "cgroups v2 detected")
+		// in cgroup v2, we need to set the period and quota relative to one another.
+		// Quota is the number of microseconds in the period that process can run
+		// Period is the length of the period in microseconds
+		period := uint64(CGroupV2PeriodMs)
+		cpuQuota := int64(MaxCpuQuota * 10000)
+		resources := cgroup2.Resources{
+			CPU: &cgroup2.CPU{
+				Max: cgroup2.NewCPUMax(&cpuQuota, &period),
+			},
+			Memory: &cgroup2.Memory{
+				Max: &memoryLimitInBytes,
+			},
+		}
 
-	control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cpuPath+"/vmwatch.slice"), &s)
-	if err != nil {
-		return err
-	}
-	err = control.AddProc(uint64(vmWatchPid))
-	if err != nil {
-		return err
-	}
+		// in cgroup v2, it appears that a process already in a cgroup can't create a sub group that limits the same
+		// kind of resources so we have to do it at the root level.  Reference https://manpath.be/f35/7/cgroups#L557
+		manager, err := cgroup2.NewManager("/sys/fs/cgroup", "/vmwatch.slice", &resources)
+		if err != nil {
+			return err
+		}
+		err = manager.AddProc(uint64(vmWatchPid))
+		if err != nil {
+			return err
+		}
+	} else {
+		ctx.Log("event", "cgroups v1 detected")
+		p := cgroup1.PidPath(myPid)
 
-	defer control.Delete()
+		cpuPath, err := p("cpu")
+		if err != nil {
+			return err
+		}
+
+		// in cgroup v1, the interval is implied, 1000 == 1 %
+		cpuQuota := int64(MaxCpuQuota * 1000)
+		memoryLimitInBytes := int64(MaxMemoryInBytes)
+
+		s := specs.LinuxResources{
+			CPU: &specs.LinuxCPU{
+				Quota: &cpuQuota,
+			},
+			Memory: &specs.LinuxMemory{
+				Limit: &memoryLimitInBytes,
+			},
+		}
+
+		control, err := cgroup1.New(cgroup1.StaticPath(cpuPath+"/vmwatch.slice"), &s)
+		if err != nil {
+			return err
+		}
+		err = control.AddProc(uint64(vmWatchPid))
+		if err != nil {
+			return err
+		}
+
+		defer control.Delete()
+	}
 
 	return nil
 }
