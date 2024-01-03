@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	//"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -25,6 +24,7 @@ const (
 	MaxCpuQuota               = 1        // 1% cpu
 	MaxMemoryInBytes          = 40000000 // 40MB
 	HoursBetweenRetryAttempts = 3
+	CGroupV2PeriodMs          = 1000000 // 1 second	
 )
 
 const (
@@ -279,7 +279,7 @@ func createAndAssignCgroups(ctx *log.Context, vmWatchPid int) error {
 		// in cgroup v2, we need to set the period and quota relative to one another.
 		// Quota is the number of microseconds in the period that process can run
 		// Period is the length of the period in microseconds
-		period := uint64(1000000)
+		period := uint64(CGroupV2PeriodMs)
 		cpuQuota := int64(MaxCpuQuota * 10000)
 		resources := cgroup2.Resources{
 			CPU: &cgroup2.CPU{
