@@ -13,7 +13,8 @@
         ".devcontainer/devcontainer.env"
     ],
     "containerEnv": {
-        "RUNNING_IN_DEV_CONTAINER": "1"
+        "RUNNING_IN_DEV_CONTAINER": "1",
+        "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1"
     },
 
     "customizations": {
