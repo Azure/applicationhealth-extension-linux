@@ -34,6 +34,11 @@ const (
 	Failed     VMWatchStatus = "Failed"
 )
 
+const (
+	AllowVMWatchCgroupAssignmentFailureVariableName string = "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE"
+	RunningInDevContainerVariableName string = "RUNNING_IN_DEV_CONTAINER"
+)
+
 func (p VMWatchStatus) GetStatusType() StatusType {
 	switch p {
 	case Disabled:
@@ -136,7 +141,7 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 		// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
 		// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
 		// this allows us to test both cases
-		if os.Getenv("ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE") == "" || os.Getenv("RUNNING_IN_DEV_CONTAINER") == "" {
+		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
 			ctx.Log("event", fmt.Sprintf("Killing VMWatch process as cgroup assigment failed"))
 			_ = killVMWatch(ctx, cmd)
 			return err
