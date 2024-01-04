@@ -24,7 +24,7 @@ const (
 	MaxCpuQuota               = 1        // 1% cpu
 	MaxMemoryInBytes          = 40000000 // 40MB
 	HoursBetweenRetryAttempts = 3
-	CGroupV2PeriodMs          = 1000000 // 1 second	
+	CGroupV2PeriodMs          = 1000000 // 1 second
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 
 const (
 	AllowVMWatchCgroupAssignmentFailureVariableName string = "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE"
-	RunningInDevContainerVariableName string = "RUNNING_IN_DEV_CONTAINER"
+	RunningInDevContainerVariableName               string = "RUNNING_IN_DEV_CONTAINER"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
@@ -221,6 +221,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	}
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
+	args = append(args, "--debug")
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
 
 	if s.SignalFilters != nil {
