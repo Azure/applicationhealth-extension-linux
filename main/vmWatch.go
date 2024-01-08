@@ -38,9 +38,9 @@ const (
 const (
 	AllowVMWatchCgroupAssignmentFailureVariableName string = "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE"
 	RunningInDevContainerVariableName               string = "RUNNING_IN_DEV_CONTAINER"
-	AppHealthExecutionEnvironmentProd                      = "Prod"
-	AppHealthExecutionEnvironmentTest                      = "Test"
-	AppHealthPublisherNameTest                             = "Microsoft.ManagedServices.Edp"
+	AppHealthExecutionEnvironmentProd               string = "Prod"
+	AppHealthExecutionEnvironmentTest               string = "Test"
+	AppHealthPublisherNameTest                      string = "Microsoft.ManagedServices.Edp"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
