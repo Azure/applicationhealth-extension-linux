@@ -225,6 +225,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	}
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
+	args = append(args, "--debug")
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
 	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
 
