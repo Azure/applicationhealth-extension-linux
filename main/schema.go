@@ -103,6 +103,15 @@ const (
           "description": "Optional - environment attributes (eg OutboundConnectivityEnabled : true)",
           "type": "object",
           "default": {}
+        },
+        "globalConfigUrl": {
+          "description": "Optional - specify global config url to download vmwatch configuration from",
+          "type": "string"
+        },
+        "disableConfigReader": {
+          "description": "Optional - flag to disable config reader",
+          "type": "boolean",
+          "default": false
         }
       }
     }
