@@ -97,7 +97,7 @@ type vmWatchSettings struct {
 	SignalFilters         *vmWatchSignalFilters  `json:"signalFilters"`
 	ParameterOverrides    map[string]interface{} `json:"parameterOverrides,object"`
 	EnvironmentAttributes map[string]interface{} `json:"environmentAttributes,object"`
-	GlobalConfigUrl       string                 `json:"globalConfigUrl,string"`
+	GlobalConfigUrl       string                 `json:"globalConfigUrl"`
 	DisableConfigReader   bool                   `json:"disableConfigReader,boolean"`
 }
 
