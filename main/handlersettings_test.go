@@ -67,4 +67,6 @@ func Test_unMarshalPublicSetting(t *testing.T) {
 	err := vmextension.UnmarshalHandlerSettings(publicSettings, nil, &h.publicSettings, &h.protectedSettings)
 	require.Nil(t, err)
 	require.NotNil(t, h.publicSettings)
+	require.Equal(t, true, h.publicSettings.VMWatchSettings.Enabled)
+	require.Equal(t, "https://testxyz.azurefd.net/config/disable-switch-config.json", h.publicSettings.VMWatchSettings.GlobalConfigUrl)
 }
