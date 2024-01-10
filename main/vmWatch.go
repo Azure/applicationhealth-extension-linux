@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,9 @@ const (
 const (
 	AllowVMWatchCgroupAssignmentFailureVariableName string = "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE"
 	RunningInDevContainerVariableName               string = "RUNNING_IN_DEV_CONTAINER"
+	AppHealthExecutionEnvironmentProd               string = "Prod"
+	AppHealthExecutionEnvironmentTest               string = "Test"
+	AppHealthPublisherNameTest                      string = "Microsoft.ManagedServices.Edp"
 )
 
 func (p VMWatchStatus) GetStatusType() StatusType {
@@ -223,6 +227,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
 	args = append(args, "--debug")
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
+	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
 
 	if s.SignalFilters != nil {
 		if s.SignalFilters.DisabledSignals != nil && len(s.SignalFilters.DisabledSignals) > 0 {
@@ -245,6 +250,12 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 			args = append(args, strings.Join(s.SignalFilters.EnabledOptionalSignals, ":"))
 		}
 	}
+
+	if len(strings.TrimSpace(s.GlobalConfigUrl)) > 0 {
+		args = append(args, "--global-config-url", s.GlobalConfigUrl)
+	}
+
+	args = append(args, "--disable-config-reader", strconv.FormatBool(s.DisableConfigReader))
 
 	if s.EnvironmentAttributes != nil {
 		if len(s.EnvironmentAttributes) > 0 {
@@ -349,6 +360,13 @@ func GetProcessDirectory() (string, error) {
 
 func GetVMWatchHeartbeatFilePath(hEnv HandlerEnvironment) string {
 	return filepath.Join(hEnv.HandlerEnvironment.LogFolder, "vmwatch-heartbeat.txt")
+}
+
+func GetExecutionEnvironment(hEnv HandlerEnvironment) string {
+	if strings.Contains(hEnv.HandlerEnvironment.LogFolder, AppHealthPublisherNameTest) {
+		return AppHealthExecutionEnvironmentTest
+	}
+	return AppHealthExecutionEnvironmentProd
 }
 
 func GetVMWatchConfigFullPath(processDirectory string) string {
