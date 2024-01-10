@@ -1,7 +1,11 @@
 package main
 
-import "testing"
-import "github.com/stretchr/testify/require"
+import (
+	"testing"
+
+	"github.com/Azure/azure-docker-extension/pkg/vmextension"
+	"github.com/stretchr/testify/require"
+)
 
 func Test_handlerSettingsValidate(t *testing.T) {
 	// tcp includes request path
@@ -54,4 +58,15 @@ func Test_toJSON(t *testing.T) {
 		"a": 3})
 	require.Nil(t, err)
 	require.Equal(t, `{"a":3}`, s)
+}
+
+func Test_unMarshalPublicSetting(t *testing.T) {
+
+	publicSettings := map[string]interface{}{"requestPath": "health", "port": 8080, "numberOfProbes": 1, "intervalInSeconds": 5, "gracePeriod": 600, "vmWatchSettings": map[string]interface{}{"enabled": true, "globalConfigUrl": "https://testxyz.azurefd.net/config/disable-switch-config.json"}}
+	h := handlerSettings{}
+	err := vmextension.UnmarshalHandlerSettings(publicSettings, nil, &h.publicSettings, &h.protectedSettings)
+	require.Nil(t, err)
+	require.NotNil(t, h.publicSettings)
+	require.Equal(t, true, h.publicSettings.VMWatchSettings.Enabled)
+	require.Equal(t, "https://testxyz.azurefd.net/config/disable-switch-config.json", h.publicSettings.VMWatchSettings.GlobalConfigUrl)
 }
