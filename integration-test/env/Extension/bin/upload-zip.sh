@@ -9,6 +9,7 @@ org=$1
 projectGuid=$2
 pipelineId=$3
 subscription=$4
+container="${5:-packages}"
 
 # get the latest build of the linux pipeline from devops
 latestbuild=$(az pipelines runs list  --org $org --project "$projectGuid"  --pipeline-ids $pipelineId | jq "[.[].id] | sort | last")
@@ -28,4 +29,5 @@ cp ../../../../bin/* /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/Serv
 cd /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped && zip -r /tmp/vmwatch.zip . && cd -
 
 # upload it to the storage account
-az storage blob upload --account-name vmwatchtest --subscription $subscription --container-name packages --name linux.zip --file /tmp/vmwatch.zip --overwrite
+echo "Uploading linux.zip to container: $container"
+az storage blob upload --account-name vmwatchtest --subscription $subscription --container-name $container --name linux.zip --file /tmp/vmwatch.zip --overwrite
