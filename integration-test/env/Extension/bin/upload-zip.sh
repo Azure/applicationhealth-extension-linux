@@ -11,7 +11,6 @@ pipelineId=$3
 subscription=$4
 container="${5:-packages}"
 
-
 # get the latest build of the linux pipeline from devops
 latestbuild=$(az pipelines runs list  --org $org --project "$projectGuid"  --pipeline-ids $pipelineId | jq "[.[].id] | sort | last")
 # download the final output artifacts
