@@ -48,6 +48,7 @@ endif
 	ln -sf /var/lib/waagent/webserver /sbin/webserver
 	ln -sf /var/lib/waagent/webserver_shim /sbin/webserver_shim
 	cp misc/HandlerManifest.json /var/lib/waagent/Extension/
+	cp misc/manifest.xml /var/lib/waagent/Extension/
 	cp misc/applicationhealth-shim /var/lib/waagent/Extension/bin/
 	cp bin/applicationhealth-extension /var/lib/waagent/Extension/bin
 	mkdir -p /var/log/azure/Extension/events
