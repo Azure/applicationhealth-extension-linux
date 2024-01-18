@@ -5,6 +5,8 @@ load ../test_helper
 setup(){
     build_docker_image
     container_name="vmwatch_$BATS_TEST_NUMBER"
+    extension_version=$(get_extension_version)
+    echo "extension version: $extension_version"
 }
 
 teardown(){
@@ -95,6 +97,7 @@ teardown(){
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
+    [[ "$output" == *"--apphealth-version $extension_version"* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -130,6 +133,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
+    [[ "$output" == *"--apphealth-version $extension_version"* ]]
     [[ "$output" == *'Env: [ABC=abc BCD=bcd SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -175,6 +179,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
+    [[ "$output" == *"--apphealth-version $extension_version"* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -230,6 +235,7 @@ teardown(){
     [[ "$output" == *'--disabled-tags Accuracy'* ]]
     [[ "$output" == *'--enabled-optional-signals simple'* ]]
     [[ "$output" == *'--env-attributes OutboundConnectivityEnabled=true'* ]]
+    [[ "$output" == *"--apphealth-version $extension_version"* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 

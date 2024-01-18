@@ -273,6 +273,11 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 		args = append(args, "--local")
 	}
 
+	extVersion, err := GetExtensionManifestVersion()
+	if err == nil {
+		args = append(args, "--apphealth-version", extVersion)
+	}
+
 	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
 
 	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
