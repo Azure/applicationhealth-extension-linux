@@ -221,15 +221,23 @@ func GetExtensionManifest(filepath string) (ExtensionManifest, error) {
 	return manifest, nil
 }
 
+// Get Extension Version set at build time or from manifest file.
 func GetExtensionManifestVersion() (string, error) {
+	// First attempting to read the version set during build time.
+	v := GetExtensionVersion()
+	if v != "" {
+		return v, nil
+	}
+
+	// If the version is not set during build time, then reading it from the manifest file as fallback.
 	processDirectory, err := GetProcessDirectory()
 	if err != nil {
 		return "", err
 	}
 	processDirectory = filepath.Dir(processDirectory)
-	filepath := processDirectory + "/" + ExtensionManifestFileName
+	fp := filepath.Join(processDirectory, ExtensionManifestFileName)
 
-	manifest, err := GetExtensionManifest(filepath)
+	manifest, err := GetExtensionManifest(fp)
 	if err != nil {
 		return "", err
 	}

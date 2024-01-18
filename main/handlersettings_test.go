@@ -87,6 +87,8 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 		SupportedOS:         "Linux",
 		CompanyName:         "Microsoft",
 	}
+	v := GetExtensionVersion()
+	require.Empty(t, v)
 
 	currentManifest, err := GetExtensionManifest("../misc/manifest.xml")
 	require.Nil(t, err)
