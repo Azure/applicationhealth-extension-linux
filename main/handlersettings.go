@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
+	"os"
+	"path/filepath"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
@@ -185,4 +188,58 @@ func toJSON(o map[string]interface{}) (string, error) {
 	}
 	b, err := json.Marshal(o)
 	return string(b), errors.Wrap(err, "failed to marshal into json")
+}
+
+type ExtensionManifest struct {
+	ProviderNameSpace   string `xml:"ProviderNameSpace"`
+	Type                string `xml:"Type"`
+	Version             string `xml:"Version"`
+	Label               string `xml:"Label"`
+	HostingResources    string `xml:"HostingResources"`
+	MediaLink           string `xml:"MediaLink"`
+	Description         string `xml:"Description"`
+	IsInternalExtension bool   `xml:"IsInternalExtension"`
+	IsJsonExtension     bool   `xml:"IsJsonExtension"`
+	SupportedOS         string `xml:"SupportedOS"`
+	CompanyName         string `xml:"CompanyName"`
+}
+
+func GetExtensionManifest(filepath string) (ExtensionManifest, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return ExtensionManifest{}, err
+	}
+	defer file.Close()
+
+	decoder := xml.NewDecoder(file)
+	var manifest ExtensionManifest
+	err = decoder.Decode(&manifest)
+
+	if err != nil {
+		return ExtensionManifest{}, err
+	}
+	return manifest, nil
+}
+
+// Get Extension Version set at build time or from manifest file.
+func GetExtensionManifestVersion() (string, error) {
+	// First attempting to read the version set during build time.
+	v := GetExtensionVersion()
+	if v != "" {
+		return v, nil
+	}
+
+	// If the version is not set during build time, then reading it from the manifest file as fallback.
+	processDirectory, err := GetProcessDirectory()
+	if err != nil {
+		return "", err
+	}
+	processDirectory = filepath.Dir(processDirectory)
+	fp := filepath.Join(processDirectory, ExtensionManifestFileName)
+
+	manifest, err := GetExtensionManifest(fp)
+	if err != nil {
+		return "", err
+	}
+	return manifest.Version, nil
 }
