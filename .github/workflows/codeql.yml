@@ -39,7 +39,8 @@ jobs:
       # only required for workflows in private repositories
       actions: read
       contents: read
-
+    env:
+      GOPATH: ${{ github.workspace }}/go
     strategy:
       fail-fast: false
       matrix:
@@ -54,8 +55,6 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: '1.18.10'
-      env:
-        GOPATH: ${{ github.workspace }}/go
 
     - name: Checkout repository
       uses: actions/checkout@v4
