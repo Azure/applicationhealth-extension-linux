@@ -78,6 +78,7 @@ jobs:
         pwd
         ls -la
         echo ${{ github.workspace }}
+        go env
         make binary
     # Autobuild attempts to build any compiled languages (C/C++, C#, Go, Java, or Swift).
     # If this step fails, then you should remove it and run the build manually (see below)
