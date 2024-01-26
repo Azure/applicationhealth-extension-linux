@@ -30923,6 +30923,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 github.com%2Fshirou%2Fgopsutil/v3 v3.23.10 - BSD-3-Clause
 
 
+Copyright 2009 The Go Authors
+Copyright (c) 2010 Ed Schouten
+Copyright (c) 2009 The Go Authors
+Copyright (c) 2014, WAKAYAMA Shirou
+Copyright (c) 1992-2011 The FreeBSD Project
+Copyright (c) 1992-2016 The FreeBSD Project
+Copyright (c) 2010 Ed Schouten <ed@FreeBSD.org>
+Copyright (c) 1979, 1980, 1983, 1986, 1988, 1989, 1991, 1992, 1993, 1994 The Regents of the University of California
 
 Copyright (c) <year> <owner> . All rights reserved.
 
