@@ -11,6 +11,7 @@ setup(){
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 @test "handler command: enable - vm watch disabled - vmwatch settings omitted" {

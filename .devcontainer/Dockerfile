@@ -16,3 +16,20 @@ RUN mkdir -p /var/lib/waagent && \
 COPY extension-settings.json /var/lib/waagent/Extension/config/0.settings
 # install go tools we need for build
 RUN go install github.com/ahmetb/govvv@latest
+
+# Install npm
+RUN apt-get update && \
+    apt-get install -y npm
+
+# Install dev enviroment dependencies
+RUN npm install bats -g && \ 
+        apt-get install -y parallel
+
+# Install Docker
+RUN apt-get install runc -y && \
+        apt-get install containerd -y && \
+        apt-get install docker.io -y
+
+# Install Docker Engine
+RUN curl -fsSL https://test.docker.com -o test-docker.sh && \
+        sh test-docker.sh
