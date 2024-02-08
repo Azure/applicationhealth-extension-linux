@@ -23,7 +23,7 @@ type VMWatchStatus string
 
 const (
 	MaxCpuQuota               = 1        // 1% cpu
-	MaxMemoryInBytes          = 40000000 // 40MB
+	MaxMemoryInBytes          = 80000000 // 80MB
 	HoursBetweenRetryAttempts = 3
 	CGroupV2PeriodMs          = 1000000 // 1 second
 )
@@ -134,7 +134,7 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	pid = cmd.Process.Pid // cmd.Process should be populated on success
 	ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
 
-	err = createAndAssignCgroups(ctx, pid)
+	err = createAndAssignCgroups(ctx, vmWatchSettings, pid)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
 		ctx.Log("error", err.Error())
@@ -229,6 +229,29 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
 	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
 
+	// 0 is the default so allow that but any value below 30MB is not allowed
+	if s.MemoryLimitInBytes != 0 && (s.MemoryLimitInBytes < 0 || s.MemoryLimitInBytes < 30000000) {
+		err = fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
+		return nil, err
+	}
+
+	// set the default value if not specified
+	if s.MemoryLimitInBytes == 0 {
+		s.MemoryLimitInBytes = MaxMemoryInBytes
+	}
+
+	// check if the maxCpuPercentage is valid
+	if s.MaxCpuPercentage < 0 || s.MaxCpuPercentage > 100 {
+		err = fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
+		return nil, err
+	}
+
+	if s.MaxCpuPercentage == 0 {
+		s.MaxCpuPercentage = MaxCpuQuota
+	}
+
+	args = append(args, "--memory-limit-bytes", strconv.FormatInt(s.MemoryLimitInBytes, 10))
+
 	if s.SignalFilters != nil {
 		if s.SignalFilters.DisabledSignals != nil && len(s.SignalFilters.DisabledSignals) > 0 {
 			args = append(args, "--disabled-signals")
@@ -285,10 +308,10 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	return cmd, nil
 }
 
-func createAndAssignCgroups(ctx *log.Context, vmWatchPid int) error {
+func createAndAssignCgroups(ctx *log.Context, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
 	// get our process and use this to determine the appropriate mount points for the cgroups
 	myPid := os.Getpid()
-	memoryLimitInBytes := int64(MaxMemoryInBytes)
+	memoryLimitInBytes := int64(vmwatchSettings.MemoryLimitInBytes)
 
 	// check cgroups mode
 	if cgroups.Mode() == cgroups.Unified {
@@ -297,7 +320,7 @@ func createAndAssignCgroups(ctx *log.Context, vmWatchPid int) error {
 		// Quota is the number of microseconds in the period that process can run
 		// Period is the length of the period in microseconds
 		period := uint64(CGroupV2PeriodMs)
-		cpuQuota := int64(MaxCpuQuota * 10000)
+		cpuQuota := int64(vmwatchSettings.MaxCpuPercentage * 10000)
 		resources := cgroup2.Resources{
 			CPU: &cgroup2.CPU{
 				Max: cgroup2.NewCPUMax(&cpuQuota, &period),
@@ -327,8 +350,8 @@ func createAndAssignCgroups(ctx *log.Context, vmWatchPid int) error {
 		}
 
 		// in cgroup v1, the interval is implied, 1000 == 1 %
-		cpuQuota := int64(MaxCpuQuota * 1000)
-		memoryLimitInBytes := int64(MaxMemoryInBytes)
+		cpuQuota := int64(vmwatchSettings.MaxCpuPercentage * 1000)
+		memoryLimitInBytes := int64(vmwatchSettings.MemoryLimitInBytes)
 
 		s := specs.LinuxResources{
 			CPU: &specs.LinuxCPU{
