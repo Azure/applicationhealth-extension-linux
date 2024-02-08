@@ -12,7 +12,7 @@ subscription=$4
 container="${5:-packages}"
 
 # get the latest build of the linux pipeline from devops
-latestbuild=$(az pipelines runs list  --org $org --project "$projectGuid"  --pipeline-ids $pipelineId | jq "[.[].id] | sort | last")
+latestbuild=$(az pipelines runs list  --org $org --project "$projectGuid"  --pipeline-ids $pipelineId | jq '[ .[] | select(.result == "succeeded")]' | jq '[.[].id] | sort | last')
 # download the final output artifacts
 rm -rf /tmp/linux_artifact
 az pipelines runs artifact download --org $org --project "$projectGuid" --run-id $latestbuild --artifact-name drop_2_windows --path /tmp/linux_artifact
