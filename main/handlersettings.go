@@ -97,6 +97,8 @@ type vmWatchSignalFilters struct {
 
 type vmWatchSettings struct {
 	Enabled               bool                   `json:"enabled,boolean"`
+	MemoryLimitInBytes    int64                  `json:"memoryLimitInBytes,int64"`
+	MaxCpuPercentage      int64                  `json:"maxCpuPercentage,int64"`
 	SignalFilters         *vmWatchSignalFilters  `json:"signalFilters"`
 	ParameterOverrides    map[string]interface{} `json:"parameterOverrides,object"`
 	EnvironmentAttributes map[string]interface{} `json:"environmentAttributes,object"`

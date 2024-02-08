@@ -415,6 +415,30 @@ teardown(){
     [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
 }
 
+@test "handler command: enable/uninstall - vm passes memory to commandline" {
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true,
+            "memoryLimitInBytes" : 40000000
+        }
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+    [[ "$output" == *'--memory-limit-bytes 40000000'* ]]
+}
+
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch oom - process should be killed" {
     mk_container_priviliged $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
