@@ -23,8 +23,8 @@ import (
 type VMWatchStatus string
 
 const (
-	MaxCpuQuota               = 1        // 1% cpu
-	MaxMemoryInBytes          = 80000000 // 80MB
+	DefaultMaxCpuPercentage   = 1        // 1% cpu
+	DefaultMaxMemoryInBytes   = 80000000 // 80MB
 	HoursBetweenRetryAttempts = 3
 	CGroupV2PeriodMs          = 1000000 // 1 second
 )
@@ -230,24 +230,23 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
 
 	// 0 is the default so allow that but any value below 30MB is not allowed
-	if s.MemoryLimitInBytes != 0 && (s.MemoryLimitInBytes < 0 || s.MemoryLimitInBytes < 30000000) {
+	if s.MemoryLimitInBytes == 0 {
+		s.MemoryLimitInBytes = DefaultMaxMemoryInBytes
+	
+	}
+	if s.MemoryLimitInBytes < 30000000 {
 		err = fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
 		return nil, err
 	}
 
-	// set the default value if not specified
-	if s.MemoryLimitInBytes == 0 {
-		s.MemoryLimitInBytes = MaxMemoryInBytes
+	// check cpu, if 0 (default) set to the default value
+	if (s.MaxCpuPercentage == 0) {
+		s.MaxCpuPercentage = DefaultMaxCpuPercentage
 	}
 
-	// check if the maxCpuPercentage is valid
 	if s.MaxCpuPercentage < 0 || s.MaxCpuPercentage > 100 {
 		err = fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
 		return nil, err
-	}
-
-	if s.MaxCpuPercentage == 0 {
-		s.MaxCpuPercentage = MaxCpuQuota
 	}
 
 	args = append(args, "--memory-limit-bytes", strconv.FormatInt(s.MemoryLimitInBytes, 10))
