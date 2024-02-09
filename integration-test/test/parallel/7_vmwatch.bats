@@ -180,6 +180,7 @@ teardown(){
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
     [[ "$output" == *"--apphealth-version $extension_version"* ]]
+    [[ "$output" == *'--memory-limit-bytes 80000000'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
