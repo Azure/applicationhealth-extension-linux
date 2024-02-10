@@ -59,6 +59,19 @@ const (
           "type": "boolean",
           "default": false
         },
+        "memoryLimitInBytes": {
+          "description": "Optional - specifies the max memory that vmwatch can use",
+          "type": "integer",
+          "default": 80000000,
+          "minimum": 30000000
+        },
+        "maxCpuPercentage": {
+          "description": "Optional - specifies the max cpu that the vmwatch process is allowed to consume",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 100
+        },
         "signalFilters" : {
           "description": "Optional - specify filtering for signals, if not specified, all core signals will be enabled",
           "type": "object",

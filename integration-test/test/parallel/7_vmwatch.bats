@@ -180,6 +180,7 @@ teardown(){
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
     [[ "$output" == *"--apphealth-version $extension_version"* ]]
+    [[ "$output" == *'--memory-limit-bytes 80000000'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -412,6 +413,30 @@ teardown(){
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
     [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
     [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
+}
+
+@test "handler command: enable/uninstall - vm passes memory to commandline" {
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true,
+            "memoryLimitInBytes" : 40000000
+        }
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+    [[ "$output" == *'--memory-limit-bytes 40000000'* ]]
 }
 
 # bats test_tags=linuxhostonly
