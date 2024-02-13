@@ -27,5 +27,13 @@
             ],
             "preLaunchTask": "make devcontainer"
         },
+        {
+            "name": "Run integration tests",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "./integration-test/run.sh",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "make binary"
+        }
     ]
 }

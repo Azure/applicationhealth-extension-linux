@@ -1,4 +1,4 @@
-package main
+package handlerenv
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Azure/azure-extension-platform/pkg/utils"
 )
 
 // HandlerEnvFileName is the file name of the Handler Environment as placed by the
@@ -24,7 +26,6 @@ type HandlerEnvironment struct {
 		ConfigFolder        string `json:"configFolder"`
 		LogFolder           string `json:"logFolder"`
 		EventsFolder        string `json:"eventsFolder"`
-		EventsFolderPreview string `json:"eventsFolder_preview"`
 		DeploymentID        string `json:"deploymentid"`
 		RoleName            string `json:"rolename"`
 		Instance            string `json:"instance"`
@@ -35,8 +36,8 @@ type HandlerEnvironment struct {
 // GetHandlerEnv locates the HandlerEnvironment.json file by assuming it lives
 // next to or one level above the extension handler (read: this) executable,
 // reads, parses and returns it.
-func GetHandlerEnv() (he HandlerEnvironment, _ error) {
-	dir, err := scriptDir()
+func GetHandlerEnviroment() (he HandlerEnvironment, _ error) {
+	dir, err := utils.GetCurrentProcessWorkingDir()
 	if err != nil {
 		return he, fmt.Errorf("vmextension: cannot find base directory of the running process: %v", err)
 	}
@@ -58,15 +59,6 @@ func GetHandlerEnv() (he HandlerEnvironment, _ error) {
 		return he, fmt.Errorf("vmextension: Cannot find HandlerEnvironment at paths: %s", strings.Join(paths, ", "))
 	}
 	return ParseHandlerEnv(b)
-}
-
-// scriptDir returns the absolute path of the running process.
-func scriptDir() (string, error) {
-	p, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		return "", err
-	}
-	return filepath.Dir(p), nil
 }
 
 // ParseHandlerEnv parses the

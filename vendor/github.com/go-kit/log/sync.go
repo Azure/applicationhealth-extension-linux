@@ -36,25 +36,58 @@ func (l *SwapLogger) Swap(logger Logger) {
 	l.logger.Store(loggerStruct{logger})
 }
 
-// SyncWriter synchronizes concurrent writes to an io.Writer.
-type SyncWriter struct {
-	mu sync.Mutex
-	w  io.Writer
+// NewSyncWriter returns a new writer that is safe for concurrent use by
+// multiple goroutines. Writes to the returned writer are passed on to w. If
+// another write is already in progress, the calling goroutine blocks until
+// the writer is available.
+//
+// If w implements the following interface, so does the returned writer.
+//
+//    interface {
+//        Fd() uintptr
+//    }
+func NewSyncWriter(w io.Writer) io.Writer {
+	switch w := w.(type) {
+	case fdWriter:
+		return &fdSyncWriter{fdWriter: w}
+	default:
+		return &syncWriter{Writer: w}
+	}
 }
 
-// NewSyncWriter returns a new SyncWriter. The returned writer is safe for
-// concurrent use by multiple goroutines.
-func NewSyncWriter(w io.Writer) *SyncWriter {
-	return &SyncWriter{w: w}
+// syncWriter synchronizes concurrent writes to an io.Writer.
+type syncWriter struct {
+	sync.Mutex
+	io.Writer
 }
 
 // Write writes p to the underlying io.Writer. If another write is already in
-// progress, the calling goroutine blocks until the SyncWriter is available.
-func (w *SyncWriter) Write(p []byte) (n int, err error) {
-	w.mu.Lock()
-	n, err = w.w.Write(p)
-	w.mu.Unlock()
-	return n, err
+// progress, the calling goroutine blocks until the syncWriter is available.
+func (w *syncWriter) Write(p []byte) (n int, err error) {
+	w.Lock()
+	defer w.Unlock()
+	return w.Writer.Write(p)
+}
+
+// fdWriter is an io.Writer that also has an Fd method. The most common
+// example of an fdWriter is an *os.File.
+type fdWriter interface {
+	io.Writer
+	Fd() uintptr
+}
+
+// fdSyncWriter synchronizes concurrent writes to an fdWriter.
+type fdSyncWriter struct {
+	sync.Mutex
+	fdWriter
+}
+
+// Write writes p to the underlying io.Writer. If another write is already in
+// progress, the calling goroutine blocks until the fdSyncWriter is available.
+func (w *fdSyncWriter) Write(p []byte) (n int, err error) {
+	w.Lock()
+	defer w.Unlock()
+	return w.fdWriter.Write(p)
 }
 
 // syncLogger provides concurrent safe logging for another Logger.
@@ -75,7 +108,6 @@ func NewSyncLogger(logger Logger) Logger {
 // progress, the calling goroutine blocks until the syncLogger is available.
 func (l *syncLogger) Log(keyvals ...interface{}) error {
 	l.mu.Lock()
-	err := l.logger.Log(keyvals...)
-	l.mu.Unlock()
-	return err
+	defer l.mu.Unlock()
+	return l.logger.Log(keyvals...)
 }
