@@ -232,7 +232,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 	// 0 is the default so allow that but any value below 30MB is not allowed
 	if s.MemoryLimitInBytes == 0 {
 		s.MemoryLimitInBytes = DefaultMaxMemoryInBytes
-	
+
 	}
 	if s.MemoryLimitInBytes < 30000000 {
 		err = fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
@@ -240,7 +240,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 	}
 
 	// check cpu, if 0 (default) set to the default value
-	if (s.MaxCpuPercentage == 0) {
+	if s.MaxCpuPercentage == 0 {
 		s.MaxCpuPercentage = DefaultMaxCpuPercentage
 	}
 
