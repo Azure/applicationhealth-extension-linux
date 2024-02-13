@@ -5,10 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/go-kit/kit/log"
+	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 )
 
 var (
@@ -20,60 +22,71 @@ var (
 	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
+	// the logger that will be used throughout
+	lg = logging.New(nil)
 )
 
 func main() {
-	ctx := log.NewContext(log.NewSyncLogger(log.NewLogfmtLogger(
-		os.Stdout))).With("time", log.DefaultTimestamp).With("version", VersionString())
+
+	lg.WithProcessID()
+	lg.WithTimestamp()
+	lg.WithVersion(VersionString())
 
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
-	ctx = ctx.With("operation", strings.ToLower(cmd.name))
+
+	hEnv, err := handlerenv.GetHandlerEnviroment()
+	if err != nil {
+		lg.EventError("failed to parse Handler Enviroment", err)
+		os.Exit(cmd.failExitCode)
+	}
+	// Creating new Logger with the handler environment
+	lg = logging.New(&hEnv)
+	lg.WithProcessID()
+	lg.WithTimestamp()
+	lg.WithVersion(VersionString())
+	lg.WithOperation(strings.ToLower(cmd.name))
+
+	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		lg.EventError("failed to find sequence number", err)
+	}
+
+	lg.WithSeqNum(strconv.Itoa(seqNum))
+
+	// check sub-command preconditions, if any, before executing
+	lg.Event("Starting AppHealth Extension")
+	lg.Event(fmt.Sprintf("HandlerEnvironment: %v", hEnv))
 
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		ctx.Log("event", fmt.Sprintf("Received shutdown request"))
+		lg.Event("Received shutdown request")
 		shutdown = true
-		err := killVMWatch(ctx, vmWatchCommand)
+		err := killVMWatch(*lg, vmWatchCommand)
 		if err != nil {
-			ctx.Log("error", "error when killing vmwatch", err.Error())
+			lg.EventError("error when killing vmwatch", err)
 		}
 	}()
-
-	// parse extension environment
-	hEnv, err := GetHandlerEnv()
-	if err != nil {
-		ctx.Log("message", "failed to parse handlerenv", "error", err)
-		os.Exit(cmd.failExitCode)
-	}
-	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
-	if err != nil {
-		ctx.Log("messsage", "failed to find sequence number", "error", err)
-	}
-	ctx = ctx.With("seq", seqNum)
-
-	// check sub-command preconditions, if any, before executing
-	ctx.Log("event", "start")
 	if cmd.pre != nil {
-		ctx.Log("event", "pre-check")
-		if err := cmd.pre(ctx, seqNum); err != nil {
-			ctx.Log("event", "pre-check failed", "error", err)
+		lg.Event("pre-check")
+		if err := cmd.pre(*lg, seqNum); err != nil {
+			lg.EventError("pre-check failed", err)
 			os.Exit(cmd.failExitCode)
 		}
 	}
 	// execute the subcommand
-	reportStatus(ctx, hEnv, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(ctx, hEnv, seqNum)
+	reportStatus(*lg, hEnv, seqNum, StatusTransitioning, cmd, "")
+	msg, err := cmd.f(*lg, hEnv, seqNum)
 	if err != nil {
-		ctx.Log("event", "failed to handle", "error", err)
-		reportStatus(ctx, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
+		lg.EventError("failed to handle", err)
+		reportStatus(*lg, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(ctx, hEnv, seqNum, StatusSuccess, cmd, msg)
-	ctx.Log("event", "end")
+	reportStatus(*lg, hEnv, seqNum, StatusSuccess, cmd, msg)
+	lg.Event("end")
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,
@@ -81,14 +94,14 @@ func main() {
 func parseCmd(args []string) cmd {
 	if len(os.Args) != 2 {
 		printUsage(args)
-		fmt.Println("Incorrect usage.")
+		lg.EventError("Incorrect usage")
 		os.Exit(2)
 	}
 	op := os.Args[1]
 	cmd, ok := cmds[op]
 	if !ok {
 		printUsage(args)
-		fmt.Printf("Incorrect command: %q\n", op)
+		lg.EventError(fmt.Sprintf("Incorrect command: %q\n", op))
 		os.Exit(2)
 	}
 	return cmd
