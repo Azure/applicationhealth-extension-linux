@@ -21,11 +21,7 @@ import (
 )
 
 const (
-	logError        = "error"
-	logLevelWarning = "Warning "
-	logLevelInfo    = "Info "
-	logEvent        = "event"
-	logMessage      = "message"
+	logEvent = "event"
 )
 
 const (
