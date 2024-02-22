@@ -132,7 +132,7 @@ func executeVMWatchHelper(ctx logging.ExtensionLogger, attempt int, vmWatchSetti
 		return err
 	}
 	pid = cmd.Process.Pid // cmd.Process should be populated on success
-	ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
+	ctx.Event(fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
 
 	err = createAndAssignCgroups(ctx, vmWatchSettings, pid)
 	if err != nil {
@@ -307,7 +307,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 	return cmd, nil
 }
 
-func createAndAssignCgroups(ctx *log.Context, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
+func createAndAssignCgroups(ctx logging.ExtensionLogger, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
 	// get our process and use this to determine the appropriate mount points for the cgroups
 	myPid := os.Getpid()
 	memoryLimitInBytes := int64(vmwatchSettings.MemoryLimitInBytes)
