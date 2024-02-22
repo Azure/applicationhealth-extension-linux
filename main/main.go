@@ -5,83 +5,68 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"os/signal"
-	"strconv"
-	"strings"
-	"syscall"
 
+	"github.com/Azure/applicationhealth-extension-linux/internal/cmdhandler"
+	"github.com/Azure/applicationhealth-extension-linux/internal/exithelper"
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/seqnum"
 )
 
 var (
 	// dataDir is where we store the logs and state for the extension handler
 	dataDir = "/var/lib/waagent/apphealth"
 
-	shutdown = false
+	// Shutdown = false
 
 	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
 	// the logger that will be used throughout
 	lg = logging.NewExtensionLogger(nil)
+	// Exit helper
+	eh = exithelper.Exiter
 )
 
 func main() {
 
-	lg.With("version", VersionString())
+	lg.With("version", version.VersionString())
 
-	// parse command line arguments
-	cmd := parseCmd(os.Args)
+	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
+	if err != nil {
+		lg.Error("failed to parse command", slog.Any("error", err))
+		eh.Exit(exithelper.ArgumentError)
+	}
 
-	h, err := handlerenv.GetHandlerEnviroment()
+	hEnv, err := handlerenv.GetHandlerEnviroment() // parse handler environment
 	if err != nil {
 		lg.Error("failed to parse Handler Enviroment", slog.Any("error", err))
-		os.Exit(cmd.failExitCode)
+		eh.Exit(exithelper.EnvironmentError)
 	}
-	// Creating new Logger with the handler environment
-	lg = logging.NewExtensionLogger(&h)
-	lg.With("version", VersionString())
-	lg.With("operation", strings.ToLower(cmd.name))
 
-	seqNum, err := FindSeqNum(h.HandlerEnvironment.ConfigFolder)
+	seqNum, err := seqnum.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder) // find sequence number
 	if err != nil {
 		lg.Error("failed to find sequence number", slog.Any("error", err))
+		eh.Exit(exithelper.HandlerError)
 	}
 
-	lg.With("seq", strconv.Itoa(seqNum))
-
-	lg.Info("Starting AppHealth Extension")
-	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
-
-	// subscribe to cleanly shutdown
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		lg.Info("Received shutdown request")
-		shutdown = true
-		err := killVMWatch(lg, vmWatchCommand)
-		if err != nil {
-			lg.Error("error when killing vmwatch", slog.Any("error", err))
-		}
-	}()
-	if cmd.pre != nil {
-		lg.Info("pre-check")
-		if err := cmd.pre(lg, seqNum); err != nil {
-			lg.Error("pre-check failed", slog.Any("error", err))
-			os.Exit(cmd.failExitCode)
-		}
-	}
-	// execute the subcommand
-	reportStatus(lg, h, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, h, seqNum)
+	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
-		lg.Error("failed to handle", slog.Any("error", err))
-		reportStatus(lg, h, seqNum, StatusError, cmd, err.Error()+msg)
-		os.Exit(cmd.failExitCode)
+		lg.Error("failed to create command handler", slog.Any("error", err))
+		eh.Exit(exithelper.HandlerError)
 	}
-	reportStatus(lg, h, seqNum, StatusSuccess, cmd, msg)
+
+	err = handler.SetCommandToExecute(cmdKey) // set the command to execute
+	if err != nil {
+		lg.Error("failed to find command to execute", slog.Any("error", err))
+		eh.Exit(exithelper.HandlerError)
+	}
+
+	err = handler.Execute(hEnv, seqNum) // execute the command
+	if err != nil {
+		lg.Error("failed to execute command", err)
+	}
 	lg.Info("end")
 }
 
@@ -118,5 +103,5 @@ func printUsage(args []string) {
 		i++
 	}
 	fmt.Println()
-	fmt.Println(DetailedVersionString())
+	fmt.Println(version.DetailedVersionString())
 }
