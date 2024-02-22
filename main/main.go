@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/cmdhandler"
 	"github.com/Azure/applicationhealth-extension-linux/internal/exithelper"
@@ -15,14 +14,6 @@ import (
 )
 
 var (
-	// dataDir is where we store the logs and state for the extension handler
-	dataDir = "/var/lib/waagent/apphealth"
-
-	// Shutdown = false
-
-	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
-	// when a shutdown signal is received
-	vmWatchCommand *exec.Cmd
 	// the logger that will be used throughout
 	lg = logging.NewExtensionLogger(nil)
 	// Exit helper
