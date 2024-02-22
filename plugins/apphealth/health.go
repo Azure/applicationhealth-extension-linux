@@ -1,11 +1,10 @@
-package main
+package apphealth
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -14,6 +13,8 @@ import (
 	"net/url"
 
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
+	"github.com/Azure/applicationhealth-extension-linux/plugins/settings"
 	"github.com/pkg/errors"
 )
 
@@ -27,28 +28,28 @@ const (
 	Empty        HealthStatus = ""
 )
 
-func (p HealthStatus) GetStatusType() StatusType {
+func (p HealthStatus) GetStatusType() status.StatusType {
 	switch p {
 	case Initializing:
-		return StatusTransitioning
+		return status.StatusTransitioning
 	case Unknown:
-		return StatusError
+		return status.StatusError
 	default:
-		return StatusSuccess
+		return status.StatusSuccess
 	}
 }
 
-func (p HealthStatus) GetStatusTypeForAppHealthStatus() StatusType {
+func (p HealthStatus) GetStatusTypeForAppHealthStatus() status.StatusType {
 	switch p {
 	case Unhealthy, Unknown:
-		return StatusError
+		return status.StatusError
 	default:
-		return StatusSuccess
+		return status.StatusSuccess
 	}
 }
 
 func (p HealthStatus) GetMessageForAppHealthStatus() string {
-	if p.GetStatusTypeForAppHealthStatus() == StatusError {
+	if p.GetStatusTypeForAppHealthStatus() == status.StatusError {
 		return "Application found to be unhealthy"
 	} else {
 		return "Application found to be healthy"
@@ -56,9 +57,9 @@ func (p HealthStatus) GetMessageForAppHealthStatus() string {
 }
 
 type HealthProbe interface {
-	evaluate(ctx logging.Logger) (ProbeResponse, error)
+	Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error)
 	address() string
-	healthStatusAfterGracePeriodExpires() HealthStatus
+	HealthStatusAfterGracePeriodExpires() HealthStatus
 }
 
 type TcpHealthProbe struct {
@@ -70,28 +71,30 @@ type HttpHealthProbe struct {
 	Address    string
 }
 
-func NewHealthProbe(ctx logging.Logger, cfg *handlerSettings) HealthProbe {
+func NewHealthProbe(ctx logging.ExtensionLogger, cfg *settings.HandlerSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
-	switch cfg.protocol() {
+	plgSettings := NewAppHealthSettings(cfg)
+
+	switch plgSettings.GetProtocol() {
 	case "tcp":
 		p = &TcpHealthProbe{
-			Address: "localhost:" + strconv.Itoa(cfg.port()),
+			Address: "localhost:" + strconv.Itoa(plgSettings.GetPort()),
 		}
-		ctx.Info("creating tcp probe targeting " + p.address())
+		ctx.Event("creating tcp probe targeting " + p.address())
 	case "http":
 		fallthrough
 	case "https":
-		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		ctx.Info("creating " + cfg.protocol() + " probe targeting " + p.address())
+		p = NewHttpHealthProbe(plgSettings.GetProtocol(), plgSettings.GetRequestPath(), plgSettings.GetPort())
+		ctx.Event("creating " + plgSettings.GetProtocol() + " probe targeting " + p.address())
 	default:
-		ctx.Info("default settings without probe")
+		ctx.Event("default settings without probe")
 	}
 
 	return p
 }
 
-func (p *TcpHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
+func (p *TcpHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -116,7 +119,7 @@ func (p *TcpHealthProbe) address() string {
 	return p.Address
 }
 
-func (p *TcpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+func (p *TcpHealthProbe) HealthStatusAfterGracePeriodExpires() HealthStatus {
 	return Unhealthy
 }
 
@@ -174,7 +177,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
+func (p *HttpHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -209,8 +212,8 @@ func (p *HttpHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
 		return probeResponse, err
 	}
 
-	if err := probeResponse.validateCustomMetrics(); err != nil {
-		ctx.Error("Error validating custom metrics", slog.Any("error", err))
+	if err := probeResponse.ValidateCustomMetrics(); err != nil {
+		ctx.EventError("Error validating custom metrics", err)
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {
@@ -225,7 +228,7 @@ func (p *HttpHealthProbe) address() string {
 	return p.Address
 }
 
-func (p *HttpHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+func (p *HttpHealthProbe) HealthStatusAfterGracePeriodExpires() HealthStatus {
 	return Unknown
 }
 
@@ -241,7 +244,7 @@ func noRedirect(req *http.Request, via []*http.Request) error {
 type DefaultHealthProbe struct {
 }
 
-func (p DefaultHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
+func (p DefaultHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
 	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
@@ -251,6 +254,6 @@ func (p DefaultHealthProbe) address() string {
 	return ""
 }
 
-func (p DefaultHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
+func (p DefaultHealthProbe) HealthStatusAfterGracePeriodExpires() HealthStatus {
 	return Unhealthy
 }

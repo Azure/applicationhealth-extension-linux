@@ -1,12 +1,10 @@
-package main
+package settings
 
 import (
 	"encoding/json"
-	"encoding/xml"
-	"os"
-	"path/filepath"
 
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/plugins/schema"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/pkg/errors"
 )
@@ -20,25 +18,25 @@ var (
 	maximumProbeSettleTime             = 240
 )
 
-// handlerSettings holds the configuration of the extension handler.
-type handlerSettings struct {
+// HandlerSettings holds the configuration of the extension handler.
+type HandlerSettings struct {
 	publicSettings
 	protectedSettings
 }
 
-func (s *handlerSettings) protocol() string {
+func (s *HandlerSettings) protocol() string {
 	return s.publicSettings.Protocol
 }
 
-func (s *handlerSettings) requestPath() string {
+func (s *HandlerSettings) requestPath() string {
 	return s.publicSettings.RequestPath
 }
 
-func (s *handlerSettings) port() int {
+func (s *HandlerSettings) port() int {
 	return s.publicSettings.Port
 }
 
-func (s *handlerSettings) intervalInSeconds() int {
+func (s *HandlerSettings) intervalInSeconds() int {
 	var intervalInSeconds = s.publicSettings.IntervalInSeconds
 	if intervalInSeconds == 0 {
 		return defaultIntervalInSeconds
@@ -47,7 +45,7 @@ func (s *handlerSettings) intervalInSeconds() int {
 	}
 }
 
-func (s *handlerSettings) numberOfProbes() int {
+func (s *HandlerSettings) numberOfProbes() int {
 	var numberOfProbes = s.publicSettings.NumberOfProbes
 	if numberOfProbes == 0 {
 		return defaultNumberOfProbes
@@ -56,7 +54,7 @@ func (s *handlerSettings) numberOfProbes() int {
 	}
 }
 
-func (s *handlerSettings) gracePeriod() int {
+func (s *HandlerSettings) gracePeriod() int {
 	var gracePeriod = s.publicSettings.GracePeriod
 	if gracePeriod == 0 {
 		return s.intervalInSeconds() * s.numberOfProbes()
@@ -65,13 +63,13 @@ func (s *handlerSettings) gracePeriod() int {
 	}
 }
 
-func (s *handlerSettings) vmWatchSettings() *vmWatchSettings {
+func (s *HandlerSettings) VMWatchSettings() *VMWatchSettings {
 	return s.publicSettings.VMWatchSettings
 }
 
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
-func (h handlerSettings) validate() error {
+func (h HandlerSettings) validate() error {
 	if h.protocol() == "tcp" && h.port() == 0 {
 		return errTcpConfigurationMustIncludePort
 	}
@@ -95,10 +93,8 @@ type vmWatchSignalFilters struct {
 	DisabledSignals        []string `json:"disabledSignals,array"`
 }
 
-type vmWatchSettings struct {
+type VMWatchSettings struct {
 	Enabled               bool                   `json:"enabled,boolean"`
-	MemoryLimitInBytes    int64                  `json:"memoryLimitInBytes,int64"`
-	MaxCpuPercentage      int64                  `json:"maxCpuPercentage,int64"`
 	SignalFilters         *vmWatchSignalFilters  `json:"signalFilters"`
 	ParameterOverrides    map[string]interface{} `json:"parameterOverrides,object"`
 	EnvironmentAttributes map[string]interface{} `json:"environmentAttributes,object"`
@@ -115,7 +111,7 @@ type publicSettings struct {
 	IntervalInSeconds int              `json:"intervalInSeconds,int"`
 	NumberOfProbes    int              `json:"numberOfProbes,int"`
 	GracePeriod       int              `json:"gracePeriod,int"`
-	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
+	VMWatchSettings   *VMWatchSettings `json:"vmWatchSettings"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected
@@ -123,34 +119,34 @@ type publicSettings struct {
 type protectedSettings struct {
 }
 
-// parseAndValidateSettings reads configuration from configFolder, decrypts it,
+// ParseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
-func parseAndValidateSettings(ctx logging.Logger, configFolder string) (h handlerSettings, _ error) {
-	ctx.Info("reading configuration")
+func ParseAndValidateSettings(ctx logging.ExtensionLogger, configFolder string) (h HandlerSettings, _ error) {
+	ctx.Event("reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
-	ctx.Info("read configuration")
+	ctx.Event("read configuration")
 
-	ctx.Info("validating json schema")
+	ctx.Event("validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	ctx.Info("json schema valid")
-	ctx.Info("parsing configuration json")
+	ctx.Event("json schema valid")
+	ctx.Event("parsing configuration json")
 
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
 
-	ctx.Info("parsed configuration json")
-	ctx.Info("validating configuration logically")
+	ctx.Event("parsed configuration json")
+	ctx.Event("validating configuration logically")
 
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	ctx.Info("validated configuration")
+	ctx.Event("validated configuration")
 	return h, nil
 }
 
@@ -175,10 +171,10 @@ func validateSettingsSchema(pubSettingsJSON, protSettingsJSON map[string]interfa
 		return errors.Wrap(err, "failed to unmarshal protected settings into json")
 	}
 
-	if err := validatePublicSettings(pubJSON); err != nil {
+	if err := schema.ValidatePublicSettings(pubJSON); err != nil {
 		return err
 	}
-	if err := validateProtectedSettings(protJSON); err != nil {
+	if err := schema.ValidateProtectedSettings(protJSON); err != nil {
 		return err
 	}
 	return nil
@@ -191,58 +187,4 @@ func toJSON(o map[string]interface{}) (string, error) {
 	}
 	b, err := json.Marshal(o)
 	return string(b), errors.Wrap(err, "failed to marshal into json")
-}
-
-type ExtensionManifest struct {
-	ProviderNameSpace   string `xml:"ProviderNameSpace"`
-	Type                string `xml:"Type"`
-	Version             string `xml:"Version"`
-	Label               string `xml:"Label"`
-	HostingResources    string `xml:"HostingResources"`
-	MediaLink           string `xml:"MediaLink"`
-	Description         string `xml:"Description"`
-	IsInternalExtension bool   `xml:"IsInternalExtension"`
-	IsJsonExtension     bool   `xml:"IsJsonExtension"`
-	SupportedOS         string `xml:"SupportedOS"`
-	CompanyName         string `xml:"CompanyName"`
-}
-
-func GetExtensionManifest(filepath string) (ExtensionManifest, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return ExtensionManifest{}, err
-	}
-	defer file.Close()
-
-	decoder := xml.NewDecoder(file)
-	var manifest ExtensionManifest
-	err = decoder.Decode(&manifest)
-
-	if err != nil {
-		return ExtensionManifest{}, err
-	}
-	return manifest, nil
-}
-
-// Get Extension Version set at build time or from manifest file.
-func GetExtensionManifestVersion() (string, error) {
-	// First attempting to read the version set during build time.
-	v := GetExtensionVersion()
-	if v != "" {
-		return v, nil
-	}
-
-	// If the version is not set during build time, then reading it from the manifest file as fallback.
-	processDirectory, err := GetProcessDirectory()
-	if err != nil {
-		return "", err
-	}
-	processDirectory = filepath.Dir(processDirectory)
-	fp := filepath.Join(processDirectory, ExtensionManifestFileName)
-
-	manifest, err := GetExtensionManifest(fp)
-	if err != nil {
-		return "", err
-	}
-	return manifest.Version, nil
 }
