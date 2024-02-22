@@ -1,4 +1,4 @@
-package main
+package schema
 
 import (
 	"fmt"
@@ -175,10 +175,10 @@ func validateSettingsObject(settingsType, schemaJSON, docJSON string) error {
 	return nil
 }
 
-func validatePublicSettings(json string) error {
+func ValidatePublicSettings(json string) error {
 	return validateSettingsObject("public", publicSettingsSchema, json)
 }
 
-func validateProtectedSettings(json string) error {
+func ValidateProtectedSettings(json string) error {
 	return validateSettingsObject("protected", protectedSettingsSchema, json)
 }
