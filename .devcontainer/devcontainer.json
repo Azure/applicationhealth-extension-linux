@@ -24,7 +24,6 @@
             "extensions": [
                 "golang.go",
                 "golang.go-nightly",
-                "premparihar.gotestexplorer",
                 "ms-azuretools.vscode-docker"
             ]
         }

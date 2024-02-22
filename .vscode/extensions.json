@@ -4,7 +4,6 @@
         "ms-vscode-remote.remote-ssh",
         "github.copilot",
         "ms-azuretools.vscode-docker",
-        "mhutchie.git-graph",
         "github.vscode-pull-request-github"
     ]
 }
