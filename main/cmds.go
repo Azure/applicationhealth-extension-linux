@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cmdFunc func(ctx logging.ExtensionLogger, hEnv handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
+type cmdFunc func(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
 type preFunc func(ctx logging.ExtensionLogger, seqNum int) error
 
 type cmd struct {

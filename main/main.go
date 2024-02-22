@@ -35,19 +35,19 @@ func main() {
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
 
-	hEnv, err := handlerenv.GetHandlerEnviroment()
+	h, err := handlerenv.GetHandlerEnviroment()
 	if err != nil {
 		lg.EventError("failed to parse Handler Enviroment", err)
 		os.Exit(cmd.failExitCode)
 	}
 	// Creating new Logger with the handler environment
-	lg = logging.New(&hEnv)
+	lg = logging.New(&h)
 	lg.WithProcessID()
 	lg.WithTimestamp()
 	lg.WithVersion(VersionString())
 	lg.WithOperation(strings.ToLower(cmd.name))
 
-	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	seqNum, err := FindSeqNum(h.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		lg.EventError("failed to find sequence number", err)
 	}
@@ -56,7 +56,7 @@ func main() {
 
 	// check sub-command preconditions, if any, before executing
 	lg.Event("Starting AppHealth Extension")
-	lg.Event(fmt.Sprintf("HandlerEnvironment: %v", hEnv))
+	lg.Event(fmt.Sprintf("HandlerEnvironment: %v", h))
 
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
@@ -78,14 +78,14 @@ func main() {
 		}
 	}
 	// execute the subcommand
-	reportStatus(*lg, hEnv, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(*lg, hEnv, seqNum)
+	reportStatus(*lg, h, seqNum, StatusTransitioning, cmd, "")
+	msg, err := cmd.f(*lg, h, seqNum)
 	if err != nil {
 		lg.EventError("failed to handle", err)
-		reportStatus(*lg, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
+		reportStatus(*lg, h, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(*lg, hEnv, seqNum, StatusSuccess, cmd, msg)
+	reportStatus(*lg, h, seqNum, StatusSuccess, cmd, msg)
 	lg.Event("end")
 }
 
