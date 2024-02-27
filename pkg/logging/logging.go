@@ -130,10 +130,11 @@ func (lg ExtensionLogger) CustomLog(keyvals ...interface{}) {
 }
 
 // Close closes the file
-func (logger *ExtensionLogger) Close() {
-	if logger.file != nil {
-		logger.file.Close()
+func (logger *ExtensionLogger) Close() error {
+	if logger.file == nil {
+		return fmt.Errorf("file must be non-nil")
 	}
+	return logger.file.Close()
 }
 
 func newStandardOutput() *ExtensionLogger {
