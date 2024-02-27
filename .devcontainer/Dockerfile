@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/go:1.18-bullseye
+FROM mcr.microsoft.com/devcontainers/go:1.21-bullseye
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
