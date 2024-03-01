@@ -1,27 +1,26 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/utils"
-	"github.com/go-kit/kit/log/level"
-	"github.com/go-kit/log"
+	slogformatter "github.com/samber/slog-formatter"
 )
 
 const (
-	logEvent = "event"
+	LevelCritical  = slog.Level(10)
+	LevelLogAlways = slog.Level(1)
 )
 
 const (
@@ -31,22 +30,58 @@ const (
 	logDirThresholdHigh = fortyMB
 )
 
-// ExtensionLogger for all the extension related events
+var (
+	LevelNames = map[slog.Leveler]string{
+		LevelCritical:   "Critical",
+		LevelLogAlways:  "LogAlways",
+		slog.LevelError: "Error",
+		slog.LevelWarn:  "Warning",
+		slog.LevelInfo:  "Informational",
+		slog.LevelDebug: "Debug",
+	}
+)
+
+// Logger Interface for Guest Health Platform/Application Health Extension.
+// This interface will allow use to use different logging libraries if needed in future.
+type Logger interface {
+	Log(ctx context.Context, level slog.Level, msg string, args ...any)
+	LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr)
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, attrs ...slog.Attr)
+	Critical(msg string, attrs ...slog.Attr)
+	Debug(msg string, args ...any)
+	Close() error
+	With(args ...any)
+}
+
+// ExtensionLogger is our concrete implementation of the Logger interface.
+// It functions as an adapter/wrapper to the slog.Logger, which is a wrapper around the standard log.Logger
 type ExtensionLogger struct {
-	logger log.Logger // make this private again
-	file   *os.File
+	*slog.Logger
+	file *os.File
 }
 
-// New creates a new logging instance. If the handlerEnvironment is nil, we'll use a
-// standard output logger
-func New(he *handlerenv.HandlerEnvironment) *ExtensionLogger {
-	return NewWithName(he, "")
+// NewExtensionLogger creates a new logging instance using the provided HandlerEnvironment.
+// If the HandlerEnvironment is nil or the LogFolder within the HandlerEnvironment is empty,
+// a standard output logger will be used.
+// It returns a Logger instance.
+func NewExtensionLogger(he *handlerenv.HandlerEnvironment) Logger {
+	if he == nil || he.HandlerEnvironment.LogFolder == "" {
+		// Standard output logger will be used
+		return NewExtensionLoggerWithName("", "")
+	}
+
+	return NewExtensionLoggerWithName(he.HandlerEnvironment.LogFolder, "")
 }
 
-// Allows the caller to specify their own name for the file
-// Supports cycling of logs to prevent filling up the disk
-func NewWithName(he *handlerenv.HandlerEnvironment, logFileFormat string) *ExtensionLogger {
-	if he == nil {
+// NewExtensionLoggerWithName creates a new logger with the given log folder and log file format.
+// If the log folder is not provided, it uses standard output as the logger.
+// Supports custom log file format, with default format "log_%v".
+// Supports cycling of logs to prevent filling up the disk.
+// If valid LogFolder is provided, it will create and write logs to the specified folder.
+func NewExtensionLoggerWithName(logFolder string, logFileFormat string) Logger {
+	if logFolder == "" {
 		// If handler environment is not provided, use standard output
 		return newStandardOutput()
 	}
@@ -56,91 +91,85 @@ func NewWithName(he *handlerenv.HandlerEnvironment, logFileFormat string) *Exten
 	}
 
 	// Rotate log folder to prevent filling up the disk
-	err := rotateLogFolder(he.HandlerEnvironment.LogFolder, logFileFormat)
+	err := rotateLogFolder(logFolder, logFileFormat)
 	if err != nil {
 		return newStandardOutput()
 	}
 
 	fileName := fmt.Sprintf(logFileFormat, strconv.FormatInt(time.Now().UTC().Unix(), 10))
-	filePath := path.Join(he.HandlerEnvironment.LogFolder, fileName)
-	fileWriter, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	filePath := path.Join(logFolder, fileName)
+	writer, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		return newStandardOutput()
 	}
-	// logger will log on both standard output and file
-	logger := log.NewSyncLogger(log.NewLogfmtLogger(io.MultiWriter(os.Stdout, fileWriter)))
-	return &ExtensionLogger{
-		logger: logger,
-		file:   fileWriter,
-	}
+	return newMultiLogger(writer)
 }
 
-func GetCallStack() string {
-	return string(debug.Stack())
+// Error logs an error. Format is the same as fmt.Print
+func (l *ExtensionLogger) Error(msg string, attrs ...slog.Attr) {
+	l.Logger.LogAttrs(context.Background(), slog.LevelError, msg, attrs...)
 }
 
-// Function to add Time Context to the logger
-func (lg *ExtensionLogger) WithTimestamp() {
-	lg.logger = log.With(lg.logger, "time", log.DefaultTimestampUTC)
-}
-
-func (lg *ExtensionLogger) WithProcessID() {
-	lg.logger = log.With(lg.logger, "pid", utils.GetCurrentProcessID())
-}
-
-func (lg *ExtensionLogger) WithSeqNum(seqNum string) {
-	lg.logger = log.With(lg.logger, "seq", seqNum)
-}
-
-func (lg *ExtensionLogger) WithOperation(operation string) {
-	lg.logger = log.With(lg.logger, "operation", operation)
-}
-
-// Function to add Version Context to the logger
-func (lg *ExtensionLogger) WithVersion(versionString string) {
-	lg.logger = log.With(lg.logger, "version", versionString)
-}
-
-func (lg *ExtensionLogger) With(key string, value string) {
-	lg.logger = log.With(lg.logger, key, value)
-}
-
-func (lg *ExtensionLogger) Event(event string) {
-	level.Info(lg.logger).Log(logEvent, event)
-}
-
-// Function to log an event with optional error details
-func (lg ExtensionLogger) EventError(event string, errorDetails ...interface{}) {
-	if len(errorDetails) == 0 {
-		level.Error(lg.logger).Log(logEvent, event)
-		return
-	}
-	switch v := errorDetails[0].(type) {
-	case error:
-		level.Error(lg.logger).Log(logEvent, fmt.Sprintf("%s, Details: %v", event, v.Error()))
-	case string:
-		level.Error(lg.logger).Log(logEvent, fmt.Sprintf("%s, Details: %s", event, v))
-	default:
-		level.Error(lg.logger).Log(logEvent, fmt.Sprintf("%s, Details: %v", event, v))
-	}
-}
-
-func (lg ExtensionLogger) CustomLog(keyvals ...interface{}) {
-	lg.logger.Log(keyvals...)
+func (l *ExtensionLogger) Critical(msg string, attrs ...slog.Attr) {
+	l.Logger.LogAttrs(context.Background(), LevelCritical, msg, attrs...)
 }
 
 // Close closes the file
-func (logger *ExtensionLogger) Close() error {
-	if logger.file == nil {
+func (l *ExtensionLogger) Close() error {
+	if l.file == nil {
 		return fmt.Errorf("file must be non-nil")
 	}
-	return logger.file.Close()
+	return l.file.Close()
+}
+
+func (l *ExtensionLogger) With(args ...any) {
+	l.Logger = l.Logger.With(args...)
 }
 
 func newStandardOutput() *ExtensionLogger {
+	timeFormatter := slogformatter.TimeFormatter(time.RFC3339Nano, time.UTC)
+	errorFormatter := slogformatter.ErrorFormatter("error")
 	return &ExtensionLogger{
-		logger: log.NewSyncLogger(log.NewLogfmtLogger(os.Stdout)),
-		file:   nil,
+		Logger: slog.New(slogformatter.NewFormatterHandler(timeFormatter, errorFormatter)(
+			slog.NewTextHandler(os.Stdout,
+				&slog.HandlerOptions{
+					ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+						if a.Key == slog.LevelKey {
+							level := a.Value.Any().(slog.Level)
+							levelLabel, exist := LevelNames[level]
+							if !exist {
+								levelLabel = level.String()
+							}
+							a.Value = slog.StringValue(levelLabel)
+						}
+						return a
+					},
+				}))).With(slog.Int("pid", os.Getpid())),
+		file: nil,
+	}
+}
+
+func newMultiLogger(writer *os.File) *ExtensionLogger {
+	timeFormatter := slogformatter.TimeFormatter(time.RFC3339Nano, time.UTC)
+	errorFormatter := slogformatter.ErrorFormatter("error")
+	return &ExtensionLogger{
+		Logger: slog.New(slogformatter.NewFormatterHandler(timeFormatter, errorFormatter)(
+			slog.NewTextHandler(
+				io.MultiWriter(os.Stdout, writer),
+				&slog.HandlerOptions{
+					ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+						if a.Key == slog.LevelKey {
+							level := a.Value.Any().(slog.Level)
+							levelLabel, exist := LevelNames[level]
+							if !exist {
+								levelLabel = level.String()
+							}
+							a.Value = slog.StringValue(levelLabel)
+						}
+						return a
+					},
+				}))).With(slog.Int("pid", os.Getpid())),
+		file: writer,
 	}
 }
 
@@ -181,23 +210,33 @@ func rotateLogFolder(logFolder string, logFileFormat string) (err error) {
 	// Get all log files in logFolder
 	// Files are already sorted according to filenames
 	// Log file names contains unix timestamp as suffix, Thus we have files sorted according to age as well
-	var dirEntries []fs.FileInfo
+	var dirEntries []fs.DirEntry
 
-	dirEntries, err = ioutil.ReadDir(logFolder)
+	dirEntries, err = os.ReadDir(logFolder)
 	if err != nil {
 		err = fmt.Errorf("unable to read log folder, error: %v", err)
 		return
 	}
 
+	// Converting to FileInfo to sort according to time
+	dirEntriesInfo := make([]fs.FileInfo, len(dirEntries))
+	for i, entry := range dirEntries {
+		dirEntriesInfo[i], err = entry.Info()
+		if err != nil {
+			err = fmt.Errorf("unable to get file info, error: %v", err)
+			return
+		}
+	}
+
 	// Sort directory entries according to time (oldest to newest)
-	sort.Slice(dirEntries, func(idx1, idx2 int) bool {
-		return dirEntries[idx1].ModTime().Before(dirEntries[idx2].ModTime())
+	sort.Slice(dirEntriesInfo, func(idx1, idx2 int) bool {
+		return dirEntriesInfo[idx1].ModTime().Before(dirEntriesInfo[idx2].ModTime())
 	})
 
 	// Get log file name prefix
 	logFilePrefix := strings.Split(logFileFormat, "%")
 
-	for _, file := range dirEntries {
+	for _, file := range dirEntriesInfo {
 		// Once directory size goes below lower threshold limit, stop deletion
 		if size < logDirThresholdLow {
 			break
