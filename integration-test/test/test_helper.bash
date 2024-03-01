@@ -191,19 +191,20 @@ copy_config() { # places specified settings file ($1) into container as 0.settin
 # and time difference between third log and second log is 10 seconds
 verify_state_change_timestamps() {
     expectedTimeDifferences="$2"
-    regex='time=(.*) version=(.*)'
+    regex='time=([^[:space:]]*)'
     prevDate=""
     index=0
     while IFS=$'\n' read -ra enableLogs; do
         for i in "${!enableLogs[@]}"; do
             [[ $enableLogs[index] =~ $regex ]]
+            currentDate=${BASH_REMATCH[1]}
             if [[ ! -z "$prevDate" ]]; then
-                diff=$(( $(date -d "${BASH_REMATCH[1]}" "+%s") - $(date -d "$prevDate" "+%s") ))
+                diff=$(( $(date -d "$currentDate" "+%s") - $(date -d "$prevDate" "+%s") ))
                 echo "Actual time difference is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
-        prevDate=${BASH_REMATCH[1]}     
+        prevDate=$currentDate
         done
     done <<< "$1"
 }
@@ -213,7 +214,7 @@ verify_state_change_timestamps() {
 # second argument is an array of expected state log strings
 verify_states() {
     expectedStateLogs="$2"
-    regex='event="(.*)"'
+    regex='msg="(.*)"'
     index=0
     while IFS=$'\n' read -ra stateLogs; do
         for i in "${!stateLogs[@]}"; do
