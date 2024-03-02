@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -23,70 +24,65 @@ var (
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
 	// the logger that will be used throughout
-	lg = logging.New(nil)
+	lg = logging.NewExtensionLogger(nil)
 )
 
 func main() {
 
-	lg.WithProcessID()
-	lg.WithTimestamp()
-	lg.WithVersion(VersionString())
+	lg.With("version", VersionString())
 
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
 
 	h, err := handlerenv.GetHandlerEnviroment()
 	if err != nil {
-		lg.EventError("failed to parse Handler Enviroment", err)
+		lg.Error("failed to parse Handler Enviroment", slog.Any("error", err))
 		os.Exit(cmd.failExitCode)
 	}
 	// Creating new Logger with the handler environment
-	lg = logging.New(&h)
-	lg.WithProcessID()
-	lg.WithTimestamp()
-	lg.WithVersion(VersionString())
-	lg.WithOperation(strings.ToLower(cmd.name))
+	lg = logging.NewExtensionLogger(&h)
+	lg.With("version", VersionString())
+	lg.With("operation", strings.ToLower(cmd.name))
 
 	seqNum, err := FindSeqNum(h.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		lg.EventError("failed to find sequence number", err)
+		lg.Error("failed to find sequence number", slog.Any("error", err))
 	}
 
-	lg.WithSeqNum(strconv.Itoa(seqNum))
+	lg.With("seq", strconv.Itoa(seqNum))
 
-	// check sub-command preconditions, if any, before executing
-	lg.Event("Starting AppHealth Extension")
-	lg.Event(fmt.Sprintf("HandlerEnvironment: %v", h))
+	lg.Info("Starting AppHealth Extension")
+	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
 
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		lg.Event("Received shutdown request")
+		lg.Info("Received shutdown request")
 		shutdown = true
-		err := killVMWatch(*lg, vmWatchCommand)
+		err := killVMWatch(lg, vmWatchCommand)
 		if err != nil {
-			lg.EventError("error when killing vmwatch", err)
+			lg.Error("error when killing vmwatch", slog.Any("error", err))
 		}
 	}()
 	if cmd.pre != nil {
-		lg.Event("pre-check")
-		if err := cmd.pre(*lg, seqNum); err != nil {
-			lg.EventError("pre-check failed", err)
+		lg.Info("pre-check")
+		if err := cmd.pre(lg, seqNum); err != nil {
+			lg.Error("pre-check failed", slog.Any("error", err))
 			os.Exit(cmd.failExitCode)
 		}
 	}
 	// execute the subcommand
-	reportStatus(*lg, h, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(*lg, h, seqNum)
+	reportStatus(lg, h, seqNum, StatusTransitioning, cmd, "")
+	msg, err := cmd.f(lg, h, seqNum)
 	if err != nil {
-		lg.EventError("failed to handle", err)
-		reportStatus(*lg, h, seqNum, StatusError, cmd, err.Error()+msg)
+		lg.Error("failed to handle", slog.Any("error", err))
+		reportStatus(lg, h, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(*lg, h, seqNum, StatusSuccess, cmd, msg)
-	lg.Event("end")
+	reportStatus(lg, h, seqNum, StatusSuccess, cmd, msg)
+	lg.Info("end")
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,
@@ -94,14 +90,16 @@ func main() {
 func parseCmd(args []string) cmd {
 	if len(os.Args) != 2 {
 		printUsage(args)
-		lg.EventError("Incorrect usage")
+		err := fmt.Errorf("failed to parse command line arguments, expected 2, got %d", len(os.Args))
+		lg.Error("Incorrect usage", slog.Any("error", err))
 		os.Exit(2)
 	}
 	op := os.Args[1]
 	cmd, ok := cmds[op]
 	if !ok {
 		printUsage(args)
-		lg.EventError(fmt.Sprintf("Incorrect command: %q\n", op))
+		err := fmt.Errorf("failed to parse command line arguments, command not found: %s", op)
+		lg.Error(fmt.Sprintf("Incorrect command: %q\n", op), slog.Any("error", err))
 		os.Exit(2)
 	}
 	return cmd
