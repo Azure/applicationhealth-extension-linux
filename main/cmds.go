@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -11,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cmdFunc func(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
-type preFunc func(ctx logging.ExtensionLogger, seqNum int) error
+type cmdFunc func(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
+type preFunc func(ctx logging.Logger, seqNum int) error
 
 type cmd struct {
 	f                  cmdFunc // associated function
@@ -40,32 +41,32 @@ var (
 	}
 )
 
-func noop(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
-	ctx.Event("noop")
+func noop(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+	ctx.Info("noop")
 	return "", nil
 }
 
-func install(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
 
-	ctx.Event(fmt.Sprintf("created data dir, path: %s", dataDir))
-	ctx.Event("installed")
+	ctx.Info(fmt.Sprintf("created data dir, path: %s", dataDir))
+	ctx.Info("installed")
 	return "", nil
 }
 
-func uninstall(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
 		ctx.With("path", dataDir)
 
-		ctx.Event(fmt.Sprintf("removing data dir, path: %s", dataDir))
+		ctx.Info(fmt.Sprintf("removing data dir, path: %s", dataDir))
 		if err := os.RemoveAll(dataDir); err != nil {
 			return "", errors.Wrap(err, "failed to delete data dir")
 		}
-		ctx.Event("removed data dir")
+		ctx.Info("removed data dir")
 	}
-	ctx.Event("uninstalled")
+	ctx.Info("uninstalled")
 	return "", nil
 }
 
@@ -77,7 +78,7 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
 	cfg, err := parseAndValidateSettings(ctx, h.HandlerEnvironment.ConfigFolder)
 	if err != nil {
@@ -101,15 +102,15 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 	)
 
 	if !honorGracePeriod {
-		ctx.Event("Grace period not set")
+		ctx.Info("Grace period not set")
 
 	} else {
-		ctx.Event(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
+		ctx.Info(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
-	ctx.Event(fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
+	ctx.Info(fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
-		ctx.Event("VMWatch is disabled, not starting process.")
+		ctx.Info("VMWatch is disabled, not starting process.")
 	} else {
 		vmWatchResult = VMWatchResult{Status: NotRunning, Error: nil}
 		go executeVMWatch(ctx, vmWatchSettings, h, vmWatchResultChannel)
@@ -130,7 +131,7 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 		probeResponse, err := probe.evaluate(ctx)
 		state := probeResponse.ApplicationHealthState
 		if err != nil {
-			ctx.EventError("Error occurred during probe evaluation", err)
+			ctx.Error("Error occurred during probe evaluation", slog.Any("error", err))
 		}
 
 		if shutdown {
@@ -146,14 +147,14 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 			if !ok {
 				vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
 			} else if result.Status == Running {
-				ctx.Event("VMWatch is running")
+				ctx.Info("VMWatch is running")
 			} else if result.Status == Failed {
-				ctx.EventError("VMWatch failed", vmWatchResult.GetMessage())
+				ctx.Error("VMWatch failed", slog.String("error", vmWatchResult.GetMessage()))
 			}
 		default:
 			if vmWatchResult.Status == Running && time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
 				timeOfLastVMWatchLog = time.Now()
-				ctx.Event("VMWatch is running")
+				ctx.Info("VMWatch is running")
 			}
 		}
 
@@ -162,7 +163,7 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 			numConsecutiveProbes++
 			// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
-			ctx.Event("Health state changed to " + strings.ToLower(string(state)))
+			ctx.Info("Health state changed to " + strings.ToLower(string(state)))
 			numConsecutiveProbes = 1
 			prevState = state
 		}
@@ -171,7 +172,7 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application didn't initialize on time
 			if timeElapsed >= gracePeriodInSeconds {
-				ctx.Event(fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
+				ctx.Info(fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				state = probe.healthStatusAfterGracePeriodExpires()
 				prevState = probe.healthStatusAfterGracePeriodExpires()
@@ -179,11 +180,11 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 				committedState = Empty
 				// If grace period has not expired, check if we have consecutive valid probes
 			} else if (numConsecutiveProbes == numberOfProbes) && (state != probe.healthStatusAfterGracePeriodExpires()) {
-				ctx.Event(fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
+				ctx.Info(fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				// Application will be in Initializing state since we have not received consecutive valid health states
 			} else {
-				ctx.Event(fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
+				ctx.Info(fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 				state = Initializing
 			}
 		}
@@ -191,7 +192,7 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 		if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
 			if state != committedState {
 				committedState = state
-				ctx.Event(fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+				ctx.Info(fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			}
 			// Only reset if we've observed consecutive probes in order to preserve previous observations when handling grace period
 			if numConsecutiveProbes == numberOfProbes {
@@ -222,7 +223,7 @@ func enable(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum
 
 		err = reportStatusWithSubstatuses(ctx, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
-			ctx.EventError("Failed to report status", err)
+			ctx.Error("Failed to report status", slog.Any("error", err))
 		}
 
 		endTime := time.Now()
