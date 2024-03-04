@@ -54,6 +54,11 @@ jobs:
         sudo npm install -g bats
         sudo npm install -g https://github.com/bats-core/bats-assert
         sudo npm install -g https://github.com/bats-core/bats-support
+
+    - name: Set Bats Environment Variables
+      run: |
+        echo "ls -l /usr/local/lib/node_modules" >> /tmp/ls.txt
+        echo "ls -la /usr/local/lib/node_modules"
         echo "BATS_SUPPORT_PATH=/usr/local/lib/node_modules/bats-support" >> $GITHUB_ENV
         echo "BATS_ASSERT_PATH=/usr/local/lib/node_modules/bats-assert" >> $GITHUB_ENV
 
