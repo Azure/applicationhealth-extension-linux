@@ -59,8 +59,15 @@ jobs:
       run: |
         npm root -g
         ls -l $(npm root -g)
-        echo "BATS_SUPPORT_PATH=$(npm root -g)/bats-support" >> ~/.bashrc
-        echo "BATS_ASSERT_PATH=$(npm root -g)/bats-assert" >> ~/.bashrc
+        ls -l $(npm root -g)/bats-support
+        ls -l $(npm root -g)/bats-assert
+        echo "BATS_SUPPORT_PATH=$(npm root -g)/bats-support" >> $GITHUB_ENV
+        echo "BATS_ASSERT_PATH=$(npm root -g)/bats-assert" >> $GITHUB_ENV
+
+    - name: Testing Envs
+      run: |
+        echo "BATS_SUPPORT_PATH=$BATS_SUPPORT_PATH"
+        echo "BATS_ASSERT_PATH=$BATS_ASSERT_PATH"
 
     - name: Install Parallel
       run: |
