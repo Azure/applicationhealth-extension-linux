@@ -20,10 +20,19 @@ RUN go install github.com/ahmetb/govvv@latest
 # Install npm
 RUN apt-get update && \
     apt-get install -y npm
+    
+# Updating npm to the latest version
+RUN npm cache clean -f && npm install -g n && n stable
 
 # Install dev enviroment dependencies
-RUN npm install bats -g && \ 
-        apt-get install -y parallel
+RUN npm install bats -g
+
+#Install Bats-Assert and Bats-Support
+RUN npm install -g https://github.com/bats-core/bats-assert && \
+        npm install -g https://github.com/bats-core/bats-support
+
+# Install Parallel 
+RUN apt-get install -y parallel
 
 # Install Docker
 RUN apt-get install runc -y && \
@@ -33,3 +42,7 @@ RUN apt-get install runc -y && \
 # Install Docker Engine
 RUN curl -fsSL https://test.docker.com -o test-docker.sh && \
         sh test-docker.sh
+
+# Creating ENV variables
+ENV BATS_SUPPORT_PATH /usr/local/lib/node_modules/bats-support
+ENV BATS_ASSERT_PATH /usr/local/lib/node_modules/bats-assert

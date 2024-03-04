@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 
 load ../test_helper
+load "${BATS_SUPPORT_PATH}/load.bash"
+load "${BATS_ASSERT_PATH}/load.bash"
 
 setup(){
     build_docker_image
@@ -413,7 +415,8 @@ teardown(){
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
     [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
-    [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
+    any_regex_pattern="[[:digit:]|[:space:]|[:alpha:]|[:punct:]]"
+    assert_line --regexp "msg=uninstalled ${any_regex_pattern}* operation=uninstall seq=0 path=/var/lib/waagent/apphealth"
 }
 
 @test "handler command: enable/uninstall - vm passes memory to commandline" {
