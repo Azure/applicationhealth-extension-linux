@@ -58,6 +58,7 @@ jobs:
     - name: Set Bats Environment Variables
       run: |
         npm root -g
+        ls -l $(npm root -g)
         echo "BATS_SUPPORT_PATH=/usr/local/lib/node_modules/bats-support" >> $GITHUB_ENV
         echo "BATS_ASSERT_PATH=/usr/local/lib/node_modules/bats-assert" >> $GITHUB_ENV
 
