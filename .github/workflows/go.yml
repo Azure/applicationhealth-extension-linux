@@ -125,6 +125,7 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
+        sudo env "BATS_SUPPORT_PATH=$BATS_SUPPORT_PATH" "BATS_ASSERT_PATH=$BATS_ASSERT_PATH"
         sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
       env :
