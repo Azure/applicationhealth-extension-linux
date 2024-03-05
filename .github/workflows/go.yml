@@ -57,8 +57,6 @@ jobs:
 
     - name: Setup Bats and bats libs
       uses: bats-core/bats-action@1.5.6
-      with:
-        bats-version: '1.2.1'
 
     - name: testing bats
       run: |
