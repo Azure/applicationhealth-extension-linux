@@ -126,11 +126,12 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
-        echo $BATS_SUPPORT_PATH && echo $BATS_ASSERT_PATH
+        export BATS_SUPPORT_PATH=$BATS_SUPPORT_PATH && export BATS_ASSERT_PATH=$BATS_ASSERT_PATH
         sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Parallel Integration Tests
       run: |
+        export BATS_SUPPORT_PATH=$BATS_SUPPORT_PATH && export BATS_ASSERT_PATH=$BATS_ASSERT_PATH
         sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
