@@ -57,6 +57,16 @@ jobs:
 
     - name: Setup Bats and bats libs
       uses: bats-core/bats-action@1.5.6
+      with:
+        bats-version: '1.2.1'
+
+    - name: testing bats
+      run: |
+        bats --version
+        sudo bats --version
+        bats --help
+        sudo bats --help
+        which bats
 
     # - name: Set Bats Environment Variables
     #   run: |
