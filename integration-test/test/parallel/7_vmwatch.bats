@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 setup(){
+    echo "BATS_ASSERT_PATH: $BATS_ASSERT_PATH"
     bats_load_library $BATS_ASSERT_PATH
     load "../test_helper"
     build_docker_image
