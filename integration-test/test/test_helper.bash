@@ -6,6 +6,13 @@ TEST_CONTAINER=test
 
 certs_dir="$BATS_TEST_DIRNAME/certs"
 
+_load_bats_libs() {
+    export BATS_LIB_PATH=${CUSTOM_BATS_LIB_PATH:-"/usr/lib:/usr/local/lib/node_modules"}
+    echo "BATS_LIB_PATH: $BATS_LIB_PATH"
+    bats_load_library bats-support
+    bats_load_library bats-assert
+}
+
 # This function builds a Docker image for testing purposes. 
 # If the image already exists, a random number is appended to the name.
 # a unique name is needed to avoid conflicts with other tests while running in parallel.

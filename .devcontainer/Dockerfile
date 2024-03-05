@@ -44,5 +44,4 @@ RUN curl -fsSL https://test.docker.com -o test-docker.sh && \
         sh test-docker.sh
 
 # Creating ENV variables
-ENV BATS_SUPPORT_PATH /usr/local/lib/node_modules/bats-support
-ENV BATS_ASSERT_PATH /usr/local/lib/node_modules/bats-assert
+ENV CUSTOM_BATS_LIB_PATH /usr/local/lib/node_modules

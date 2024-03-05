@@ -1,10 +1,8 @@
 #!/usr/bin/env bats
 
 setup(){
-    # echo "BATS_ASSERT_PATH: $BATS_ASSERT_PATH"
-    echo "BATS_ASSERT_PATH_TEST: $BATS_ASSERT_PATH_TEST"
-    # bats_load_library $BATS_ASSERT_PATH
     load "../test_helper"
+    _load_bats_libs
     build_docker_image
     container_name="vmwatch_$BATS_TEST_NUMBER"
     extension_version=$(get_extension_version)
