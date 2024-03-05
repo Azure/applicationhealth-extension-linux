@@ -53,7 +53,6 @@ jobs:
       run: |
         sudo apt install npm
         sudo npm install -g bats
-        
 
     - name: Setup bats libs
       uses: bats-core/bats-action@1.5.6
