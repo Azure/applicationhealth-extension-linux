@@ -69,8 +69,6 @@ jobs:
     - name: Testing Bats Installation
       run: |
         bats --version
-        bats-support --version
-        bats-assert --version
         sudo bats --version
 
     # - name: Set Bats Environment Variables
