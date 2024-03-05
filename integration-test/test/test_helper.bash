@@ -186,13 +186,13 @@ copy_config() { # places specified settings file ($1) into container as 0.settin
 }
 
 # first argument is the string containing healthextension logs separated by newline
-# it also expects the time={time in TZ format} version={version} to be in each log line
+# it also expects the time={time in TZ format} level... to be in each log line
 # second argument is an array of expected time difference (in seconds) between previous log
 # for example: [5,10] means that the expected time difference between second log and first log is 5 seconds
 # and time difference between third log and second log is 10 seconds
 verify_state_change_timestamps() {
     expectedTimeDifferences="$2"
-    regex='time=([^[:space:]]*)'
+    regex='time=([^[:space:]]*)' # regex to extract time from log line, will select everything until a space is found
     prevDate=""
     index=0
     while IFS=$'\n' read -ra enableLogs; do
