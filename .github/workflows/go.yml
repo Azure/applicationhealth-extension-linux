@@ -66,7 +66,6 @@ jobs:
         bats --version
         bats --help
         which bats
-        sudo bats --version
 
     # - name: Set Bats Environment Variables
     #   run: |
@@ -127,22 +126,22 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/sequential/.bats/run-logs/
-        sudo bats integration-test/test/sequential -T --trace
+        bats integration-test/test/sequential -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Sequential Integration Tests
       run: |
-        sudo bats integration-test/test/sequential --filter-status failed -T --trace
+        bats integration-test/test/sequential --filter-status failed -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Run Parallel Integration Tests
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
-        sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
+        bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Parallel Integration Tests
       run: |
-        sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
+        bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
