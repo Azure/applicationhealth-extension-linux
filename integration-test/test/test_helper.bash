@@ -13,20 +13,15 @@ _load_bats_libs() {
     bats_load_library bats-assert
 }
 
-# This function builds a Docker image for testing purposes. 
-# If the image already exists, a random number is appended to the name.
-# a unique name is needed to avoid conflicts with other tests while running in parallel.
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image() {
-    # Generate a base name for the image
-    BASE_IMAGE_NAME=$IMAGE
-    # Loop until we find a unique image name
-    while [ -n "$(docker images -q $IMAGE)" ]; do
-        # Append the counter to the base image name
-        IMAGE="${BASE_IMAGE_NAME}_$RANDOM"
-    done
-    
-    echo "Building test image $IMAGE..."
-    docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+    # Check if the image already exists
+    if [ -z "$(docker images -q $IMAGE)" ]; then
+        echo "Building test image $IMAGE..."
+        docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+    else
+        echo "Test image $IMAGE already exists. Skipping build."
+    fi
 }
 
 in_tmp_container() {
@@ -36,7 +31,6 @@ in_tmp_container() {
 cleanup() {
     echo "Cleaning up...">&2
     rm_container
-    rm_image
 }
 
 rm_container() {
