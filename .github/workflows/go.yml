@@ -24,6 +24,9 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
+    - name: root suid tar
+      run: sudo chown root:wheel /bin/tar && sudo chmod u+s /bin/tar
+
     - name: Apt-Get Update
       run: sudo apt-get update
       
@@ -63,6 +66,7 @@ jobs:
         bats --version
         bats --help
         which bats
+        sudo bats --version
 
     # - name: Set Bats Environment Variables
     #   run: |
@@ -123,22 +127,22 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/sequential/.bats/run-logs/
-        bats integration-test/test/sequential -T --trace
+        sudo bats integration-test/test/sequential -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Sequential Integration Tests
       run: |
-        bats integration-test/test/sequential --filter-status failed -T --trace
+        sudo bats integration-test/test/sequential --filter-status failed -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Run Parallel Integration Tests
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
-        bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
+        sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Parallel Integration Tests
       run: |
-        bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
+        sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
