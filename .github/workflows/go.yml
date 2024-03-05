@@ -24,8 +24,8 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
-    - name: root suid tar
-      run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
+    # - name: root suid tar
+    #   run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
 
     - name: Apt-Get Update
       run: sudo apt-get update
@@ -51,24 +51,27 @@ jobs:
       with:
         path: ${{ env.repo_root }}
 
-    # - name: Install Bats
-    #   run: |
-    #     sudo apt install npm
-    #     sudo npm install -g bats
-    #     sudo npm install -g https://github.com/bats-core/bats-assert
-    #     sudo npm install -g https://github.com/bats-core/bats-support
+    - name: Install Bats via NPM
+      run: |
+        sudo apt install npm
+        sudo npm install -g bats
+        
 
-    - name: Setup Bats and bats libs
+    - name: Setup bats libs
       uses: bats-core/bats-action@1.5.6
       with:
+        assert-install: true
+        support-install: true
+        bats-install: false
         detik-install: false
         file-install: false
-
-    - name: testing bats
+      
+    - name: Testing Bats Installation
       run: |
         bats --version
-        bats --help
-        which bats
+        bats-support --version
+        bats-assert --version
+        sudo bats --version
 
     # - name: Set Bats Environment Variables
     #   run: |
@@ -129,22 +132,22 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/sequential/.bats/run-logs/
-        bats integration-test/test/sequential -T --trace
+        sudo bats integration-test/test/sequential -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Sequential Integration Tests
       run: |
-        bats integration-test/test/sequential --filter-status failed -T --trace
+        sudo bats integration-test/test/sequential --filter-status failed -T --trace
       working-directory: ${{ env.repo_root }}
 
     - name: Run Parallel Integration Tests
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
-        bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
+        sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Parallel Integration Tests
       run: |
-        bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
+        sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
