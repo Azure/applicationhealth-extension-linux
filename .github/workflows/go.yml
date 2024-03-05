@@ -24,8 +24,6 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
-    # - name: root suid tar
-    #   run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
 
     - name: Apt-Get Update
       run: sudo apt-get update
@@ -71,19 +69,6 @@ jobs:
         bats --version
         sudo bats --version
 
-    # - name: Set Bats Environment Variables
-    #   run: |
-    #     npm root -g
-    #     ls -l $(npm root -g)
-    #     ls -l $(npm root -g)/bats-support
-    #     ls -l $(npm root -g)/bats-assert
-    #     echo "BATS_SUPPORT_PATH=$(npm root -g)/bats-support/load.bash" >> $GITHUB_ENV
-    #     echo "BATS_ASSERT_PATH=$(npm root -g)/bats-assert/load.bash" >> $GITHUB_ENV
-
-    # - name: Testing Envs
-    #   run: |
-    #     echo "BATS_SUPPORT_PATH=$BATS_SUPPORT_PATH"
-    #     echo "BATS_ASSERT_PATH=$BATS_ASSERT_PATH"
 
     - name: Install Parallel
       run: |
