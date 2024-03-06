@@ -121,7 +121,7 @@ type protectedSettings struct {
 
 // ParseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
-func ParseAndValidateSettings(ctx logging.ExtensionLogger, configFolder string) (h HandlerSettings, _ error) {
+func ParseAndValidateSettings(ctx logging.Logger, configFolder string) (h HandlerSettings, _ error) {
 	ctx.Info("reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {

@@ -58,7 +58,7 @@ func (p HealthStatus) GetMessageForAppHealthStatus() string {
 }
 
 type HealthProbe interface {
-	Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error)
+	Evaluate(ctx logging.Logger) (ProbeResponse, error)
 	address() string
 	HealthStatusAfterGracePeriodExpires() HealthStatus
 }
@@ -72,7 +72,7 @@ type HttpHealthProbe struct {
 	Address    string
 }
 
-func NewHealthProbe(ctx logging.ExtensionLogger, cfg *settings.HandlerSettings) HealthProbe {
+func NewHealthProbe(ctx logging.Logger, cfg *settings.HandlerSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
 	plgSettings := NewAppHealthSettings(cfg)
@@ -95,7 +95,7 @@ func NewHealthProbe(ctx logging.ExtensionLogger, cfg *settings.HandlerSettings) 
 	return p
 }
 
-func (p *TcpHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error) {
+func (p *TcpHealthProbe) Evaluate(ctx logging.Logger) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -178,7 +178,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error) {
+func (p *HttpHealthProbe) Evaluate(ctx logging.Logger) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -245,7 +245,7 @@ func noRedirect(req *http.Request, via []*http.Request) error {
 type DefaultHealthProbe struct {
 }
 
-func (p DefaultHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, error) {
+func (p DefaultHealthProbe) Evaluate(ctx logging.Logger) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
 	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
