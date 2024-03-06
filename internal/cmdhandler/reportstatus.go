@@ -1,6 +1,8 @@
 package cmdhandler
 
 import (
+	"log/slog"
+
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
@@ -12,26 +14,26 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func ReportStatus(ctx logging.ExtensionLogger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c Cmd, msg string) error {
+func ReportStatus(ctx logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c Cmd, msg string) error {
 	if !c.ShouldReportStatus {
-		ctx.Event("status not reported for operation (by design)")
+		ctx.Info("status not reported for operation (by design)")
 		return nil
 	}
 	s := status.NewStatus(t, c.Name.String(), statusMsg(c, t, msg))
 	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
-		ctx.EventError("failed to save handler status", err)
+		ctx.Error("failed to save handler status", slog.Any("error", err))
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil
 }
 
-func ReportStatusWithSubstatuses(ctx logging.ExtensionLogger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
+func ReportStatusWithSubstatuses(ctx logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
 	s := status.NewStatus(t, op, msg)
 	for _, substatus := range substatuses {
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
-		ctx.EventError("failed to save handler status", err)
+		ctx.Error("failed to save handler status", slog.Any("error", err))
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil

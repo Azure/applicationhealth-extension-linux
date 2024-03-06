@@ -31,14 +31,14 @@ func Test_statusMsg(t *testing.T) {
 func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := handlerenv.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
-	lg := logging.New(&fakeEnv)
+	lg := logging.NewExtensionLogger(&fakeEnv)
 
 	h, err := NewCommandHandler()
 	require.Nil(t, err)
 	cmds := h.CommandMap()
 	require.NotNil(t, cmds)
 
-	err = ReportStatus(*lg, fakeEnv, 1, status.StatusSuccess, cmds["enable"], "")
+	err = ReportStatus(lg, fakeEnv, 1, status.StatusSuccess, cmds["enable"], "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
 }
@@ -50,7 +50,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 
 	fakeEnv := handlerenv.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-	lg := logging.New(&fakeEnv)
+	lg := logging.NewExtensionLogger(&fakeEnv)
 
 	// Setting Up CommandHandler
 	h, err := NewCommandHandler()
@@ -58,7 +58,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	cmds := h.CommandMap()
 	require.NotNil(t, cmds)
 
-	require.Nil(t, ReportStatus(*lg, fakeEnv, 1, status.StatusError, cmds["enable"], "FOO ERROR"))
+	require.Nil(t, ReportStatus(lg, fakeEnv, 1, status.StatusError, cmds["enable"], "FOO ERROR"))
 
 	path := filepath.Join(tmpDir, "1.status")
 	b, err := ioutil.ReadFile(path)
@@ -80,8 +80,8 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 
 		fakeEnv := handlerenv.HandlerEnvironment{}
 		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-		lg := logging.New(&fakeEnv)
-		require.Nil(t, ReportStatus(*lg, fakeEnv, 2, status.StatusSuccess, c, ""))
+		lg := logging.NewExtensionLogger(&fakeEnv)
+		require.Nil(t, ReportStatus(lg, fakeEnv, 2, status.StatusSuccess, c, ""))
 
 		fp := filepath.Join(tmpDir, "2.status")
 		_, err = os.Stat(fp) // check if the .status file is there
