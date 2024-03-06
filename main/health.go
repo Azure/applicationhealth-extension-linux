@@ -56,7 +56,7 @@ func (p HealthStatus) GetMessageForAppHealthStatus() string {
 }
 
 type HealthProbe interface {
-	evaluate(ctx logging.Logger) (ProbeResponse, error)
+	evaluate(lg logging.Logger) (ProbeResponse, error)
 	address() string
 	healthStatusAfterGracePeriodExpires() HealthStatus
 }
@@ -70,7 +70,7 @@ type HttpHealthProbe struct {
 	Address    string
 }
 
-func NewHealthProbe(ctx logging.Logger, cfg *handlerSettings) HealthProbe {
+func NewHealthProbe(lg logging.Logger, cfg *handlerSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
 	switch cfg.protocol() {
@@ -78,20 +78,20 @@ func NewHealthProbe(ctx logging.Logger, cfg *handlerSettings) HealthProbe {
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.port()),
 		}
-		ctx.Info("creating tcp probe targeting " + p.address())
+		lg.Info("creating tcp probe targeting " + p.address())
 	case "http":
 		fallthrough
 	case "https":
 		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		ctx.Info("creating " + cfg.protocol() + " probe targeting " + p.address())
+		lg.Info("creating " + cfg.protocol() + " probe targeting " + p.address())
 	default:
-		ctx.Info("default settings without probe")
+		lg.Info("default settings without probe")
 	}
 
 	return p
 }
 
-func (p *TcpHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
+func (p *TcpHealthProbe) evaluate(lg logging.Logger) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -174,7 +174,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
+func (p *HttpHealthProbe) evaluate(lg logging.Logger) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -210,7 +210,7 @@ func (p *HttpHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
 	}
 
 	if err := probeResponse.validateCustomMetrics(); err != nil {
-		ctx.Error("Error validating custom metrics", slog.Any("error", err))
+		lg.Error("Error validating custom metrics", slog.Any("error", err))
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {
@@ -241,7 +241,7 @@ func noRedirect(req *http.Request, via []*http.Request) error {
 type DefaultHealthProbe struct {
 }
 
-func (p DefaultHealthProbe) evaluate(ctx logging.Logger) (ProbeResponse, error) {
+func (p DefaultHealthProbe) evaluate(lg logging.Logger) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
 	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
