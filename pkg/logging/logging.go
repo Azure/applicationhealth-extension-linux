@@ -66,7 +66,7 @@ type ExtensionLogger struct {
 // If the HandlerEnvironment is nil or the LogFolder within the HandlerEnvironment is empty,
 // a standard output logger will be used.
 // It returns a Logger instance.
-func NewExtensionLogger(he *handlerenv.HandlerEnvironment) Logger {
+func NewExtensionLogger(he *handlerenv.HandlerEnvironment) (Logger, error) {
 	if he == nil || he.HandlerEnvironment.LogFolder == "" {
 		// Standard output logger will be used
 		return NewExtensionLoggerWithName("", "")
@@ -80,10 +80,10 @@ func NewExtensionLogger(he *handlerenv.HandlerEnvironment) Logger {
 // Supports custom log file format, with default format "log_%v".
 // Supports cycling of logs to prevent filling up the disk.
 // If valid LogFolder is provided, it will create and write logs to the specified folder.
-func NewExtensionLoggerWithName(logFolder string, logFileFormat string) Logger {
+func NewExtensionLoggerWithName(logFolder string, logFileFormat string) (Logger, error) {
 	if logFolder == "" {
 		// If handler environment is not provided, use standard output
-		return newStandardOutput()
+		return newStandardOutput(), nil
 	}
 
 	if logFileFormat == "" {
@@ -93,16 +93,16 @@ func NewExtensionLoggerWithName(logFolder string, logFileFormat string) Logger {
 	// Rotate log folder to prevent filling up the disk
 	err := rotateLogFolder(logFolder, logFileFormat)
 	if err != nil {
-		return newStandardOutput()
+		return nil, err
 	}
 
 	fileName := fmt.Sprintf(logFileFormat, strconv.FormatInt(time.Now().UTC().Unix(), 10))
 	filePath := path.Join(logFolder, fileName)
 	writer, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		return newStandardOutput()
+		return nil, err
 	}
-	return newMultiLogger(writer)
+	return newMultiLogger(writer), nil
 }
 
 // Error logs an error. Format is the same as fmt.Print

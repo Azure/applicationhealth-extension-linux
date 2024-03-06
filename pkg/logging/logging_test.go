@@ -17,26 +17,37 @@ import (
 func TestNew(t *testing.T) {
 	// Test creating a logger with a handler environment
 	var (
-		logDir  = "/tmp/logs"
-		fakeEnv = &handlerenv.HandlerEnvironment{}
+		fakeEnv        = &handlerenv.HandlerEnvironment{}
+		logFolder, err = os.MkdirTemp("", "logs")
 	)
+	require.NoError(t, err)
+	defer os.RemoveAll(logFolder)
+	fakeEnv.HandlerEnvironment.LogFolder = logFolder
 
-	fakeEnv.HandlerEnvironment.LogFolder = logDir
-	logger := NewExtensionLogger(fakeEnv)
+	logger, err := NewExtensionLogger(fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 	defer logger.Close()
 
 	assert.NotNil(t, logger)
 }
 
-func TestNewWithName(t *testing.T) {
+func TestNewWithName_Success(t *testing.T) {
+	logFolder, err := os.MkdirTemp("", "logs")
+	require.NoError(t, err)
+	logger, err := NewExtensionLoggerWithName(logFolder, "log_%v_test")
+	require.NoError(t, err, "Failed to create logger")
+	require.NotNil(t, logger, "Logger should not be nil")
+}
+
+func TestNewWithName_NoDirExist(t *testing.T) {
 	// Test creating a logger with a handler environment and custom log file name format
 	var (
-		logDir = "/tmp/logs"
-		logger = NewExtensionLoggerWithName(logDir, "log_%v_test")
+		logDir      = "/tmp/logs"
+		logger, err = NewExtensionLoggerWithName(logDir, "log_%v_test")
 	)
-	defer logger.Close()
-
-	assert.NotNil(t, logger)
+	require.NoDirExists(t, logDir, "Log directory should not have been created")
+	require.Error(t, err, "Failed to create logger")
+	assert.Nil(t, logger, "Logger should be nil")
 }
 
 func TestRotateLogFolder(t *testing.T) {
@@ -132,7 +143,8 @@ func TestExtensionLogger_Error(t *testing.T) {
 	fakeEnv.HandlerEnvironment.LogFolder = logDir
 
 	// Create an ExtensionLogger with the fake logger
-	logger := NewExtensionLogger(fakeEnv)
+	logger, err := NewExtensionLogger(fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 	defer logger.Close()
 
 	// Log an error message
@@ -165,7 +177,8 @@ func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 	defer removeDirectories(logDir)
 
 	// Create a logger
-	logger := NewExtensionLoggerWithName(logDir, "log_%v_test")
+	logger, err := NewExtensionLoggerWithName(logDir, "log_%v_test")
+	require.NoError(t, err, "Failed to create logger")
 	defer logger.Close()
 
 	// Log some messages with different levels and properties

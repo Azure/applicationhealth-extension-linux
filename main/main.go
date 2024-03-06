@@ -24,10 +24,14 @@ var (
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
 	// the logger that will be used throughout
-	lg = logging.NewExtensionLogger(nil)
+	lg, err = logging.NewExtensionLogger(nil)
 )
 
 func main() {
+	if err != nil {
+		slog.Error("failed to create logger", slog.Any("error", err))
+		os.Exit(3)
+	}
 
 	lg.With("version", VersionString())
 
@@ -40,7 +44,14 @@ func main() {
 		os.Exit(cmd.failExitCode)
 	}
 	// Creating new Logger with the handler environment
-	lg = logging.NewExtensionLogger(&h)
+	var logger logging.Logger
+	logger, err = logging.NewExtensionLogger(&h)
+	if err != nil {
+		lg.Error("failed to create logger", slog.Any("error", err))
+		os.Exit(cmd.failExitCode)
+	}
+	lg = logger
+
 	lg.With("version", VersionString())
 	lg.With("operation", strings.ToLower(cmd.name))
 

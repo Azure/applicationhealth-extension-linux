@@ -25,9 +25,10 @@ func Test_statusMsg(t *testing.T) {
 func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := handlerenv.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
-	lg := logging.NewExtensionLogger(&fakeEnv)
+	lg, err := logging.NewExtensionLogger(&fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 
-	err := reportStatus(lg, fakeEnv, 1, StatusSuccess, cmdEnable, "")
+	err = reportStatus(lg, fakeEnv, 1, StatusSuccess, cmdEnable, "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
 }
@@ -39,7 +40,8 @@ func Test_reportStatus_fileExists(t *testing.T) {
 
 	fakeEnv := handlerenv.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-	lg = logging.NewExtensionLogger(&fakeEnv)
+	lg, err = logging.NewExtensionLogger(&fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 
 	require.Nil(t, reportStatus(lg, fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
 
@@ -57,7 +59,9 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 
 		fakeEnv := handlerenv.HandlerEnvironment{}
 		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-		lg = logging.NewExtensionLogger(&fakeEnv)
+		lg, err = logging.NewExtensionLogger(&fakeEnv)
+		require.NoError(t, err, "Failed to create logger")
+
 		require.Nil(t, reportStatus(lg, fakeEnv, 2, StatusSuccess, c, ""))
 
 		fp := filepath.Join(tmpDir, "2.status")
