@@ -24,7 +24,7 @@ const (
 )
 
 const (
-	thirtyMB            = 30 * 1024 * 1034 // 31,457,280 bytes
+	thirtyMB            = 30 * 1024 * 1024 // 31,457,280 bytes
 	fortyMB             = 40 * 1024 * 1024 // 41,943,040 bytes
 	logDirThresholdLow  = thirtyMB
 	logDirThresholdHigh = fortyMB
