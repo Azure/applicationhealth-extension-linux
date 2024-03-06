@@ -4,7 +4,8 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -81,14 +82,14 @@ func NewHealthProbe(ctx logging.ExtensionLogger, cfg *settings.HandlerSettings) 
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(plgSettings.GetPort()),
 		}
-		ctx.Event("creating tcp probe targeting " + p.address())
+		ctx.Info("creating tcp probe targeting " + p.address())
 	case "http":
 		fallthrough
 	case "https":
 		p = NewHttpHealthProbe(plgSettings.GetProtocol(), plgSettings.GetRequestPath(), plgSettings.GetPort())
-		ctx.Event("creating " + plgSettings.GetProtocol() + " probe targeting " + p.address())
+		ctx.Info("creating " + plgSettings.GetProtocol() + " probe targeting " + p.address())
 	default:
-		ctx.Event("default settings without probe")
+		ctx.Info("default settings without probe")
 	}
 
 	return p
@@ -201,7 +202,7 @@ func (p *HttpHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, 
 		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, errors.New(fmt.Sprintf("Unsuccessful response status code %v", resp.StatusCode))
 	}
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		probeResponse.ApplicationHealthState = Unknown
 		return probeResponse, err
@@ -213,7 +214,7 @@ func (p *HttpHealthProbe) Evaluate(ctx logging.ExtensionLogger) (ProbeResponse, 
 	}
 
 	if err := probeResponse.ValidateCustomMetrics(); err != nil {
-		ctx.EventError("Error validating custom metrics", err)
+		ctx.Error("Error validating custom metrics", slog.Any("error", err))
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {

@@ -83,7 +83,7 @@ func NewCommandHandler() (CommandHandler, error) {
 }
 
 func noop(ctx logging.ExtensionLogger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
-	ctx.Event("noop")
+	ctx.Info("noop")
 	return "", nil
 }
 
