@@ -156,19 +156,19 @@ func TestValidatePublicSettings_gracePeriod(t *testing.T) {
 }
 
 func TestValidatePublicSettings_vmwatch(t *testing.T) {
-	require.Nil(t, validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : false }}`), "valid settings")
-	require.Nil(t, validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true }}`), "valid settings")
-	require.Nil(t, validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 30000000 }}`), "valid settings")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : false }}`), "valid settings")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true }}`), "valid settings")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 30000000 }}`), "valid settings")
 
-	err := validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 20000000 }}`)
+	err := ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 20000000 }}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.memoryLimitInBytes: Must be greater than or equal to 30000000")
 
-	err = validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 0 }}`)
+	err = ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 0 }}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.maxCpuPercentage: Must be greater than or equal to 1")
 
-	err = validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 101 }}`)
+	err = ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 101 }}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.maxCpuPercentage: Must be less than or equal to 100")
 }
