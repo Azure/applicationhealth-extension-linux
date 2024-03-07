@@ -47,15 +47,15 @@ var (
 	vmWatchCommand *exec.Cmd
 )
 
-func (h *LinuxCommandHandler) CommandMap() CommandMap {
-	return h.commands
+func (ch *LinuxCommandHandler) CommandMap() CommandMap {
+	return ch.commands
 }
 
-func (h *LinuxCommandHandler) SetCommandToExecute(cmd CommandKey) error {
-	if _, ok := h.commands[cmd]; !ok {
+func (ch *LinuxCommandHandler) SetCommandToExecute(cmd CommandKey) error {
+	if _, ok := ch.commands[cmd]; !ok {
 		return errors.Errorf("unknown command: %s", cmd)
 	}
-	h.target = cmd
+	ch.target = cmd
 	return nil
 }
 
@@ -123,40 +123,40 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func install(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
 
-	ctx.Info(fmt.Sprintf("created data dir, path: %s", dataDir))
-	ctx.Info("installed")
+	lg.Info(fmt.Sprintf("created data dir, path: %s", dataDir))
+	lg.Info("installed")
 	return "", nil
 }
 
-func uninstall(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
-		ctx.With("path", dataDir)
+		lg.With("path", dataDir)
 
-		ctx.Info(fmt.Sprintf("removing data dir, path: %s", dataDir))
+		lg.Info(fmt.Sprintf("removing data dir, path: %s", dataDir))
 		if err := os.RemoveAll(dataDir); err != nil {
 			return "", errors.Wrap(err, "failed to delete data dir")
 		}
-		ctx.Info("removed data dir")
+		lg.Info("removed data dir")
 	}
-	ctx.Info("uninstalled")
+	lg.Info("uninstalled")
 	return "", nil
 }
 
-func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func enable(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
-	cfg, err := settings.ParseAndValidateSettings(ctx, h.HandlerEnvironment.ConfigFolder)
+	cfg, err := settings.ParseAndValidateSettings(lg, h.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
 	appHealthSettings := apphealth.NewAppHealthSettings(&cfg)
 
-	probe := apphealth.NewHealthProbe(ctx, &cfg)
+	probe := apphealth.NewHealthProbe(lg, &cfg)
 	var (
 		intervalBetweenProbesInMs = time.Duration(appHealthSettings.GetIntervalInSeconds()) * time.Millisecond * 1000
 		numberOfProbes            = appHealthSettings.GetNumberOfProbes()
@@ -173,18 +173,18 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 	)
 
 	if !honorGracePeriod {
-		ctx.Info("Grace period not set")
+		lg.Info("Grace period not set")
 
 	} else {
-		ctx.Info(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
+		lg.Info(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
-	ctx.Info(fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
+	lg.Info(fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
-		ctx.Info("VMWatch is disabled, not starting process.")
+		lg.Info("VMWatch is disabled, not starting process.")
 	} else {
 		vmWatchResult = vmwatch.VMWatchResult{Status: vmwatch.NotRunning, Error: nil}
-		go vmwatch.ExecuteVMWatch(ctx, vmWatchSettings, h, vmWatchResultChannel)
+		go vmwatch.ExecuteVMWatch(lg, vmWatchSettings, h, vmWatchResultChannel)
 	}
 
 	// The committed health status (the state written to the status file) initially does not have a state
@@ -199,10 +199,10 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 	//	2. A valid health state is observed numberOfProbes consecutive times
 	for {
 		startTime := time.Now()
-		probeResponse, err := probe.Evaluate(ctx)
+		probeResponse, err := probe.Evaluate(lg)
 		state := probeResponse.ApplicationHealthState
 		if err != nil {
-			ctx.Error("Error occurred during probe evaluation", slog.Any("error", err))
+			lg.Error("Error occurred during probe evaluation", slog.Any("error", err))
 		}
 
 		if global.Shutdown {
@@ -218,14 +218,14 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 			if !ok {
 				vmWatchResult = vmwatch.VMWatchResult{Status: vmwatch.Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
 			} else if result.Status == vmwatch.Running {
-				ctx.Info("VMWatch is running")
+				lg.Info("VMWatch is running")
 			} else if result.Status == vmwatch.Failed {
-				ctx.Error("VMWatch failed", slog.String("error", vmWatchResult.GetMessage()))
+				lg.Error("VMWatch failed", slog.String("error", vmWatchResult.GetMessage()))
 			}
 		default:
 			if vmWatchResult.Status == vmwatch.Running && time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
 				timeOfLastVMWatchLog = time.Now()
-				ctx.Info("VMWatch is running")
+				lg.Info("VMWatch is running")
 			}
 		}
 
@@ -234,7 +234,7 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 			numConsecutiveProbes++
 			// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
-			ctx.Info("Health state changed to " + strings.ToLower(string(state)))
+			lg.Info("Health state changed to " + strings.ToLower(string(state)))
 			numConsecutiveProbes = 1
 			prevState = state
 		}
@@ -243,7 +243,7 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application didn't initialize on time
 			if timeElapsed >= gracePeriodInSeconds {
-				ctx.Info(fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
+				lg.Info(fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				state = probe.HealthStatusAfterGracePeriodExpires()
 				prevState = probe.HealthStatusAfterGracePeriodExpires()
@@ -251,11 +251,11 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 				committedState = apphealth.Empty
 				// If grace period has not expired, check if we have consecutive valid probes
 			} else if (numConsecutiveProbes == numberOfProbes) && (state != probe.HealthStatusAfterGracePeriodExpires()) {
-				ctx.Info(fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
+				lg.Info(fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				// Application will be in Initializing state since we have not received consecutive valid health states
 			} else {
-				ctx.Info(fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
+				lg.Info(fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 				state = apphealth.Initializing
 			}
 		}
@@ -263,7 +263,7 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 		if (numConsecutiveProbes == numberOfProbes) || (committedState == apphealth.Empty) {
 			if state != committedState {
 				committedState = state
-				ctx.Info(fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+				lg.Info(fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			}
 			// Only reset if we've observed consecutive probes in order to preserve previous observations when handling grace period
 			if numConsecutiveProbes == numberOfProbes {
@@ -292,9 +292,9 @@ func enable(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 			substatuses = append(substatuses, status.NewSubstatus(vmwatch.SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
-		err = ReportStatusWithSubstatuses(ctx, h, seqNum, status.StatusSuccess, "enable", statusMessage, substatuses)
+		err = ReportStatusWithSubstatuses(lg, h, seqNum, status.StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
-			ctx.Error("Failed to report status", slog.Any("error", err))
+			lg.Error("Failed to report status", slog.Any("error", err))
 		}
 
 		endTime := time.Now()

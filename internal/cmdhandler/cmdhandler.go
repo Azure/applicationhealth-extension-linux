@@ -36,8 +36,8 @@ const (
 	DisableName   CommandName = "Disable"
 )
 
-type cmdFunc func(ctx logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
-type preFunc func(ctx logging.Logger, seqNum int) error
+type cmdFunc func(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
+type preFunc func(lg logging.Logger, seqNum int) error
 
 type Cmd struct {
 	f                  cmdFunc     // associated function
@@ -82,8 +82,8 @@ func NewCommandHandler() (CommandHandler, error) {
 	return handler, nil
 }
 
-func noop(ctx logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
-	ctx.Info("noop")
+func noop(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+	lg.Info("noop")
 	return "", nil
 }
 

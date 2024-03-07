@@ -18,20 +18,20 @@ func newOSCommandHandler() (CommandHandler, error) {
 	}, nil
 }
 
-func (h *WindowsCommandHandler) Execute(h handlerenv.HandlerEnvironment, seqNum int) error {
+func (*WindowsCommandHandler) Execute(h handlerenv.HandlerEnvironment, seqNum int) error {
 	// TODO: Implement command execution
 	return nil
 }
 
-func (h *WindowsCommandHandler) CommandMap() CommandMap {
-	return h.commands
+func (ch *WindowsCommandHandler) CommandMap() CommandMap {
+	return ch.commands
 }
 
-func (h *WindowsCommandHandler) SetCommandToExecute(key CommandKey) error {
+func (ch *WindowsCommandHandler) SetCommandToExecute(key CommandKey) error {
 	// TODO: Implement Correctly for Windows
-	if _, ok := h.commands[key]; !ok {
-		return errors.Errorf("unknown command: %s", cmd)
+	if _, ok := ch.commands[key]; !ok {
+		return errors.Errorf("unknown command: %s", key)
 	}
-	h.target = key
+	ch.target = key
 	return nil
 }
