@@ -16,22 +16,26 @@
         "RUNNING_IN_DEV_CONTAINER": "1",
         "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1"
     },
-
     "customizations": {
         "vscode": {
             // Set *default* container specific settings.json values on container create.
             "settings": {},
             // Add the IDs of extensions you want installed when the container is created.
             "extensions": [
-                "golang.go"
+                "golang.go",
+                "ms-azuretools.vscode-docker"
+            ],
+            "recommendations": [
+                "golang.go-nightly"
             ]
         }
     },
     "remoteUser": "root",
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "echo hello",
-    "mounts": [ ]
-
+    "postCreateCommand": "go mod download",
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" 
+    ]
     // // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [5000, 5001],B
     // [Optional] To reuse of your local HTTPS dev cert:

@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-kit/kit/log"
+	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,10 +23,12 @@ func Test_statusMsg(t *testing.T) {
 }
 
 func Test_reportStatus_fails(t *testing.T) {
-	fakeEnv := HandlerEnvironment{}
+	fakeEnv := handlerenv.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
+	lg, err := logging.NewExtensionLogger(&fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 
-	err := reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 1, StatusSuccess, cmdEnable, "")
+	err = reportStatus(lg, fakeEnv, 1, StatusSuccess, cmdEnable, "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
 }
@@ -35,10 +38,12 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	fakeEnv := HandlerEnvironment{}
+	fakeEnv := handlerenv.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
+	lg, err = logging.NewExtensionLogger(&fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 
-	require.Nil(t, reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
+	require.Nil(t, reportStatus(lg, fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
 
 	path := filepath.Join(tmpDir, "1.status")
 	b, err := ioutil.ReadFile(path)
@@ -52,9 +57,12 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 		require.Nil(t, err)
 		defer os.RemoveAll(tmpDir)
 
-		fakeEnv := HandlerEnvironment{}
+		fakeEnv := handlerenv.HandlerEnvironment{}
 		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-		require.Nil(t, reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 2, StatusSuccess, c, ""))
+		lg, err = logging.NewExtensionLogger(&fakeEnv)
+		require.NoError(t, err, "Failed to create logger")
+
+		require.Nil(t, reportStatus(lg, fakeEnv, 2, StatusSuccess, c, ""))
 
 		fp := filepath.Join(tmpDir, "2.status")
 		_, err = os.Stat(fp) // check if the .status file is there

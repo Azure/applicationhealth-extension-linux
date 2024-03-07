@@ -1,7 +1,9 @@
 {
     "recommendations": [
-        "golang.go",
         "ms-vscode-remote.remote-containers",
-        "ms-vscode-remote.remote-ssh"
+        "ms-vscode-remote.remote-ssh",
+        "github.copilot",
+        "ms-azuretools.vscode-docker",
+        "github.vscode-pull-request-github"
     ]
 }
