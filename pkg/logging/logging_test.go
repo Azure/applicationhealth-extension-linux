@@ -14,6 +14,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	mb = 1024 * 1024 // 1 MB
+)
+
 func TestNew(t *testing.T) {
 	// Test creating a logger with a handler environment
 	var (
@@ -62,7 +66,7 @@ func TestRotateLogFolder(t *testing.T) {
 	logFile3 := filepath.Join(logFolder, "log_3")
 
 	// Generate a large amount of data to write to the log files
-	largeData := make([]byte, 15*1024*1024) // 15 MB
+	largeData := make([]byte, 14*mb) // 14 MB
 	for i := range largeData {
 		largeData[i] = 'A'
 	}
@@ -74,6 +78,9 @@ func TestRotateLogFolder(t *testing.T) {
 	err = os.WriteFile(logFile3, largeData, 0644)
 	assert.NoError(t, err)
 
+	// Created 3 files with 14MB data each, total 42MB,
+	// which is greater than the threshold of 40MB. Only one file should remain after rotation.
+	// because the threshold lowbound is 30MB, and after deleting the oldest file, the total size will be 28MB.
 	// Rotate the log folder
 	err = rotateLogFolder(logFolder, "log_%v")
 	assert.NoError(t, err)
@@ -102,7 +109,7 @@ func TestRotateLogFolder_DirectorySizeBelowThreshold(t *testing.T) {
 	logFile3 := filepath.Join(logFolder, "log_3")
 
 	// Generate a large amount of data to write to the log files
-	largeData := make([]byte, 15*1024*1024) // 15 MB
+	largeData := make([]byte, 15*mb) // 15 MB
 	for i := range largeData {
 		largeData[i] = 'A'
 	}
