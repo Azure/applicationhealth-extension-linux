@@ -3,12 +3,12 @@ package main
 import (
 	"log/slog"
 
-	"github.com/Azure/applicationhealth-extension-linux/internal/cmdhandler"
 	"github.com/Azure/applicationhealth-extension-linux/internal/exithelper"
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/seqnum"
+	"github.com/Azure/applicationhealth-extension-linux/platform/cmdhandler"
 )
 
 var (
