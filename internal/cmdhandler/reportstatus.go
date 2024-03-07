@@ -14,26 +14,26 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func ReportStatus(ctx logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c Cmd, msg string) error {
+func ReportStatus(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c Cmd, msg string) error {
 	if !c.ShouldReportStatus {
-		ctx.Info("status not reported for operation (by design)")
+		lg.Info("status not reported for operation (by design)")
 		return nil
 	}
 	s := status.NewStatus(t, c.Name.String(), statusMsg(c, t, msg))
 	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
-		ctx.Error("failed to save handler status", slog.Any("error", err))
+		lg.Error("failed to save handler status", slog.Any("error", err))
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil
 }
 
-func ReportStatusWithSubstatuses(ctx logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
+func ReportStatusWithSubstatuses(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
 	s := status.NewStatus(t, op, msg)
 	for _, substatus := range substatuses {
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
-		ctx.Error("failed to save handler status", slog.Any("error", err))
+		lg.Error("failed to save handler status", slog.Any("error", err))
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil
