@@ -95,7 +95,7 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Unit Tests
-      continue-on-error: true
+      continue-on-error: false
       run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
       working-directory: ${{ env.repo_root }}
 
