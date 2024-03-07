@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/plugins/apphealth"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_handlerSettingsValidate(t *testing.T) {
 	// tcp includes request path
-	require.Equal(t, errTcpMustNotIncludeRequestPath,
+	require.Equal(t, apphealth.ErrTcpMustNotIncludeRequestPath,
 		HandlerSettings{
 			publicSettings{
 				AppHealthPluginSettings: AppHealthPluginSettings{
@@ -22,39 +23,39 @@ func Test_handlerSettingsValidate(t *testing.T) {
 				},
 			},
 			protectedSettings{},
-		}.validate())
+		}.Validate())
 
 	// tcp without port
-	require.Equal(t, errTcpConfigurationMustIncludePort, HandlerSettings{
+	require.Equal(t, apphealth.ErrTcpConfigurationMustIncludePort, HandlerSettings{
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "tcp"}},
 		protectedSettings{},
-	}.validate())
+	}.Validate())
 
 	// probe settle time cannot exceed 240 seconds
-	require.Equal(t, errProbeSettleTimeExceedsThreshold, HandlerSettings{
+	require.Equal(t, apphealth.ErrProbeSettleTimeExceedsThreshold, HandlerSettings{
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "http", IntervalInSeconds: 60, NumberOfProbes: 5}},
 		protectedSettings{},
-	}.validate())
+	}.Validate())
 
 	require.Nil(t, HandlerSettings{
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "tcp", Port: 80}},
 		protectedSettings{},
-	}.validate())
+	}.Validate())
 
 	require.Nil(t, HandlerSettings{
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "http", RequestPath: "healthEndpoint"}},
 		protectedSettings{},
-	}.validate())
+	}.Validate())
 
 	require.Nil(t, HandlerSettings{
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "https", RequestPath: "healthEndpoint"}},
 		protectedSettings{},
-	}.validate())
+	}.Validate())
 
 	require.Nil(t, HandlerSettings{
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "https", IntervalInSeconds: 30, NumberOfProbes: 3}},
 		protectedSettings{},
-	}.validate())
+	}.Validate())
 }
 
 func Test_toJSON_empty(t *testing.T) {
@@ -144,7 +145,7 @@ func Test_ParseAndValidateSettings(t *testing.T) {
 	settings, err := ParseAndValidateSettings(logger, configFolder)
 	require.NoError(t, err)
 
-	require.NoError(t, settings.validate(), "Settings validation failed")
+	require.NoError(t, settings.Validate(), "Settings validation failed")
 
 	// Verify the results
 	require.NoError(t, err)
