@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
-	"github.com/Azure/applicationhealth-extension-linux/plugins/schema"
+	"github.com/Azure/applicationhealth-extension-linux/platform/schema"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/pkg/errors"
 )
@@ -24,20 +24,20 @@ type HandlerSettings struct {
 	protectedSettings
 }
 
-func (s *HandlerSettings) protocol() string {
-	return s.publicSettings.Protocol
+func (s *AppHealthPluginSettings) protocol() string {
+	return s.Protocol
 }
 
-func (s *HandlerSettings) requestPath() string {
-	return s.publicSettings.RequestPath
+func (s *AppHealthPluginSettings) requestPath() string {
+	return s.RequestPath
 }
 
-func (s *HandlerSettings) port() int {
-	return s.publicSettings.Port
+func (s *AppHealthPluginSettings) port() int {
+	return s.Port
 }
 
-func (s *HandlerSettings) intervalInSeconds() int {
-	var intervalInSeconds = s.publicSettings.IntervalInSeconds
+func (s *AppHealthPluginSettings) intervalInSeconds() int {
+	var intervalInSeconds = s.IntervalInSeconds
 	if intervalInSeconds == 0 {
 		return defaultIntervalInSeconds
 	} else {
@@ -45,8 +45,8 @@ func (s *HandlerSettings) intervalInSeconds() int {
 	}
 }
 
-func (s *HandlerSettings) numberOfProbes() int {
-	var numberOfProbes = s.publicSettings.NumberOfProbes
+func (s *AppHealthPluginSettings) numberOfProbes() int {
+	var numberOfProbes = s.NumberOfProbes
 	if numberOfProbes == 0 {
 		return defaultNumberOfProbes
 	} else {
@@ -54,8 +54,8 @@ func (s *HandlerSettings) numberOfProbes() int {
 	}
 }
 
-func (s *HandlerSettings) gracePeriod() int {
-	var gracePeriod = s.publicSettings.GracePeriod
+func (s *AppHealthPluginSettings) gracePeriod() int {
+	var gracePeriod = s.GracePeriod
 	if gracePeriod == 0 {
 		return s.intervalInSeconds() * s.numberOfProbes()
 	} else {
@@ -69,16 +69,16 @@ func (s *HandlerSettings) VMWatchSettings() *VMWatchSettings {
 
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
-func (h HandlerSettings) validate() error {
-	if h.protocol() == "tcp" && h.port() == 0 {
+func (s AppHealthPluginSettings) validate() error {
+	if s.protocol() == "tcp" && s.port() == 0 {
 		return errTcpConfigurationMustIncludePort
 	}
 
-	if h.protocol() == "tcp" && h.requestPath() != "" {
+	if s.protocol() == "tcp" && s.requestPath() != "" {
 		return errTcpMustNotIncludeRequestPath
 	}
 
-	probeSettlingTime := h.intervalInSeconds() * h.numberOfProbes()
+	probeSettlingTime := s.intervalInSeconds() * s.numberOfProbes()
 	if probeSettlingTime > maximumProbeSettleTime {
 		return errProbeSettleTimeExceedsThreshold
 	}
@@ -102,16 +102,28 @@ type VMWatchSettings struct {
 	DisableConfigReader   bool                   `json:"disableConfigReader,boolean"`
 }
 
+// AppHealthPluginSettings holds the configuration of the AppHealth plugin, must match schema
+type AppHealthPluginSettings struct {
+	Protocol          string `json:"protocol"`
+	Port              int    `json:"port,int"`
+	RequestPath       string `json:"requestPath"`
+	IntervalInSeconds int    `json:"intervalInSeconds,int"`
+	NumberOfProbes    int    `json:"numberOfProbes,int"`
+	GracePeriod       int    `json:"gracePeriod,int"`
+}
+
+// VMWatchPluginSettings holds the configuration of VMWatch plugin, must match schema
+type VMWatchPluginSettings struct {
+	VMWatchSettings *VMWatchSettings `json:"vmWatchSettings"`
+}
+
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
+//   - AppHealthPluginSettings holds the configuration of the AppHealth plugin
+//   - VMWatchPluginSettings holds the configuration of VMWatch plugin
 type publicSettings struct {
-	Protocol          string           `json:"protocol"`
-	Port              int              `json:"port,int"`
-	RequestPath       string           `json:"requestPath"`
-	IntervalInSeconds int              `json:"intervalInSeconds,int"`
-	NumberOfProbes    int              `json:"numberOfProbes,int"`
-	GracePeriod       int              `json:"gracePeriod,int"`
-	VMWatchSettings   *VMWatchSettings `json:"vmWatchSettings"`
+	AppHealthPluginSettings
+	VMWatchPluginSettings
 }
 
 // protectedSettings is the type decoded and deserialized from protected
@@ -121,32 +133,32 @@ type protectedSettings struct {
 
 // ParseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
-func ParseAndValidateSettings(ctx logging.Logger, configFolder string) (h HandlerSettings, _ error) {
-	ctx.Info("reading configuration")
+func ParseAndValidateSettings(lg logging.Logger, configFolder string) (h HandlerSettings, _ error) {
+	lg.Info("reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
-	ctx.Info("read configuration")
+	lg.Info("read configuration")
 
-	ctx.Info("validating json schema")
+	lg.Info("validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	ctx.Info("json schema valid")
-	ctx.Info("parsing configuration json")
+	lg.Info("json schema valid")
+	lg.Info("parsing configuration json")
 
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
 
-	ctx.Info("parsed configuration json")
-	ctx.Info("validating configuration logically")
+	lg.Info("parsed configuration json")
+	lg.Info("validating configuration logically")
 
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	ctx.Info("validated configuration")
+	lg.Info("validated configuration")
 	return h, nil
 }
 
