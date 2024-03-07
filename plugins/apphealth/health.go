@@ -8,14 +8,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
-	"net/url"
-
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
-	"github.com/Azure/applicationhealth-extension-linux/plugins/settings"
 	"github.com/pkg/errors"
 )
 
@@ -72,22 +70,20 @@ type HttpHealthProbe struct {
 	Address    string
 }
 
-func NewHealthProbe(lg logging.Logger, cfg *settings.HandlerSettings) HealthProbe {
+func NewHealthProbe(lg logging.Logger, cfg *AppHealthPluginSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
-	plgSettings := NewAppHealthSettings(cfg)
-
-	switch plgSettings.GetProtocol() {
+	switch cfg.GetProtocol() {
 	case "tcp":
 		p = &TcpHealthProbe{
-			Address: "localhost:" + strconv.Itoa(plgSettings.GetPort()),
+			Address: "localhost:" + strconv.Itoa(cfg.GetPort()),
 		}
 		lg.Info("creating tcp probe targeting " + p.address())
 	case "http":
 		fallthrough
 	case "https":
-		p = NewHttpHealthProbe(plgSettings.GetProtocol(), plgSettings.GetRequestPath(), plgSettings.GetPort())
-		lg.Info("creating " + plgSettings.GetProtocol() + " probe targeting " + p.address())
+		p = NewHttpHealthProbe(cfg.GetProtocol(), cfg.GetRequestPath(), cfg.GetPort())
+		lg.Info("creating " + cfg.GetProtocol() + " probe targeting " + p.address())
 	default:
 		lg.Info("default settings without probe")
 	}
