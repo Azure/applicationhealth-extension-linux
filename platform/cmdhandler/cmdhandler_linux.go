@@ -16,8 +16,8 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
+	"github.com/Azure/applicationhealth-extension-linux/platform/settings"
 	"github.com/Azure/applicationhealth-extension-linux/plugins/apphealth"
-	"github.com/Azure/applicationhealth-extension-linux/plugins/settings"
 	"github.com/Azure/applicationhealth-extension-linux/plugins/vmwatch"
 	"github.com/pkg/errors"
 )
@@ -154,19 +154,17 @@ func enable(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (str
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	appHealthSettings := apphealth.NewAppHealthSettings(&cfg)
-
-	probe := apphealth.NewHealthProbe(lg, &cfg)
+	probe := apphealth.NewHealthProbe(lg, &cfg.AppHealthPluginSettings)
 	var (
-		intervalBetweenProbesInMs = time.Duration(appHealthSettings.GetIntervalInSeconds()) * time.Millisecond * 1000
-		numberOfProbes            = appHealthSettings.GetNumberOfProbes()
-		gracePeriodInSeconds      = time.Duration(appHealthSettings.GetGracePeriod()) * time.Second
+		intervalBetweenProbesInMs = time.Duration(cfg.GetIntervalInSeconds()) * time.Millisecond * 1000
+		numberOfProbes            = cfg.GetNumberOfProbes()
+		gracePeriodInSeconds      = time.Duration(cfg.GetGracePeriod()) * time.Second
 		numConsecutiveProbes      = 0
 		prevState                 = apphealth.Empty
 		committedState            = apphealth.Empty
 		honorGracePeriod          = gracePeriodInSeconds > 0
 		gracePeriodStartTime      = time.Now()
-		vmWatchSettings           = cfg.VMWatchSettings()
+		vmWatchSettings           = cfg.GetVMWatchSettings()
 		vmWatchResult             = vmwatch.VMWatchResult{Status: vmwatch.Disabled, Error: nil}
 		vmWatchResultChannel      = make(chan vmwatch.VMWatchResult)
 		timeOfLastVMWatchLog      = time.Time{}
