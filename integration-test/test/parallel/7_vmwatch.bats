@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-load ../test_helper
-
 setup(){
+    load "../test_helper"
+    _load_bats_libs
     build_docker_image
     container_name="vmwatch_$BATS_TEST_NUMBER"
     extension_version=$(get_extension_version)
@@ -11,6 +11,7 @@ setup(){
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 @test "handler command: enable - vm watch disabled - vmwatch settings omitted" {
@@ -412,7 +413,32 @@ teardown(){
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
     [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
-    [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
+    any_regex_pattern="[[:digit:]|[:space:]|[:alpha:]|[:punct:]]"
+    assert_line --regexp "msg=uninstalled ${any_regex_pattern}* operation=uninstall seq=0 path=/var/lib/waagent/apphealth"
+}
+
+@test "handler command: enable/uninstall - vm passes memory to commandline" {
+    mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true,
+            "memoryLimitInBytes" : 40000000
+        }
+    }' ''
+    run start_container
+
+    echo "$output"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+    [[ "$output" == *'--memory-limit-bytes 40000000'* ]]
 }
 
 @test "handler command: enable/uninstall - vm passes memory to commandline" {

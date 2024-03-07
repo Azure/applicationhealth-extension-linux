@@ -6,20 +6,22 @@ TEST_CONTAINER=test
 
 certs_dir="$BATS_TEST_DIRNAME/certs"
 
-# This function builds a Docker image for testing purposes. 
-# If the image already exists, a random number is appended to the name.
-# a unique name is needed to avoid conflicts with other tests while running in parallel.
+_load_bats_libs() {
+    export BATS_LIB_PATH=${CUSTOM_BATS_LIB_PATH:-"/usr/lib:/usr/local/lib/node_modules"}
+    echo "BATS_LIB_PATH: $BATS_LIB_PATH"
+    bats_load_library bats-support
+    bats_load_library bats-assert
+}
+
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image() {
-    # Generate a base name for the image
-    BASE_IMAGE_NAME=$IMAGE
-    # Loop until we find a unique image name
-    while [ -n "$(docker images -q $IMAGE)" ]; do
-        # Append the counter to the base image name
-        IMAGE="${BASE_IMAGE_NAME}_$RANDOM"
-    done
-    
-    echo "Building test image $IMAGE..."
-    docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+    # Check if the image already exists
+    if [ -z "$(docker images -q $IMAGE)" ]; then
+        echo "Building test image $IMAGE..."
+        docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+    else
+        echo "Test image $IMAGE already exists. Skipping build."
+    fi
 }
 
 in_tmp_container() {
@@ -29,7 +31,6 @@ in_tmp_container() {
 cleanup() {
     echo "Cleaning up...">&2
     rm_container
-    rm_image
 }
 
 rm_container() {
@@ -185,25 +186,26 @@ copy_config() { # places specified settings file ($1) into container as 0.settin
 }
 
 # first argument is the string containing healthextension logs separated by newline
-# it also expects the time={time in TZ format} version={version} to be in each log line
+# it also expects the time={time in TZ format} level... to be in each log line
 # second argument is an array of expected time difference (in seconds) between previous log
 # for example: [5,10] means that the expected time difference between second log and first log is 5 seconds
 # and time difference between third log and second log is 10 seconds
 verify_state_change_timestamps() {
     expectedTimeDifferences="$2"
-    regex='time=(.*) version=(.*)'
+    regex='time=([^[:space:]]*)' # regex to extract time from log line, will select everything until a space is found
     prevDate=""
     index=0
     while IFS=$'\n' read -ra enableLogs; do
         for i in "${!enableLogs[@]}"; do
             [[ $enableLogs[index] =~ $regex ]]
+            currentDate=${BASH_REMATCH[1]}
             if [[ ! -z "$prevDate" ]]; then
-                diff=$(( $(date -d "${BASH_REMATCH[1]}" "+%s") - $(date -d "$prevDate" "+%s") ))
+                diff=$(( $(date -d "$currentDate" "+%s") - $(date -d "$prevDate" "+%s") ))
                 echo "Actual time difference is: $diff and expected is: ${expectedTimeDifferences[$index-1]}"
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
-        prevDate=${BASH_REMATCH[1]}     
+        prevDate=$currentDate
         done
     done <<< "$1"
 }
@@ -213,7 +215,7 @@ verify_state_change_timestamps() {
 # second argument is an array of expected state log strings
 verify_states() {
     expectedStateLogs="$2"
-    regex='event="(.*)"'
+    regex='msg="(.*)"'
     index=0
     while IFS=$'\n' read -ra stateLogs; do
         for i in "${!stateLogs[@]}"; do

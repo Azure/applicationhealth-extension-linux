@@ -1,8 +1,7 @@
 #!/usr/bin/env bats
 
-load ../test_helper
-
 setup(){
+    load "../test_helper"
     build_docker_image
     container_name="custom-metrics_$BATS_TEST_NUMBER"
 }
