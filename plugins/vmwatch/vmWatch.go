@@ -19,7 +19,6 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/utils"
-	"github.com/Azure/applicationhealth-extension-linux/plugins/settings"
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup1"
 	"github.com/containerd/cgroups/v3/cgroup2"
@@ -81,7 +80,7 @@ func (r *VMWatchResult) GetMessage() string {
 
 // We will setup and execute VMWatch as a separate process. Ideally VMWatch should run indefinitely,
 // but as a best effort we will attempt at most 3 times to run the process
-func ExecuteVMWatch(lg logging.Logger, s *settings.VMWatchSettings, hEnv handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
+func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
 	var vmWatchErr error
 	defer func() {
 		if r := recover(); r != nil {
@@ -107,7 +106,7 @@ func ExecuteVMWatch(lg logging.Logger, s *settings.VMWatchSettings, hEnv handler
 	}
 }
 
-func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *settings.VMWatchSettings, hEnv handlerenv.HandlerEnvironment) (err error) {
+func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv handlerenv.HandlerEnvironment) (err error) {
 	pid := -1
 	var cmd *exec.Cmd
 	defer func() {
@@ -225,7 +224,7 @@ func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 	return nil
 }
 
-func setupVMWatchCommand(s *settings.VMWatchSettings, hEnv handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
+func setupVMWatchCommand(s *VMWatchSettings, hEnv handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
 	processDirectory, err := utils.GetProcessDirectory()
 	if err != nil {
 		return nil, err
