@@ -14,29 +14,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	mb = 1024 * 1024 // 1 MB
+)
+
 func TestNew(t *testing.T) {
 	// Test creating a logger with a handler environment
 	var (
-		logDir  = "/tmp/logs"
-		fakeEnv = &handlerenv.HandlerEnvironment{}
+		fakeEnv        = &handlerenv.HandlerEnvironment{}
+		logFolder, err = os.MkdirTemp("", "logs")
 	)
+	require.NoError(t, err)
+	defer os.RemoveAll(logFolder)
+	fakeEnv.HandlerEnvironment.LogFolder = logFolder
 
-	fakeEnv.HandlerEnvironment.LogFolder = logDir
-	logger := NewExtensionLogger(fakeEnv)
+	logger, err := NewExtensionLogger(fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 	defer logger.Close()
 
 	assert.NotNil(t, logger)
 }
 
-func TestNewWithName(t *testing.T) {
+func TestNewWithName_Success(t *testing.T) {
+	logFolder, err := os.MkdirTemp("", "logs")
+	require.NoError(t, err)
+	logger, err := NewExtensionLoggerWithName(logFolder, "log_%v_test")
+	require.NoError(t, err, "Failed to create logger")
+	require.NotNil(t, logger, "Logger should not be nil")
+}
+
+func TestNewWithName_NoDirExist(t *testing.T) {
 	// Test creating a logger with a handler environment and custom log file name format
 	var (
-		logDir = "/tmp/logs"
-		logger = NewExtensionLoggerWithName(logDir, "log_%v_test")
+		logDir      = "/tmp/logs"
+		logger, err = NewExtensionLoggerWithName(logDir, "log_%v_test")
 	)
-	defer logger.Close()
-
-	assert.NotNil(t, logger)
+	require.NoDirExists(t, logDir, "Log directory should not have been created")
+	require.Error(t, err, "Failed to create logger")
+	assert.Nil(t, logger, "Logger should be nil")
 }
 
 func TestRotateLogFolder(t *testing.T) {
@@ -51,7 +66,7 @@ func TestRotateLogFolder(t *testing.T) {
 	logFile3 := filepath.Join(logFolder, "log_3")
 
 	// Generate a large amount of data to write to the log files
-	largeData := make([]byte, 15*1024*1024) // 15 MB
+	largeData := make([]byte, 14*mb) // 14 MB
 	for i := range largeData {
 		largeData[i] = 'A'
 	}
@@ -63,6 +78,9 @@ func TestRotateLogFolder(t *testing.T) {
 	err = os.WriteFile(logFile3, largeData, 0644)
 	assert.NoError(t, err)
 
+	// Created 3 files with 14MB data each, total 42MB,
+	// which is greater than the threshold of 40MB. Only one file should remain after rotation.
+	// because the threshold lowbound is 30MB, and after deleting the oldest file, the total size will be 28MB.
 	// Rotate the log folder
 	err = rotateLogFolder(logFolder, "log_%v")
 	assert.NoError(t, err)
@@ -91,7 +109,7 @@ func TestRotateLogFolder_DirectorySizeBelowThreshold(t *testing.T) {
 	logFile3 := filepath.Join(logFolder, "log_3")
 
 	// Generate a large amount of data to write to the log files
-	largeData := make([]byte, 15*1024*1024) // 15 MB
+	largeData := make([]byte, 15*mb) // 15 MB
 	for i := range largeData {
 		largeData[i] = 'A'
 	}
@@ -132,7 +150,8 @@ func TestExtensionLogger_Error(t *testing.T) {
 	fakeEnv.HandlerEnvironment.LogFolder = logDir
 
 	// Create an ExtensionLogger with the fake logger
-	logger := NewExtensionLogger(fakeEnv)
+	logger, err := NewExtensionLogger(fakeEnv)
+	require.NoError(t, err, "Failed to create logger")
 	defer logger.Close()
 
 	// Log an error message
@@ -165,7 +184,8 @@ func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 	defer removeDirectories(logDir)
 
 	// Create a logger
-	logger := NewExtensionLoggerWithName(logDir, "log_%v_test")
+	logger, err := NewExtensionLoggerWithName(logDir, "log_%v_test")
+	require.NoError(t, err, "Failed to create logger")
 	defer logger.Close()
 
 	// Log some messages with different levels and properties
