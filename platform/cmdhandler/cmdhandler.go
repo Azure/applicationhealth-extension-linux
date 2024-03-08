@@ -39,7 +39,7 @@ const (
 type cmdFunc func(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
 type preFunc func(lg logging.Logger, seqNum int) error
 
-type Cmd struct {
+type cmd struct {
 	f                  cmdFunc     // associated function
 	Name               CommandName // human readable string
 	ShouldReportStatus bool        // determines if running this should log to a .status file
@@ -47,7 +47,7 @@ type Cmd struct {
 	failExitCode       int         // exitCode to use when commands fail
 }
 
-type CommandMap map[CommandKey]Cmd
+type CommandMap map[CommandKey]cmd
 
 // Get CommandMap Keys as list
 func (cm CommandMap) Keys() []CommandKey {
@@ -59,8 +59,8 @@ func (cm CommandMap) Keys() []CommandKey {
 }
 
 // Get CommandMap Values as list
-func (cm CommandMap) Values() []Cmd {
-	values := make([]Cmd, 0, len(cm))
+func (cm CommandMap) Values() []cmd {
+	values := make([]cmd, 0, len(cm))
 	for _, v := range cm {
 		values = append(values, v)
 	}

@@ -23,9 +23,9 @@ import (
 )
 
 var extCommands = CommandMap{
-	Install:   Cmd{f: install, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},
-	Uninstall: Cmd{f: uninstall, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3},
-	Enable:    Cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
+	Install:   cmd{f: install, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},
+	Uninstall: cmd{f: uninstall, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3},
+	Enable:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
 	Update:    {noop, UpdateName, true, nil, 3},
 	Disable:   {noop, DisableName, true, nil, 3},
 }

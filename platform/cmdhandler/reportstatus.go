@@ -14,7 +14,7 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func ReportStatus(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c Cmd, msg string) error {
+func ReportStatus(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c cmd, msg string) error {
 	if !c.ShouldReportStatus {
 		lg.Info("status not reported for operation (by design)")
 		return nil
@@ -44,7 +44,7 @@ func ReportStatusWithSubstatuses(lg logging.Logger, hEnv handlerenv.HandlerEnvir
 //
 // A message will be generated for empty string. For error status, pass the
 // error message.
-func statusMsg(c Cmd, t status.StatusType, msg string) string {
+func statusMsg(c cmd, t status.StatusType, msg string) string {
 	s := c.Name.String()
 	switch t {
 	case status.StatusSuccess:
