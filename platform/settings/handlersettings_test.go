@@ -84,7 +84,8 @@ func Test_unMarshalPublicSetting(t *testing.T) {
 
 func Test_ParseAndValidateSettings(t *testing.T) {
 	// Mock the logger
-	logger := logging.NewExtensionLogger(nil)
+	lg, err := logging.NewExtensionLogger(nil)
+	require.NoError(t, err, "failed to create logger")
 
 	// Mock the configuration folder
 	configFolder, err := os.MkdirTemp("", "config")
@@ -142,7 +143,7 @@ func Test_ParseAndValidateSettings(t *testing.T) {
 	}
 
 	// Call the ParseAndValidateSettings function
-	settings, err := ParseAndValidateSettings(logger, configFolder)
+	settings, err := ParseAndValidateSettings(lg, configFolder)
 	require.NoError(t, err)
 
 	require.NoError(t, settings.Validate(), "Settings validation failed")
