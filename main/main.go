@@ -49,13 +49,7 @@ func main() {
 		eh.Exit(exithelper.EnvironmentError)
 	}
 
-	err = handler.SetCommandToExecute(cmdKey) // set the command to execute
-	if err != nil {
-		lg.Error("failed to find command to execute", slog.Any("error", err))
-		eh.Exit(exithelper.ArgumentError)
-	}
-
-	err = handler.Execute(hEnv, seqNum) // execute the command
+	err = handler.Execute(lg, cmdKey, hEnv, seqNum) // execute the command
 	if err != nil {
 		lg.Error("failed to execute command", slog.Any("error", err))
 		eh.Exit(exithelper.ExecutionError)

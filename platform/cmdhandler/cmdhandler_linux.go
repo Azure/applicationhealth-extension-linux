@@ -13,7 +13,6 @@ import (
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
-	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/Azure/applicationhealth-extension-linux/platform/settings"
@@ -32,7 +31,6 @@ var extCommands = CommandMap{
 
 type LinuxCommandHandler struct {
 	commands CommandMap
-	target   CommandKey
 }
 
 func newOSCommandHandler() (CommandHandler, error) {
@@ -51,26 +49,23 @@ func (ch *LinuxCommandHandler) CommandMap() CommandMap {
 	return ch.commands
 }
 
-func (ch *LinuxCommandHandler) SetCommandToExecute(cmd CommandKey) error {
+func (ch *LinuxCommandHandler) validateCommandToExecute(cmd CommandKey) error {
 	if _, ok := ch.commands[cmd]; !ok {
 		return errors.Errorf("unknown command: %s", cmd)
 	}
-	ch.target = cmd
 	return nil
 }
 
-func (ch *LinuxCommandHandler) Execute(hEnv *handlerenv.HandlerEnvironment, seqNum int) error {
-	lg, err := logging.NewExtensionLogger(hEnv)
-	lg.With(version.VersionString())
-
-	if ch.target == "" {
-		return errors.New("no command to execute")
+func (ch *LinuxCommandHandler) Execute(lg logging.Logger, c CommandKey, hEnv *handlerenv.HandlerEnvironment, seqNum int) error {
+	err := ch.validateCommandToExecute(c) // set the command to execute
+	if err != nil {
+		return errors.Errorf("failed to find command to execute: %s", err)
 	}
 
 	// Getting command to execute
-	cmd, ok := ch.commands[ch.target]
+	cmd, ok := ch.commands[c]
 	if !ok {
-		return errors.Errorf("unknown command: %s", ch.target)
+		return errors.Errorf("unknown command: %s", c)
 	}
 
 	lg.With("operation", strings.ToLower(cmd.Name.String()))
