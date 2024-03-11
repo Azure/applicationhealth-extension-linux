@@ -1,9 +1,11 @@
 # github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d
 ## explicit
 github.com/Azure/azure-docker-extension/pkg/vmextension
-# github.com/Azure/azure-extension-platform v0.0.0-20230218002700-ca684482c954
+# github.com/Azure/azure-extension-platform v0.0.0-20240308223811-e14387603600
 ## explicit; go 1.17
 github.com/Azure/azure-extension-platform/pkg/exithelper
+github.com/Azure/azure-extension-platform/pkg/extensionerrors
+github.com/Azure/azure-extension-platform/pkg/handlerenv
 github.com/Azure/azure-extension-platform/pkg/utils
 # github.com/cilium/ebpf v0.9.1
 ## explicit; go 1.17
