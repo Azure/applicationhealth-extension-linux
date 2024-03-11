@@ -18,7 +18,7 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/utils"
+	"github.com/Azure/azure-extension-platform/pkg/utils"
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup1"
 	"github.com/containerd/cgroups/v3/cgroup2"
@@ -225,7 +225,7 @@ func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 }
 
 func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
-	processDirectory, err := utils.GetProcessDirectory()
+	processDirectory, err := utils.GetCurrentProcessWorkingDir()
 	if err != nil {
 		return nil, err
 	}

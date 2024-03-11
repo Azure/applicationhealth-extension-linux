@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/Azure/applicationhealth-extension-linux/pkg/utils"
+	"github.com/Azure/azure-extension-platform/pkg/utils"
 )
 
 // These fields are populated by govvv at compile-time.
@@ -38,7 +38,7 @@ func GetExtensionVersionFromBuild() string {
 // Get Extension Version set at build time or from manifest file.
 func getExtensionVersionFromManifest() (string, error) {
 	// If the version is not set during build time, then reading it from the manifest file as fallback.
-	processDirectory, err := utils.GetProcessDirectory()
+	processDirectory, err := utils.GetCurrentProcessWorkingDir()
 	if err != nil {
 		return "", err
 	}
