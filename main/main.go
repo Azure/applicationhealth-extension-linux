@@ -37,7 +37,7 @@ func main() {
 		eh.Exit(exithelper.EnvironmentError)
 	}
 
-	seqNum, err := seqnum.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder) // find sequence number
+	seqNum, err := seqnum.FindSeqNum(hEnv.ConfigFolder) // find sequence number
 	if err != nil {
 		lg.Error("failed to find sequence number", slog.Any("error", err))
 		eh.Exit(exithelper.EnvironmentError)

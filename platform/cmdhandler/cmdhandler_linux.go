@@ -59,8 +59,8 @@ func (ch *LinuxCommandHandler) SetCommandToExecute(cmd CommandKey) error {
 	return nil
 }
 
-func (ch *LinuxCommandHandler) Execute(hEnv handlerenv.HandlerEnvironment, seqNum int) error {
-	lg := logging.NewExtensionLogger(&hEnv)
+func (ch *LinuxCommandHandler) Execute(hEnv *handlerenv.HandlerEnvironment, seqNum int) error {
+	lg, err := logging.NewExtensionLogger(hEnv)
 	lg.With(version.VersionString())
 
 	if ch.target == "" {
@@ -123,7 +123,7 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func install(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -133,7 +133,7 @@ func install(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (st
 	return "", nil
 }
 
-func uninstall(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
 		lg.With("path", dataDir)
 
@@ -147,9 +147,9 @@ func uninstall(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (
 	return "", nil
 }
 
-func enable(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
-	cfg, err := settings.ParseAndValidateSettings(lg, h.HandlerEnvironment.ConfigFolder)
+	cfg, err := settings.ParseAndValidateSettings(lg, h.ConfigFolder)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get configuration")
 	}

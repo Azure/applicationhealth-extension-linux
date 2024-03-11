@@ -36,7 +36,7 @@ const (
 	DisableName   CommandName = "Disable"
 )
 
-type cmdFunc func(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
+type cmdFunc func(lg logging.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
 type preFunc func(lg logging.Logger, seqNum int) error
 
 type cmd struct {
@@ -68,7 +68,7 @@ func (cm CommandMap) Values() []cmd {
 }
 
 type CommandHandler interface {
-	Execute(h handlerenv.HandlerEnvironment, seqNum int) error
+	Execute(h *handlerenv.HandlerEnvironment, seqNum int) error
 	CommandMap() CommandMap
 	SetCommandToExecute(CommandKey) error
 }
@@ -82,7 +82,7 @@ func NewCommandHandler() (CommandHandler, error) {
 	return handler, nil
 }
 
-func noop(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func noop(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	lg.Info("noop")
 	return "", nil
 }

@@ -80,7 +80,7 @@ func (r *VMWatchResult) GetMessage() string {
 
 // We will setup and execute VMWatch as a separate process. Ideally VMWatch should run indefinitely,
 // but as a best effort we will attempt at most 3 times to run the process
-func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
+func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
 	var vmWatchErr error
 	defer func() {
 		if r := recover(); r != nil {
@@ -106,7 +106,7 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv handlerenv.Handl
 	}
 }
 
-func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv handlerenv.HandlerEnvironment) (err error) {
+func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (err error) {
 	pid := -1
 	var cmd *exec.Cmd
 	defer func() {
@@ -224,7 +224,7 @@ func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 	return nil
 }
 
-func setupVMWatchCommand(s *VMWatchSettings, hEnv handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
+func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
 	processDirectory, err := utils.GetProcessDirectory()
 	if err != nil {
 		return nil, err
@@ -360,12 +360,12 @@ func createAndAssignCgroups(lg logging.Logger, vmWatchPid int) error {
 	return nil
 }
 
-func GetVMWatchHeartbeatFilePath(hEnv handlerenv.HandlerEnvironment) string {
-	return filepath.Join(hEnv.HandlerEnvironment.LogFolder, "vmwatch-heartbeat.txt")
+func GetVMWatchHeartbeatFilePath(hEnv *handlerenv.HandlerEnvironment) string {
+	return filepath.Join(hEnv.LogFolder, "vmwatch-heartbeat.txt")
 }
 
-func GetExecutionEnvironment(hEnv handlerenv.HandlerEnvironment) string {
-	if strings.Contains(hEnv.HandlerEnvironment.LogFolder, AppHealthPublisherNameTest) {
+func GetExecutionEnvironment(hEnv *handlerenv.HandlerEnvironment) string {
+	if strings.Contains(hEnv.LogFolder, AppHealthPublisherNameTest) {
 		return AppHealthExecutionEnvironmentTest
 	}
 	return AppHealthExecutionEnvironmentProd
@@ -384,7 +384,7 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 	return filepath.Join(processDirectory, "VMWatch", binaryName)
 }
 
-func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv handlerenv.HandlerEnvironment) []string {
+func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv *handlerenv.HandlerEnvironment) []string {
 	var arr []string
 	// make sure we get the keys out in order
 	keys := make([]string, 0, len(parameterOverrides))
@@ -399,8 +399,8 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 		fmt.Println(k, parameterOverrides[k])
 	}
 
-	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.HandlerEnvironment.EventsFolder))
-	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.HandlerEnvironment.LogFolder, VMWatchVerboseLogFileName)))
+	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.EventsFolder))
+	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.LogFolder, VMWatchVerboseLogFileName)))
 
 	return arr
 }
