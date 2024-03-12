@@ -1,7 +1,7 @@
 github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d h1:IZq7wAvhHb/IObHOh8RHClV2zv4dHh5MrHdRWTTIwe0=
 github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d/go.mod h1:tVA4DYQYxotjw+EkJhfywtM99w7nAOatBvgNAkpsBvk=
-github.com/Azure/azure-extension-platform v0.0.0-20230218002700-ca684482c954 h1:Jnedpc6riCirNEUQGZ7I7gH1PZym71sKFnbP9Lb32oA=
-github.com/Azure/azure-extension-platform v0.0.0-20230218002700-ca684482c954/go.mod h1:1hEkO8M1zN/SQpdFOTDDMTNfeE1Q2tCHmEXXiHrWTgo=
+github.com/Azure/azure-extension-platform v0.0.0-20240308223811-e14387603600 h1:Jk5PivwiQGiZVl/yV7sgfO0rwagW1dftxuGDOspXwEo=
+github.com/Azure/azure-extension-platform v0.0.0-20240308223811-e14387603600/go.mod h1:1hEkO8M1zN/SQpdFOTDDMTNfeE1Q2tCHmEXXiHrWTgo=
 github.com/cilium/ebpf v0.9.1 h1:64sn2K3UKw8NbP/blsixRpF3nXuyhz/VjRlRzvlBRu4=
 github.com/cilium/ebpf v0.9.1/go.mod h1:+OhNOIXx/Fnu1IE8bJz2dzOA+VSfyTfdNUVdlQnxUFY=
 github.com/containerd/cgroups/v3 v3.0.2 h1:f5WFqIVSgo5IZmtTT3qVBo6TzI1ON6sycSBKkymb9L0=
