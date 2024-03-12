@@ -26,7 +26,7 @@ func TestNew(t *testing.T) {
 	)
 	require.NoError(t, err)
 	defer os.RemoveAll(logFolder)
-	fakeEnv.HandlerEnvironment.LogFolder = logFolder
+	fakeEnv.LogFolder = logFolder
 
 	logger, err := NewExtensionLogger(fakeEnv)
 	require.NoError(t, err, "Failed to create logger")
@@ -147,7 +147,7 @@ func TestExtensionLogger_Error(t *testing.T) {
 	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDir)
 
-	fakeEnv.HandlerEnvironment.LogFolder = logDir
+	fakeEnv.LogFolder = logDir
 
 	// Create an ExtensionLogger with the fake logger
 	logger, err := NewExtensionLogger(fakeEnv)
