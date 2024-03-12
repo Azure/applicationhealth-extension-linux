@@ -45,7 +45,7 @@ func main() {
 	}
 	// Creating new Logger with the handler environment
 	var logger logging.Logger
-	logger, err = logging.NewExtensionLogger(&h)
+	logger, err = logging.NewExtensionLogger(h)
 	if err != nil {
 		lg.Error("failed to create logger", slog.Any("error", err))
 		os.Exit(cmd.failExitCode)
@@ -55,7 +55,7 @@ func main() {
 	lg.With("version", VersionString())
 	lg.With("operation", strings.ToLower(cmd.name))
 
-	seqNum, err := FindSeqNum(h.HandlerEnvironment.ConfigFolder)
+	seqNum, err := FindSeqNum(h.ConfigFolder)
 	if err != nil {
 		lg.Error("failed to find sequence number", slog.Any("error", err))
 	}
@@ -85,14 +85,14 @@ func main() {
 		}
 	}
 	// execute the subcommand
-	reportStatus(lg, h, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, h, seqNum)
+	reportStatus(lg, *h, seqNum, StatusTransitioning, cmd, "") // Fix: Pass the dereferenced value of h
+	msg, err := cmd.f(lg, *h, seqNum)                          // Fix: Pass the dereferenced value of h
 	if err != nil {
 		lg.Error("failed to handle", slog.Any("error", err))
-		reportStatus(lg, h, seqNum, StatusError, cmd, err.Error()+msg)
+		reportStatus(lg, *h, seqNum, StatusError, cmd, err.Error()+msg) // Fix: Pass the dereferenced value of h
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(lg, h, seqNum, StatusSuccess, cmd, msg)
+	reportStatus(lg, *h, seqNum, StatusSuccess, cmd, msg)
 	lg.Info("end")
 }
 

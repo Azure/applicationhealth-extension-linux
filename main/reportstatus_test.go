@@ -24,7 +24,7 @@ func Test_statusMsg(t *testing.T) {
 
 func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := handlerenv.HandlerEnvironment{}
-	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
+	fakeEnv.StatusFolder = "/non-existing/dir/"
 	lg, err := logging.NewExtensionLogger(&fakeEnv)
 	require.NoError(t, err, "Failed to create logger")
 
@@ -39,7 +39,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	fakeEnv := handlerenv.HandlerEnvironment{}
-	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
+	fakeEnv.StatusFolder = tmpDir
 	lg, err = logging.NewExtensionLogger(&fakeEnv)
 	require.NoError(t, err, "Failed to create logger")
 
@@ -58,7 +58,7 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 
 		fakeEnv := handlerenv.HandlerEnvironment{}
-		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
+		fakeEnv.StatusFolder = tmpDir
 		lg, err = logging.NewExtensionLogger(&fakeEnv)
 		require.NoError(t, err, "Failed to create logger")
 

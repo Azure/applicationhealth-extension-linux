@@ -80,7 +80,7 @@ var (
 
 func enable(lg logging.Logger, h handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
-	cfg, err := parseAndValidateSettings(lg, h.HandlerEnvironment.ConfigFolder)
+	cfg, err := parseAndValidateSettings(lg, h.ConfigFolder)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get configuration")
 	}

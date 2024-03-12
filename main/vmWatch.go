@@ -388,11 +388,11 @@ func GetProcessDirectory() (string, error) {
 }
 
 func GetVMWatchHeartbeatFilePath(hEnv handlerenv.HandlerEnvironment) string {
-	return filepath.Join(hEnv.HandlerEnvironment.LogFolder, "vmwatch-heartbeat.txt")
+	return filepath.Join(hEnv.LogFolder, "vmwatch-heartbeat.txt")
 }
 
 func GetExecutionEnvironment(hEnv handlerenv.HandlerEnvironment) string {
-	if strings.Contains(hEnv.HandlerEnvironment.LogFolder, AppHealthPublisherNameTest) {
+	if strings.Contains(hEnv.LogFolder, AppHealthPublisherNameTest) {
 		return AppHealthExecutionEnvironmentTest
 	}
 	return AppHealthExecutionEnvironmentProd
@@ -426,8 +426,8 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 		fmt.Println(k, parameterOverrides[k])
 	}
 
-	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.HandlerEnvironment.EventsFolder))
-	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.HandlerEnvironment.LogFolder, VMWatchVerboseLogFileName)))
+	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.EventsFolder))
+	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.LogFolder, VMWatchVerboseLogFileName)))
 
 	return arr
 }

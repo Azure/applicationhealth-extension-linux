@@ -19,7 +19,7 @@ func reportStatus(lg logging.Logger, hEnv handlerenv.HandlerEnvironment, seqNum 
 		return nil
 	}
 	s := NewStatus(t, c.name, statusMsg(c, t, msg))
-	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
+	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
 		lg.Error("failed to save handler status", slog.Any("error", err))
 		return errors.Wrap(err, "failed to save handler status")
 	}
@@ -31,7 +31,7 @@ func reportStatusWithSubstatuses(lg logging.Logger, hEnv handlerenv.HandlerEnvir
 	for _, substatus := range substatuses {
 		s.AddSubstatusItem(substatus)
 	}
-	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
+	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
 		lg.Error("failed to save handler status", slog.Any("error", err))
 		return errors.Wrap(err, "failed to save handler status")
 	}
