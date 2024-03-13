@@ -1,6 +1,8 @@
 BINDIR=bin
-BIN=applicationhealth-extension
-BIN_ARM64=applicationhealth-extension-arm64
+LINUX_BIN=applicationhealth-extension
+LINUX_BIN_ARM64=applicationhealth-extension-arm64
+WINDOWS_BIN=applicationhealth-extension-windows.exe
+WINDOWS_BIN_ARM64=applicationhealth-extension-windows-arm64.exe
 BUNDLEDIR=bundle
 BUNDLE=applicationhealth-extension.zip
 TESTBINDIR=testbin
@@ -8,13 +10,13 @@ WEBSERVERBIN=webserver
 
 bundle: clean binary
 	@mkdir -p $(BUNDLEDIR)
-	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(BIN)
-	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(BIN_ARM64)
+	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(LINUX_BIN)
+	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(LINUX_BIN_ARM64)
 	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/applicationhealth-shim
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/HandlerManifest.json
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/manifest.xml
 
-binary: clean
+binary-linux: clean
 	if [ -z "$$GOPATH" ]; then \
 	  echo "GOPATH is not set"; \
 	  exit 1; \
@@ -23,16 +25,16 @@ binary: clean
 	# (see https://github.com/golang/go/issues/26492 for using an external linker if CGO is required)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
 	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
-	  -o $(BINDIR)/$(BIN) ./main
+	  -o $(BINDIR)/$(LINUX_BIN) ./main
 	cp ./misc/applicationhealth-shim ./$(BINDIR)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
 	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
 	  -o $(TESTBINDIR)/$(WEBSERVERBIN) ./integration-test/webserver
 	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -v -mod=readonly \
 	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
-	  -o $(BINDIR)/$(BIN_ARM64) ./main 
+	  -o $(BINDIR)/$(LINUX_BIN_ARM64) ./main 
 clean:
-	rm -rf "$(BINDIR)" "$(BUNDLEDIR)" "$(TESTBINDIR)"
+	rm -rf "$(BINDIR)" "$(BUNDLEDIR)" "$(TESTBINDIR)" "$(WINDOWS_TEST_BUNDLEDIR)"
 
 # set up the files in the dev container for debugging locally with a default settings file
 # ONLY run this if in a dev container as it can mess with local machine
@@ -51,6 +53,7 @@ endif
 	cp misc/manifest.xml /var/lib/waagent/Extension/
 	cp misc/applicationhealth-shim /var/lib/waagent/Extension/bin/
 	cp bin/applicationhealth-extension /var/lib/waagent/Extension/bin
+	mkdir -p /var/lib/waagent/Extension/status
 	mkdir -p /var/log/azure/Extension/events
 	mkdir -p /var/lib/waagent/Extension/config/
 	cp ./.devcontainer/extension-settings.json /var/lib/waagent/Extension/config/0.settings
