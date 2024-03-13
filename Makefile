@@ -7,6 +7,8 @@ BUNDLEDIR=bundle
 BUNDLE=applicationhealth-extension.zip
 TESTBINDIR=testbin
 WEBSERVERBIN=webserver
+WINDOWS_TEST_BUNDLEDIR=bundle-windows-test
+WINDOWS_TEST_BUNDLE=applicationhealth-extension-windows.zip
 
 bundle: clean binary
 	@mkdir -p $(BUNDLEDIR)
@@ -33,6 +35,24 @@ binary-linux: clean
 	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -v -mod=readonly \
 	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
 	  -o $(BINDIR)/$(LINUX_BIN_ARM64) ./main 
+
+binary-windows: clean
+	if [ -z "$$GOPATH" ]; then \
+	  echo "GOPATH is not set"; \
+	  exit 1; \
+	fi
+	# Set CGO_ENABLED=0 for static binaries, note that another approach might be needed if dependencies change
+	# (see https://github.com/golang/go/issues/26492 for using an external linker if CGO is required)
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
+	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+	  -o $(BINDIR)/$(WINDOWS_BIN) ./main
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
+	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+	  -o $(TESTBINDIR)/$(WEBSERVERBIN) ./integration-test/webserver
+	GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -v -mod=readonly \
+	  -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+	  -o $(BINDIR)/$(WINDOWS_BIN_ARM64) ./main 
+
 clean:
 	rm -rf "$(BINDIR)" "$(BUNDLEDIR)" "$(TESTBINDIR)" "$(WINDOWS_TEST_BUNDLEDIR)"
 
@@ -59,5 +79,19 @@ endif
 	cp ./.devcontainer/extension-settings.json /var/lib/waagent/Extension/config/0.settings
 
 devcontainer: binary testenv
+
+testenv-windows: binary-windows 
+	@mkdir -p $(WINDOWS_TEST_BUNDLEDIR)
+	zip ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)/$(WINDOWS_BIN)
+	zip ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)/$(WINDOWS_BIN_ARM64)
+	# Create the custom directory within the bundle directory
+	mkdir $(WINDOWS_TEST_BUNDLEDIR)/localdev
+	mkdir -p ./$(BINDIR)/bin
+	cp -r ./integration-test/env/Extension/bin/VMWatch/* ./$(BINDIR)/bin
+	zip -r ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)/bin
+	# Copy windows directory to the localdev directory
+	cp -r ./integration-test/env/windows $(WINDOWS_TEST_BUNDLEDIR)/localdev
+	zip -r -j ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) $(WINDOWS_TEST_BUNDLEDIR)/localdev
+	zip -j ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./misc/manifest.xml
 
 .PHONY: clean binary
