@@ -58,7 +58,7 @@ clean:
 
 # set up the files in the dev container for debugging locally with a default settings file
 # ONLY run this if in a dev container as it can mess with local machine
-testenv:
+testenv-linux:
 ifneq ("$(RUNNING_IN_DEV_CONTAINER)", "1")
 	echo "Target can only run in dev container $(RUNNING_IN_DEV_CONTAINER)"
 	exit 1
@@ -78,7 +78,7 @@ endif
 	mkdir -p /var/lib/waagent/Extension/config/
 	cp ./.devcontainer/extension-settings.json /var/lib/waagent/Extension/config/0.settings
 
-devcontainer: binary testenv
+devcontainer: binary testenv-linux
 
 testenv-windows: binary-windows 
 	@mkdir -p $(WINDOWS_TEST_BUNDLEDIR)
