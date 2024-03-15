@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/containerd/cgroups/v3"
@@ -101,7 +102,6 @@ func executeVMWatch(ctx *log.Context, s *vmWatchSettings, hEnv HandlerEnvironmen
 
 func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatchSettings, hEnv HandlerEnvironment) (err error) {
 	pid := -1
-	var cmd *exec.Cmd
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error: %w\n Additonal Details: %+v", err, r)
@@ -110,28 +110,29 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	}()
 
 	// Setup command
-	cmd, err = setupVMWatchCommand(vmWatchSettings, hEnv)
+	vmWatchCommand, err = setupVMWatchCommand(vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		ctx.Log("error", err.Error())
 		return err
 	}
 
-	ctx.Log("event", fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", attempt, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
+	ctx.Log("event", fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", attempt, vmWatchCommand.Path, vmWatchCommand.Args, vmWatchCommand.Dir, vmWatchCommand.Env))
 
 	// TODO: Combined output may get excessively long, especially since VMWatch is a long running process
 	// We should trim the output or only get from Stderr
 	combinedOutput := &bytes.Buffer{}
-	cmd.Stdout = combinedOutput
-	cmd.Stderr = combinedOutput
+	vmWatchCommand.Stdout = combinedOutput
+	vmWatchCommand.Stderr = combinedOutput
+	vmWatchCommand.SysProcAttr = &syscall.SysProcAttr{ Pdeathsig: syscall.SIGTERM }
 
 	// Start command
-	if err := cmd.Start(); err != nil {
+	if err := vmWatchCommand.Start(); err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch failed to start. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), attempt, err, combinedOutput.String())
 		ctx.Log("error", err.Error())
 		return err
 	}
-	pid = cmd.Process.Pid // cmd.Process should be populated on success
+	pid = vmWatchCommand.Process.Pid // cmd.Process should be populated on success
 	ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
 
 	err = createAndAssignCgroups(ctx, vmWatchSettings, pid)
@@ -147,7 +148,7 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 		// this allows us to test both cases
 		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
 			ctx.Log("event", fmt.Sprintf("Killing VMWatch process as cgroup assigment failed"))
-			_ = killVMWatch(ctx, cmd)
+			_ = killVMWatch(ctx, vmWatchCommand)
 			return err
 		}
 	}
@@ -160,7 +161,7 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = cmd.Wait()
+		err = vmWatchCommand.Wait()
 		processDone <- true
 		close(processDone)
 	}()
@@ -168,7 +169,7 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		monitorHeartBeat(ctx, GetVMWatchHeartbeatFilePath(hEnv), processDone, cmd)
+		monitorHeartBeat(ctx, GetVMWatchHeartbeatFilePath(hEnv), processDone, vmWatchCommand)
 	}()
 	wg.Wait()
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
@@ -205,7 +206,7 @@ func monitorHeartBeat(ctx *log.Context, heartBeatFile string, processDone chan b
 
 func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil || cmd.ProcessState != nil {
-		ctx.Log("event", fmt.Sprintf("VMWatch is not running, killing process is not necessary."))
+		ctx.Log("event", "VMWatch is not running, killing process is not necessary.")
 		return nil
 	}
 
