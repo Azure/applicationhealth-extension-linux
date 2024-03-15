@@ -3,9 +3,9 @@
         {
             "handlerSettings": {
                 "publicSettings": {
-                    "protocol": "tcp",
-                    "port": 135,
-                    "requestPath": "",
+                    "protocol": "http",
+                    "port": 8080,
+                    "requestPath": "health",
                     "intervalInSeconds": 5,
                     "numberOfProbes": 1,
                   "vmWatchSettings": {
