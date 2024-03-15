@@ -81,3 +81,8 @@ func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *VMWatchSettings,
 
 	return nil
 }
+
+func addVMWatchEnviromentVariables(arr *[]string, hEnv *handlerenv.HandlerEnvironment) {
+	*arr = append(*arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.EventsFolder))
+	*arr = append(*arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.LogFolder, VMWatchVerboseLogFileName)))
+}

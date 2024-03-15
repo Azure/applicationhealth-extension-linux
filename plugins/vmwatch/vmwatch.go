@@ -349,8 +349,7 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 		fmt.Println(k, parameterOverrides[k])
 	}
 
-	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.EventsFolder))
-	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.LogFolder, VMWatchVerboseLogFileName)))
+	addVMWatchEnviromentVariables(&arr, hEnv)
 
 	return arr
 }
