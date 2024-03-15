@@ -82,13 +82,12 @@ devcontainer: binary testenv-linux
 
 testenv-windows: binary-windows 
 	@mkdir -p $(WINDOWS_TEST_BUNDLEDIR)
-	zip ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)/$(WINDOWS_BIN)
-	zip ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)/$(WINDOWS_BIN_ARM64)
 	# Create the custom directory within the bundle directory
 	mkdir $(WINDOWS_TEST_BUNDLEDIR)/localdev
-	mkdir -p ./$(BINDIR)/bin
-	cp -r ./integration-test/env/Extension/bin/VMWatch/* ./$(BINDIR)/bin
-	zip -r ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)/bin
+	mkdir -p ./$(BINDIR)/VMWatch
+	cp -r ./integration-test/env/Extension/bin/VMWatch/* ./$(BINDIR)/VMWatch
+	rm ./$(BINDIR)/VMWatch/*linux*
+	zip -r ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./$(BINDIR)
 	# Copy windows directory to the localdev directory
 	cp -r ./integration-test/env/windows $(WINDOWS_TEST_BUNDLEDIR)/localdev
 	zip -r -j ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) $(WINDOWS_TEST_BUNDLEDIR)/localdev
