@@ -382,7 +382,6 @@ teardown(){
 
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim disable'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
-    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
 
     status_file="$(container_read_extension_status)"
     verify_status_item "$status_file" Disable success "Disable succeeded"
@@ -411,8 +410,57 @@ teardown(){
 
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
-    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
     [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
+}
+
+@test "handler command: enable - Graceful Shutdown - vm watch killed when Apphealth is killed gracefully with SIGTERM" {
+    mk_container $container_name bash -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 2 && source /var/lib/waagent/test_helper.bash;kill_apphealth_extension_gracefully SIGTERM & sleep 2"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "/",
+        "port": 8080,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true
+        }
+    }' ''
+    run start_container
+    echo "$output"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+
+    [[ "$output" == *'event="Received shutdown request"'* ]]
+    [[ "$output" == *'Successfully killed VMWatch process with PID'* ]]
+    [[ "$output" == *'Application health process terminated'* ]]
+}
+
+@test "handler command: enable - Graceful Shutdown - vm watch killed when Apphealth is killed gracefully with SIGINT" {
+    mk_container $container_name bash -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 2 && source /var/lib/waagent/test_helper.bash;kill_apphealth_extension_gracefully SIGINT & sleep 2"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "/",
+        "port": 8080,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true
+        }
+    }' ''
+    run start_container
+    echo "$output"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+
+    [[ "$output" == *'event="Received shutdown request"'* ]]
+    [[ "$output" == *'Successfully killed VMWatch process with PID'* ]]
+    [[ "$output" == *'Application health process terminated'* ]]
 }
 
 @test "handler command: enable/uninstall - vm passes memory to commandline" {

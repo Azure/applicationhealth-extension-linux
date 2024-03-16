@@ -8,7 +8,7 @@
                     "port": 8080,
                     "numberOfProbes": 1,
                     "intervalInSeconds": 5,
-                    "gracePeriod": 600,
+                    "gracePeriod": 10,
                     "vmWatchSettings": {
                         "enabled": true,
                         "signalFilters": {
