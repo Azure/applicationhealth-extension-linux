@@ -463,6 +463,33 @@ teardown(){
     [[ "$output" == *'Application health process terminated'* ]]
 }
 
+@test "handler command: enable - Forced Shutdown - vm watch killed when Apphealth is killed gracefully with SIGKILL" {
+    mk_container $container_name bash -c "nc -l localhost 22 -k & export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && source /var/lib/waagent/extension-test-helpers.sh;force_kill_apphealth"
+    push_settings '
+    {
+        "protocol": "tcp",
+        "requestPath": "",
+        "port": 22,
+        "numberOfProbes": 1,
+        "intervalInSeconds": 5,
+        "gracePeriod": 600,
+        "vmWatchSettings": {
+            "enabled": true
+        }
+    }' ''
+    run start_container
+    
+    echo "$output"
+    shutdown_log="$(container_read_file /var/log/azure/Extension/force-kill-extension.txt)"
+    echo "$shutdown_log"
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+
+    [[ "$shutdown_log" == *'Successfully killed the apphealth extension'* ]]
+    [[ "$shutdown_log" == *'Successfully killed the VMWatch extension'* ]]
+}
+
 @test "handler command: enable/uninstall - vm passes memory to commandline" {
     mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 5 && fake-waagent uninstall"
     push_settings '
