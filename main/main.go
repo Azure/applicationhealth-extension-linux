@@ -13,7 +13,7 @@ import (
 
 var (
 	// the logger that will be used throughout
-	lg, err = logging.NewExtensionLogger(nil)
+	logger, err = logging.NewExtensionLogger(nil)
 	// Exit helper
 	exiter = exithelper.Exiter
 )
@@ -23,36 +23,36 @@ func main() {
 		slog.Error("failed to create logger", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
-	lg.With("version", version.VersionString())
+	logger.With("version", version.VersionString())
 
 	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
 	if err != nil {
-		lg.Error("failed to parse command", slog.Any("error", err))
+		logger.Error("failed to parse command", slog.Any("error", err))
 		exiter.Exit(exithelper.ArgumentError)
 	}
 
 	hEnv, err := handlerenv.GetHandlerEnviroment() // parse handler environment
 	if err != nil {
-		lg.Error("failed to parse Handler Enviroment", slog.Any("error", err))
+		logger.Error("failed to parse Handler Enviroment", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
 	seqNum, err := seqnum.FindSeqNum(hEnv.ConfigFolder) // find sequence number
 	if err != nil {
-		lg.Error("failed to find sequence number", slog.Any("error", err))
+		logger.Error("failed to find sequence number", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
 	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
-		lg.Error("failed to create command handler", slog.Any("error", err))
+		logger.Error("failed to create command handler", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
-	err = handler.Execute(cmdKey, hEnv, seqNum, lg) // execute the command
+	err = handler.Execute(cmdKey, hEnv, seqNum, logger) // execute the command
 	if err != nil {
-		lg.Error("failed to execute command", slog.Any("error", err))
+		logger.Error("failed to execute command", slog.Any("error", err))
 		exiter.Exit(exithelper.ExecutionError)
 	}
-	lg.Info("end")
+	logger.Info("end")
 }
