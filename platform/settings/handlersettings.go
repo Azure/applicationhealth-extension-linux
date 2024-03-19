@@ -83,13 +83,13 @@ func validateSettingsSchema(pubSettingsJSON, protSettingsJSON map[string]interfa
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal public settings into json")
 	}
+	if err := schema.ValidatePublicSettings(pubJSON); err != nil {
+		return err
+	}
+
 	protJSON, err := toJSON(protSettingsJSON)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal protected settings into json")
-	}
-
-	if err := schema.ValidatePublicSettings(pubJSON); err != nil {
-		return err
 	}
 	if err := schema.ValidateProtectedSettings(protJSON); err != nil {
 		return err
