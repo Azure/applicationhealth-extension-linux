@@ -167,7 +167,6 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 
 	if !honorGracePeriod {
 		lg.Info("Grace period not set")
-
 	} else {
 		lg.Info(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
