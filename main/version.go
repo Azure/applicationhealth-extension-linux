@@ -26,3 +26,7 @@ func DetailedVersionString() string {
 	// e.g. v2.2.0 git:03669cef-clean build:2016-07-22T16:22:26.556103000+00:00 go:go1.6.2
 	return fmt.Sprintf("v%s git:%s-%s build:%s %s", Version, GitCommit, GitState, BuildDate, runtime.Version())
 }
+
+func GetExtensionVersion() string {
+	return Version
+}

@@ -7,7 +7,9 @@
       "logFolder": "/var/log/azure/Extension/VE.RS.ION",
       "configFolder": "/var/lib/waagent/Extension/config",
       "statusFolder": "/var/lib/waagent/Extension/status",
-      "heartbeatFile": "/var/lib/waagent/Extension/heartbeat.log"
+      "heartbeatFile": "/var/lib/waagent/Extension/heartbeat.log",
+      "eventsFolder": "/var/log/azure/Extension/events",
+      "eventsFolder_preview": "/var/log/azure/Extension/events"
     }
   }
 ]

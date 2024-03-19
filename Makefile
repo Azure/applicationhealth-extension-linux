@@ -34,4 +34,27 @@ binary: clean
 clean:
 	rm -rf "$(BINDIR)" "$(BUNDLEDIR)" "$(TESTBINDIR)"
 
+# set up the files in the dev container for debugging locally with a default settings file
+# ONLY run this if in a dev container as it can mess with local machine
+testenv:
+ifneq ("$(RUNNING_IN_DEV_CONTAINER)", "1")
+	echo "Target can only run in dev container $(RUNNING_IN_DEV_CONTAINER)"
+	exit 1
+endif
+	cp -r ./integration-test/env/* /var/lib/waagent/
+	cp -r ./testbin/* /var/lib/waagent/
+	ln -sf /var/lib/waagent/fake-waagent /sbin/fake-waagent || ture
+	ln -sf /var/lib/waagent/wait-for-enable /sbin/wait-for-enable
+	ln -sf /var/lib/waagent/webserver /sbin/webserver
+	ln -sf /var/lib/waagent/webserver_shim /sbin/webserver_shim
+	cp misc/HandlerManifest.json /var/lib/waagent/Extension/
+	cp misc/manifest.xml /var/lib/waagent/Extension/
+	cp misc/applicationhealth-shim /var/lib/waagent/Extension/bin/
+	cp bin/applicationhealth-extension /var/lib/waagent/Extension/bin
+	mkdir -p /var/log/azure/Extension/events
+	mkdir -p /var/lib/waagent/Extension/config/
+	cp ./.devcontainer/extension-settings.json /var/lib/waagent/Extension/config/0.settings
+
+devcontainer: binary testenv
+
 .PHONY: clean binary

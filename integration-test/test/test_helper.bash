@@ -49,7 +49,6 @@ rm_image() {
 }
 
 mk_container() {
-    
      if [ $# -gt 3 ]; then # if less than two arguments are supplied
         local container_name="${1:-$TEST_CONTAINER}" # assign the value of $TEST_CONTAINER if $1 is empty
         echo "container_name: $container_name"
@@ -61,11 +60,23 @@ mk_container() {
         docker create --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
 }
 
+# creates a container in priviged mode (allowing cgroup integration to work)
+mk_container_priviliged() {
+    if [ $# -gt 3 ]; then # if less than two arguments are supplied
+        local container_name="${1:-$TEST_CONTAINER}" # assign the value of $TEST_CONTAINER if $1 is empty
+        echo "container_name: $container_name"
+        TEST_CONTAINER="$container_name"
+        shift
+    fi
+
+    rm_container && echo "Creating test container with commands: $@">&2 && \
+        docker create --privileged --name=$TEST_CONTAINER $IMAGE "$@" 1>/dev/null
+}
+
 in_container() {
     set -e
     rm_container
     mk_container "$@"
-    echo "Starting test container...">&2
     start_container
 }
 
@@ -80,7 +91,19 @@ container_diff() {
 container_read_file() { # reads the file at container path $1
     set -eo pipefail
     docker cp $TEST_CONTAINER:"$1" - | tar x --to-stdout
-} 
+}
+
+container_read_extension_status() {
+    container_read_file /var/lib/waagent/Extension/status/0.status
+}
+
+container_read_vmwatch_log() {
+    container_read_file /var/log/azure/Extension/VE.RS.ION/vmwatch.log
+}
+
+container_read_handler_log() {
+    container_read_file /var/log/azure/applicationhealth-extension/handler.log
+}
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail
@@ -203,11 +226,24 @@ verify_states() {
     done <<< "$1"
 }
 
+verify_status_item() {
+    # $1 status_file contents
+    # $2 status.operation
+    # $3 status.status 
+    # $4 status.formattedMessage.message
+    #       Note that this can contain regex 
+    FMT='"operation": "'%s'",((.*)|\s*?).*,\s*"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
+    printf -v STATUS "$FMT" "$2" "$3" "$4"
+    echo "Searching status file for status item: $STATUS"
+    echo "$1" | egrep -z "$STATUS"
+}
+
 verify_substatus_item() {
     # $1 status_file contents
     # $2 substatus.name
     # $3 substatus.status 
     # $4 substatus.formattedMessage.message
+    #       Note that this can contain regex 
     FMT='"name": "'%s'",\s+"status": "'%s'",\s+"formattedMessage": {\s+"lang": "en",\s+"message": "'%s'"'
     printf -v SUBSTATUS "$FMT" "$2" "$3" "$4"
     echo "Searching status file for substatus item: $SUBSTATUS"
@@ -228,4 +264,28 @@ create_certificate() {
 delete_certificate() {
     rm -f testbin/webserverkey.pem
     rm -f testbin/webservercert.pem
+}
+
+get_extension_version() {
+    # extract version from manifest.xml
+    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/manifest.xml)
+    echo $version
+}
+# Accepted Kill Signals SIGINT SIGTERM
+kill_apphealth_extension_gracefully() {
+    # kill the applicationhealth extension gracefully
+    # echo "Printing the process list Before killing the applicationhealth extension"
+    ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
+    kill_signal=$1
+    [[ $kill_signal == "SIGINT" || $kill_signal == "SIGTERM" ]] || { echo "Invalid signal: $kill_signal"; return 1; }
+    app_health_pid=$(ps -ef | grep "applicationhealth-extension" | grep -v grep | grep -v tee | awk '{print $2}')
+    if [ -z "$app_health_pid" ]; then
+        echo "Applicationhealth extension is not running"
+        return 0
+    fi
+    # echo "Killing applicationhealth extension with signal: $kill_signal"
+    # echo "PID: $app_health_pid"
+    kill -s $kill_signal $app_health_pid
+    # echo "Printing the process list after killing the applicationhealth extension"
+    ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
 }
