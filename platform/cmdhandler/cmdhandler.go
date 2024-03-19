@@ -110,10 +110,10 @@ func printUsage(args []string) {
 	fmt.Printf("Usage: %s ", os.Args[0])
 	i := 0
 	for k := range extCommands {
-		fmt.Printf(k.String())
-		if i != len(extCommands)-1 {
-			fmt.Printf("|")
+		if i > 0 {
+			fmt.Print("|")
 		}
+		fmt.Print(k.String())
 		i++
 	}
 	fmt.Println()
