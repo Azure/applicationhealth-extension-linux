@@ -49,7 +49,7 @@ func main() {
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
-	err = handler.Execute(lg, cmdKey, hEnv, seqNum) // execute the command
+	err = handler.Execute(cmdKey, hEnv, seqNum, lg) // execute the command
 	if err != nil {
 		lg.Error("failed to execute command", slog.Any("error", err))
 		exiter.Exit(exithelper.ExecutionError)

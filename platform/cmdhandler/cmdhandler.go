@@ -68,7 +68,7 @@ func (cm CommandMap) Values() []cmd {
 }
 
 type CommandHandler interface {
-	Execute(lg logging.Logger, c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int) error
+	Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error
 	CommandMap() CommandMap
 }
 

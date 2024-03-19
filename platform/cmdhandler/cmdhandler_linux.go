@@ -56,7 +56,7 @@ func (ch *LinuxCommandHandler) validateCommandToExecute(cmd CommandKey) error {
 	return nil
 }
 
-func (ch *LinuxCommandHandler) Execute(lg logging.Logger, c CommandKey, hEnv *handlerenv.HandlerEnvironment, seqNum int) error {
+func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error {
 	err := ch.validateCommandToExecute(c) // set the command to execute
 	if err != nil {
 		return errors.Errorf("failed to find command to execute: %s", err)
@@ -72,7 +72,7 @@ func (ch *LinuxCommandHandler) Execute(lg logging.Logger, c CommandKey, hEnv *ha
 	lg.With("seq", strconv.Itoa(seqNum))
 
 	lg.Info("Starting AppHealth Extension")
-	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", hEnv))
+	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -95,14 +95,14 @@ func (ch *LinuxCommandHandler) Execute(lg logging.Logger, c CommandKey, hEnv *ha
 	}
 
 	// execute the subcommand
-	ReportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, hEnv, seqNum)
+	ReportStatus(lg, h, seqNum, status.StatusTransitioning, cmd, "")
+	msg, err := cmd.f(lg, h, seqNum)
 	if err != nil {
 		lg.Error("failed to handle", slog.Any("error", err))
-		ReportStatus(lg, hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
+		ReportStatus(lg, h, seqNum, status.StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	ReportStatus(lg, hEnv, seqNum, status.StatusSuccess, cmd, msg)
+	ReportStatus(lg, h, seqNum, status.StatusSuccess, cmd, msg)
 	lg.Info("end")
 
 	return nil

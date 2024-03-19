@@ -17,7 +17,7 @@ func newOSCommandHandler() (CommandHandler, error) {
 	}, nil
 }
 
-func (*WindowsCommandHandler) Execute(lg logging.Logger, c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int) error {
+func (*WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error {
 	// TODO: Implement command execution
 	return nil
 }
