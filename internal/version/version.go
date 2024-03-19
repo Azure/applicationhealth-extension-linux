@@ -2,10 +2,9 @@ package version
 
 import (
 	"fmt"
-	"path/filepath"
 	"runtime"
 
-	"github.com/Azure/azure-extension-platform/pkg/utils"
+	"github.com/Azure/applicationhealth-extension-linux/internal/manifest"
 )
 
 // These fields are populated by govvv at compile-time.
@@ -42,11 +41,14 @@ func GetExtensionVersion() (string, error) {
 
 	// If the version is not set during build time, then reading it from the manifest file as fallback.
 
-	v, err := getExtensionVersionFromManifest()
-
+	em, err := manifest.GetExtensionManifest()
 	if err != nil {
 		return "", err
 	}
 
-	return v, err
+	if em.Version != "" {
+		return em.Version, nil
+	}
+
+	return "", fmt.Errorf("failed to get extension version")
 }
