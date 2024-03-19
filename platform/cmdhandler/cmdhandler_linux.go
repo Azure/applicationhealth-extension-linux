@@ -49,26 +49,14 @@ func (ch *LinuxCommandHandler) CommandMap() CommandMap {
 	return ch.commands
 }
 
-func (ch *LinuxCommandHandler) validateCommandToExecute(cmd CommandKey) error {
-	if _, ok := ch.commands[cmd]; !ok {
-		return errors.Errorf("unknown command: %s", cmd)
-	}
-	return nil
-}
-
 func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error {
-	err := ch.validateCommandToExecute(c) // set the command to execute
-	if err != nil {
-		return errors.Errorf("failed to find command to execute: %s", err)
-	}
-
 	// Getting command to execute
-	cmd, ok := ch.commands[c]
+	command, ok := ch.commands[c]
 	if !ok {
 		return errors.Errorf("unknown command: %s", c)
 	}
 
-	lg.With("operation", strings.ToLower(cmd.Name.String()))
+	lg.With("operation", strings.ToLower(command.Name.String()))
 	lg.With("seq", strconv.Itoa(seqNum))
 
 	lg.Info("Starting AppHealth Extension")
@@ -86,23 +74,23 @@ func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnviro
 		}
 	}()
 
-	if cmd.pre != nil {
+	if command.pre != nil {
 		lg.Info("pre-check")
-		if err := cmd.pre(lg, seqNum); err != nil {
+		if err := command.pre(lg, seqNum); err != nil {
 			lg.Error("pre-check failed", slog.Any("error", err))
-			os.Exit(cmd.failExitCode)
+			os.Exit(command.failExitCode)
 		}
 	}
 
 	// execute the subcommand
-	ReportStatus(lg, h, seqNum, status.StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, h, seqNum)
+	ReportStatus(lg, h, seqNum, status.StatusTransitioning, command, "")
+	msg, err := command.f(lg, h, seqNum)
 	if err != nil {
 		lg.Error("failed to handle", slog.Any("error", err))
-		ReportStatus(lg, h, seqNum, status.StatusError, cmd, err.Error()+msg)
-		os.Exit(cmd.failExitCode)
+		ReportStatus(lg, h, seqNum, status.StatusError, command, err.Error()+msg)
+		os.Exit(command.failExitCode)
 	}
-	ReportStatus(lg, h, seqNum, status.StatusSuccess, cmd, msg)
+	ReportStatus(lg, h, seqNum, status.StatusSuccess, command, msg)
 	lg.Info("end")
 
 	return nil
