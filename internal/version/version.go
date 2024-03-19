@@ -20,7 +20,6 @@ var (
 // vVERSION/git@GitCommit[-State].
 func VersionString() string {
 	return fmt.Sprintf("v%s/git@%s-%s", Version, GitCommit, GitState)
-
 }
 
 // DetailedVersionString returns a detailed version string including version
@@ -30,31 +29,13 @@ func DetailedVersionString() string {
 	return fmt.Sprintf("v%s git:%s-%s build:%s %s", Version, GitCommit, GitState, BuildDate, runtime.Version())
 }
 
-func GetExtensionVersionFromBuild() string {
+func getVersionFromBuild() string {
 	return Version
-}
-
-// TODO: Use mode generic name
-// Get Extension Version set at build time or from manifest file.
-func getExtensionVersionFromManifest() (string, error) {
-	// If the version is not set during build time, then reading it from the manifest file as fallback.
-	processDirectory, err := utils.GetCurrentProcessWorkingDir()
-	if err != nil {
-		return "", err
-	}
-	processDirectory = filepath.Dir(processDirectory)
-	fp := filepath.Join(processDirectory, ExtensionManifestFileName)
-
-	manifest, err := getExtensionManifest(fp)
-	if err != nil {
-		return "", err
-	}
-	return manifest.Version, nil
 }
 
 func GetExtensionVersion() (string, error) {
 	// First attempting to read the version set during build time.
-	v := GetExtensionVersionFromBuild()
+	v := getVersionFromBuild()
 	if v != "" {
 		return v, nil
 	}
