@@ -70,10 +70,10 @@ func ParseAndValidateSettings(lg logging.Logger, configFolder string) (h Handler
 // readSettings uses specified configFolder (comes from HandlerEnvironment) to
 // decrypt and parse the public/protected settings of the extension handler into
 // JSON objects.
-func readSettings(configFolder string) (pubSettingsJSON, protSettingsJSON map[string]interface{}, err error) {
-	pubSettingsJSON, protSettingsJSON, err = vmextension.ReadSettings(configFolder)
+func readSettings(configFolder string) (map[string]interface{}, map[string]interface{}, error) {
+	pubSettingsJSON, protSettingsJSON, err := vmextension.ReadSettings(configFolder)
 	err = errors.Wrapf(err, "error reading extension configuration")
-	return
+	return pubSettingsJSON, protSettingsJSON, err
 }
 
 // validateSettings takes publicSettings and protectedSettings as JSON objects
