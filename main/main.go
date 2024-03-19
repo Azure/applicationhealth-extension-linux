@@ -35,7 +35,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		ctx.Log("event", fmt.Sprintf("Received shutdown request"))
+		ctx.Log("event", "Received shutdown request")
 		shutdown = true
 		err := killVMWatch(ctx, vmWatchCommand)
 		if err != nil {
