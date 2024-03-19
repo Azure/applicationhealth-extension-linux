@@ -16,11 +16,11 @@ func TestParseCmd(t *testing.T) {
 	}{
 		{[]string{"bin/applicationhealth-shim"}, "", "Incorrect usage"},
 		{[]string{"bin/applicationhealth-shim", "noop"}, "", fmt.Sprintf("Incorrect command: %q\n", "noop")},
-		{[]string{"bin/applicationhealth-shim", "install"}, Install, ""},
-		{[]string{"bin/applicationhealth-shim", "uninstall"}, Uninstall, ""},
-		{[]string{"bin/applicationhealth-shim", "enable"}, Enable, ""},
-		{[]string{"bin/applicationhealth-shim", "disable"}, Disable, ""},
-		{[]string{"bin/applicationhealth-shim", "update"}, Update, ""},
+		{[]string{"bin/applicationhealth-shim", "install"}, InstallKey, ""},
+		{[]string{"bin/applicationhealth-shim", "uninstall"}, UninstallKey, ""},
+		{[]string{"bin/applicationhealth-shim", "enable"}, EnableKey, ""},
+		{[]string{"bin/applicationhealth-shim", "disable"}, DisableKey, ""},
+		{[]string{"bin/applicationhealth-shim", "update"}, UpdateKey, ""},
 	}
 
 	for _, test := range tests {

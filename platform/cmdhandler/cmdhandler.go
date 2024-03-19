@@ -21,11 +21,11 @@ func (c CommandKey) String() string {
 }
 
 const (
-	Install   CommandKey = "install"
-	Uninstall CommandKey = "uninstall"
-	Enable    CommandKey = "enable"
-	Update    CommandKey = "update"
-	Disable   CommandKey = "disable"
+	InstallKey   CommandKey = "install"
+	UninstallKey CommandKey = "uninstall"
+	EnableKey    CommandKey = "enable"
+	UpdateKey    CommandKey = "update"
+	DisableKey   CommandKey = "disable"
 )
 
 const (
@@ -96,7 +96,7 @@ func ParseCmd() (CommandKey, error) {
 	op := os.Args[1]
 	// Check if the command is valid key defined in CommandKeys
 	switch op {
-	case Install.String(), Uninstall.String(), Enable.String(), Update.String(), Disable.String():
+	case InstallKey.String(), UninstallKey.String(), EnableKey.String(), UpdateKey.String(), DisableKey.String():
 		return CommandKey(op), nil
 	default:
 		printUsage(os.Args)

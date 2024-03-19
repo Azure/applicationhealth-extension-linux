@@ -22,11 +22,11 @@ import (
 )
 
 var extCommands = CommandMap{
-	Install:   cmd{f: install, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},
-	Uninstall: cmd{f: uninstall, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3},
-	Enable:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
-	Update:    {noop, UpdateName, true, nil, 3},
-	Disable:   {noop, DisableName, true, nil, 3},
+	InstallKey:   cmd{f: install, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},
+	UninstallKey: cmd{f: uninstall, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3},
+	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
+	UpdateKey:    {noop, UpdateName, true, nil, 3},
+	DisableKey:   {noop, DisableName, true, nil, 3},
 }
 
 type LinuxCommandHandler struct {
