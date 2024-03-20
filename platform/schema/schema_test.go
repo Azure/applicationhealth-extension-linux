@@ -6,6 +6,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidatePublicSettings_EmptySettings(t *testing.T) {
+	err := ValidatePublicSettings("{}")
+	require.NoError(t, err, "Empty settings should be valid")
+}
+
 func TestValidatePublicSettings_port(t *testing.T) {
 	err := ValidatePublicSettings(`{"port": "foo"}`)
 	require.NotNil(t, err)
