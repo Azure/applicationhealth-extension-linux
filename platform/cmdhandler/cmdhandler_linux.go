@@ -91,8 +91,6 @@ func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnviro
 		os.Exit(command.failExitCode)
 	}
 	ReportStatus(lg, h, seqNum, status.StatusSuccess, command, msg)
-	lg.Info("end")
-
 	return nil
 }
 
