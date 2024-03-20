@@ -22,8 +22,8 @@ var extCommands = CommandMap{
 	InstallKey:   cmd{f: noop, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},  // TODO: Implement
 	UninstallKey: cmd{f: noop, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3}, // TODO: Implement
 	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
-	UpdateKey:    {noop, UpdateName, true, nil, 3},
-	DisableKey:   {noop, DisableName, true, nil, 3},
+	UpdateKey:    cmd{f: noop, Name: UpdateName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
+	DisableKey:   cmd{f: noop, Name: DisableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
 }
 
 type WindowsCommandHandler struct {
