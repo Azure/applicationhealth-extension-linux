@@ -77,7 +77,6 @@ func GetExtensionManifest() (*ExtensionManifest, error) {
 // It returns the path and an error, if any.
 func findManifestFilePath(dir string) (string, error) {
 	var (
-		path  = ""
 		paths = []string{
 			filepath.Join(dir, manifestFileName),       // this level (i.e. executable is in [EXT_NAME]/.)
 			filepath.Join(dir, "..", manifestFileName), // one up (i.e. executable is in [EXT_NAME]/bin/.)
@@ -87,15 +86,11 @@ func findManifestFilePath(dir string) (string, error) {
 	for _, p := range paths {
 		_, err := os.ReadFile(p)
 		if err != nil && !os.IsNotExist(err) {
-			return "", fmt.Errorf("cannot find base directory of the running process: %v", err)
+			return "", fmt.Errorf("cannot read file at path %s: %v", p, err)
 		} else if err == nil {
-			path = p
-			break
+			return p, nil
 		}
 	}
 
-	if path == "" {
-		return "", fmt.Errorf("cannot find HandlerEnvironment at paths: %s", strings.Join(paths, ", "))
-	}
-	return path, nil
+	return "", fmt.Errorf("cannot find HandlerEnvironment at paths: %s", strings.Join(paths, ", "))
 }
