@@ -23,7 +23,12 @@ func main() {
 		slog.Error("failed to create logger", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
-	logger.With("version", version.GetExtensionVersionFromBuild())
+	v, err := version.GetExtensionVersion()
+	if err != nil {
+		logger.Error("failed to get extension version", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
+	}
+	logger.With("version", v)
 
 	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
 	if err != nil {

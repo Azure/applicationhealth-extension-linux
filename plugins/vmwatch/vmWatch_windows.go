@@ -1,9 +1,7 @@
 package vmwatch
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 	"path/filepath"
 	"strings"
 
