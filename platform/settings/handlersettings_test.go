@@ -76,7 +76,16 @@ func Test_toJSON(t *testing.T) {
 }
 
 func Test_unMarshalPublicSetting(t *testing.T) {
-	publicSettings := map[string]interface{}{"requestPath": "health", "port": 8080, "numberOfProbes": 1, "intervalInSeconds": 5, "gracePeriod": 600, "vmWatchSettings": map[string]interface{}{"enabled": true, "globalConfigUrl": "https://testxyz.azurefd.net/config/disable-switch-config.json"}}
+	publicSettings := map[string]interface{}{
+		"requestPath":       "health",
+		"port":              8080,
+		"numberOfProbes":    1,
+		"intervalInSeconds": 5,
+		"gracePeriod":       600,
+		"vmWatchSettings": map[string]interface{}{
+			"enabled":         true,
+			"globalConfigUrl": "https://testxyz.azurefd.net/config/disable-switch-config.json",
+		}}
 	h := HandlerSettings{}
 	err := vmextension.UnmarshalHandlerSettings(publicSettings, nil, &h.publicSettings, &h.protectedSettings)
 	require.Nil(t, err)
