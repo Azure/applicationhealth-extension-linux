@@ -115,15 +115,11 @@ func install(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (s
 }
 
 func uninstall(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
-	{ // a new context scope with path
-		lg.With("path", dataDir)
-
-		lg.Info(fmt.Sprintf("removing data dir, path: %s", dataDir))
-		if err := os.RemoveAll(dataDir); err != nil {
-			return "", errors.Wrap(err, "failed to delete data dir")
-		}
-		lg.Info("removed data dir")
+	lg.Info(fmt.Sprintf("removing data dir, path: %s", dataDir), slog.String("path", dataDir))
+	if err := os.RemoveAll(dataDir); err != nil {
+		return "", errors.Wrap(err, "failed to delete data dir")
 	}
+	lg.Info("removed data dir", slog.String("path", dataDir))
 	lg.Info("uninstalled")
 	return "", nil
 }
