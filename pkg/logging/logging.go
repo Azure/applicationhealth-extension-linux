@@ -67,12 +67,12 @@ type ExtensionLogger struct {
 // a standard output logger will be used.
 // It returns a Logger instance.
 func NewExtensionLogger(he *handlerenv.HandlerEnvironment) (Logger, error) {
-	if he == nil || he.HandlerEnvironment.LogFolder == "" {
+	if he == nil || he.LogFolder == "" {
 		// Standard output logger will be used
 		return NewExtensionLoggerWithName("", "")
 	}
 
-	return NewExtensionLoggerWithName(he.HandlerEnvironment.LogFolder, "")
+	return NewExtensionLoggerWithName(he.LogFolder, "")
 }
 
 // NewExtensionLoggerWithName creates a new logger with the given log folder and log file format.

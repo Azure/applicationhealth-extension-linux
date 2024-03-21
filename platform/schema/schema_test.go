@@ -1,4 +1,4 @@
-package main
+package schema
 
 import (
 	"testing"
@@ -6,95 +6,100 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidatePublicSettings_EmptySettings(t *testing.T) {
+	err := ValidatePublicSettings("{}")
+	require.NoError(t, err, "Empty settings should be valid")
+}
+
 func TestValidatePublicSettings_port(t *testing.T) {
-	err := validatePublicSettings(`{"port": "foo"}`)
+	err := ValidatePublicSettings(`{"port": "foo"}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Invalid type. Expected: integer, given: string")
 
-	err = validatePublicSettings(`{"port": 0}`)
+	err = ValidatePublicSettings(`{"port": 0}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "port: Must be greater than or equal to 1")
 
-	err = validatePublicSettings(`{"port": 65536}`)
+	err = ValidatePublicSettings(`{"port": 65536}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "port: Must be less than or equal to 65535")
 
-	require.Nil(t, validatePublicSettings(`{"port": 1}`), "valid port")
-	require.Nil(t, validatePublicSettings(`{"port": 65535}`), "valid port")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1}`), "valid port")
+	require.Nil(t, ValidatePublicSettings(`{"port": 65535}`), "valid port")
 }
 
 func TestValidatePublicSettings_protocol(t *testing.T) {
-	err := validatePublicSettings(`{"protocol": ["foo"]}`)
+	err := ValidatePublicSettings(`{"protocol": ["foo"]}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Invalid type. Expected: string, given: array")
 
-	err = validatePublicSettings(`{"protocol": "udp"}`)
+	err = ValidatePublicSettings(`{"protocol": "udp"}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), `protocol must be one of the following: "tcp", "http", "https"`)
 
-	require.Nil(t, validatePublicSettings(`{"protocol": "tcp"}`), "tcp protocol")
-	require.Nil(t, validatePublicSettings(`{"protocol": "http"}`), "http protocol")
-	require.Nil(t, validatePublicSettings(`{"protocol": "https"}`), "https protocol")
+	require.Nil(t, ValidatePublicSettings(`{"protocol": "tcp"}`), "tcp protocol")
+	require.Nil(t, ValidatePublicSettings(`{"protocol": "http"}`), "http protocol")
+	require.Nil(t, ValidatePublicSettings(`{"protocol": "https"}`), "https protocol")
 }
 
 func TestValidatePublicSettings_requestPath(t *testing.T) {
-	err := validatePublicSettings(`{"requestPath": ["foo"]}`)
+	err := ValidatePublicSettings(`{"requestPath": ["foo"]}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Invalid type. Expected: string, given: array")
 
-	require.Nil(t, validatePublicSettings(`{"requestPath": ""}`), "empty string request path")
-	require.Nil(t, validatePublicSettings(`{"requestPath": "health/Endpoint"}`), "valid request path")
+	require.Nil(t, ValidatePublicSettings(`{"requestPath": ""}`), "empty string request path")
+	require.Nil(t, ValidatePublicSettings(`{"requestPath": "health/Endpoint"}`), "valid request path")
 }
 
 func TestValidatePublicSettings_intervalInSeconds(t *testing.T) {
-	err := validatePublicSettings(`{"intervalInSeconds": "foo"}`)
+	err := ValidatePublicSettings(`{"intervalInSeconds": "foo"}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Invalid type. Expected: integer, given: string")
 
-	err = validatePublicSettings(`{"intervalInSeconds": 0}`)
+	err = ValidatePublicSettings(`{"intervalInSeconds": 0}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "intervalInSeconds: Must be greater than or equal to 5")
 
-	err = validatePublicSettings(`{"intervalInSeconds": 70}`)
+	err = ValidatePublicSettings(`{"intervalInSeconds": 70}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "intervalInSeconds: Must be less than or equal to 60")
 
-	require.Nil(t, validatePublicSettings(`{"intervalInSeconds": 5}`), "valid intervalInSeconds")
-	require.Nil(t, validatePublicSettings(`{"intervalInSeconds": 20}`), "valid intervalInSeconds")
-	require.Nil(t, validatePublicSettings(`{"intervalInSeconds": 60}`), "valid intervalInSeconds")
+	require.Nil(t, ValidatePublicSettings(`{"intervalInSeconds": 5}`), "valid intervalInSeconds")
+	require.Nil(t, ValidatePublicSettings(`{"intervalInSeconds": 20}`), "valid intervalInSeconds")
+	require.Nil(t, ValidatePublicSettings(`{"intervalInSeconds": 60}`), "valid intervalInSeconds")
 }
 
 func TestValidatePublicSettings_numberOfProbes(t *testing.T) {
-	err := validatePublicSettings(`{"numberOfProbes": "foo"}`)
+	err := ValidatePublicSettings(`{"numberOfProbes": "foo"}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Invalid type. Expected: integer, given: string")
 
-	err = validatePublicSettings(`{"numberOfProbes": 0}`)
+	err = ValidatePublicSettings(`{"numberOfProbes": 0}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "numberOfProbes: Must be greater than or equal to 1")
 
-	err = validatePublicSettings(`{"numberOfProbes": 25}`)
+	err = ValidatePublicSettings(`{"numberOfProbes": 25}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "numberOfProbes: Must be less than or equal to 24")
 
-	require.Nil(t, validatePublicSettings(`{"numberOfProbes": 1}`), "valid numberOfProbes")
-	require.Nil(t, validatePublicSettings(`{"numberOfProbes": 2}`), "valid numberOfProbes")
-	require.Nil(t, validatePublicSettings(`{"numberOfProbes": 3}`), "valid numberOfProbes")
+	require.Nil(t, ValidatePublicSettings(`{"numberOfProbes": 1}`), "valid numberOfProbes")
+	require.Nil(t, ValidatePublicSettings(`{"numberOfProbes": 2}`), "valid numberOfProbes")
+	require.Nil(t, ValidatePublicSettings(`{"numberOfProbes": 3}`), "valid numberOfProbes")
 }
 
 func TestValidatePublicSettings_unrecognizedField(t *testing.T) {
-	err := validatePublicSettings(`{"protocol": "date", "alien":0}`)
+	err := ValidatePublicSettings(`{"protocol": "date", "alien":0}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Additional property alien is not allowed")
 }
 
 func TestValidateProtectedSettings_empty(t *testing.T) {
-	require.Nil(t, validateProtectedSettings(""), "empty string")
-	require.Nil(t, validateProtectedSettings("{}"), "empty string")
+	require.Nil(t, ValidateProtectedSettings(""), "empty string")
+	require.Nil(t, ValidateProtectedSettings("{}"), "empty string")
 }
 
 func TestValidateProtectedSettings_unrecognizedField(t *testing.T) {
-	err := validateProtectedSettings(`{"alien":0}`)
+	err := ValidateProtectedSettings(`{"alien":0}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "Additional property alien is not allowed")
 }
@@ -144,7 +149,7 @@ func TestValidatePublicSettings_gracePeriod(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validatePublicSettings(tc.input)
+			err := ValidatePublicSettings(tc.input)
 			if tc.expectedErr == "" {
 				require.Nil(t, err)
 			} else {
@@ -156,19 +161,19 @@ func TestValidatePublicSettings_gracePeriod(t *testing.T) {
 }
 
 func TestValidatePublicSettings_vmwatch(t *testing.T) {
-	require.Nil(t, validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : false }}`), "valid settings")
-	require.Nil(t, validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true }}`), "valid settings")
-	require.Nil(t, validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 30000000 }}`), "valid settings")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : false }}`), "valid settings")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true }}`), "valid settings")
+	require.Nil(t, ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 30000000 }}`), "valid settings")
 
-	err := validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 20000000 }}`)
+	err := ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "memoryLimitInBytes" : 20000000 }}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.memoryLimitInBytes: Must be greater than or equal to 30000000")
 
-	err = validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 0 }}`)
+	err = ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 0 }}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.maxCpuPercentage: Must be greater than or equal to 1")
 
-	err = validatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 101 }}`)
+	err = ValidatePublicSettings(`{"port": 1, "vmWatchSettings" : { "enabled" : true, "maxCpuPercentage" : 101 }}`)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.maxCpuPercentage: Must be less than or equal to 100")
 }

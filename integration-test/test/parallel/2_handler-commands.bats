@@ -2,7 +2,6 @@
 
 setup(){
     load "../test_helper"
-    build_docker_image
     container_name="handler-command_$BATS_TEST_NUMBER"
 }
 
