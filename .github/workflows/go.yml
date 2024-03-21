@@ -160,7 +160,7 @@ jobs:
 
     - name: Install Go Packages
       run: |
-        sudo apt install golint
+        choco install golang-lint
 
     - name: Pull Repository
       uses: actions/checkout@v3
