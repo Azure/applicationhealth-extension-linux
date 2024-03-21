@@ -159,9 +159,6 @@ jobs:
         echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
         go env
 
-    - name: Print GOPATH
-      run: echo $GOPATH
-
     - name: Pull Repository
       uses: actions/checkout@v3
       with:
@@ -190,7 +187,7 @@ jobs:
 
     - name: Unit Tests
       continue-on-error: false
-      run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
+      run: go list ./... | grep -v '/vendor/' | xargs go test -cover
       working-directory: ${{ env.repo_root }}
 
     
