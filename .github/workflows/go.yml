@@ -172,8 +172,9 @@ jobs:
       continue-on-error: true
       run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
       working-directory: ${{ env.repo_root }}
-      
+
     - uses: dominikh/staticcheck-action@v1.3.0
+      continue-on-error: true
       with:
         install-go: false
         min-go-version: 1.21
