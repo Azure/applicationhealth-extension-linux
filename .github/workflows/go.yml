@@ -182,7 +182,7 @@ jobs:
 
     - name: Build Binaries
       run: make binary-windows
-      working-directory: ${{ env.repo_root }}
+      working-directory: ${{ env.repo_root }}/main
 
     - name: Unit Tests
       continue-on-error: false
