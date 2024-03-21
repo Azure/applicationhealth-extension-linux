@@ -139,7 +139,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest]
-        dir: ["main", "pkg", "internal", "platform"]
     
     runs-on: ${{ matrix.os }}
 
@@ -179,7 +178,7 @@ jobs:
       with:
         version: "2022.1.3"
         install-go: false
-        working-directory: ${{ env.repo_root }}/${{ matrix.dir }}
+        working-directory: ${{ env.repo_root }}
 
     - name: Build Binaries
       run: make binary-windows
