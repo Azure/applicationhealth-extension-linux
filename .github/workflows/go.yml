@@ -158,6 +158,10 @@ jobs:
         echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
         go env
 
+    - name: Install Go Packages
+      run: |
+        sudo apt install golint
+
     - name: Pull Repository
       uses: actions/checkout@v3
       with:
