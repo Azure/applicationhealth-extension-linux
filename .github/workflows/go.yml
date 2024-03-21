@@ -172,15 +172,16 @@ jobs:
       run: test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
       working-directory: ${{ env.repo_root }}
 
-    - name: Lint
-      continue-on-error: true
-      run: test -z "$(golint . | tee /dev/stderr)"
-      working-directory: ${{ env.repo_root }}
-
     - name: Vet
       continue-on-error: true
       run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
       working-directory: ${{ env.repo_root }}
+
+    - uses: dominikh/staticcheck-action@v1.3.0
+      with:
+        version: "2022.1.3"
+        install-go: false
+        working-directory: ${{  env.repo_root }}
 
     - name: Build Binaries
       run: make binary-windows
