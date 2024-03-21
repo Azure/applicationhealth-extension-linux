@@ -150,6 +150,11 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: '1.21.7'
+        
+    - name: Pull Repository
+      uses: actions/checkout@v3
+      with:
+        path: ${{ env.repo_root }}
 
     - name: Formatting 
       continue-on-error: true
