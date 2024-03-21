@@ -152,11 +152,15 @@ jobs:
         go-version: '1.21.7'
       
     - name: Setup Go Environment 
+      shell: bash
       run: |
         echo "GOPATH=${{ github.workspace }}/go" >> $GITHUB_ENV
         echo "GO111MODULE=auto" >> $GITHUB_ENV
         echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
         go env
+
+    - name: Print GOPATH
+      run: echo $GOPATH
 
     - name: Pull Repository
       uses: actions/checkout@v3
