@@ -144,7 +144,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-windows
+      repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
     - name: Setup Go
