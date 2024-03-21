@@ -172,12 +172,11 @@ jobs:
       continue-on-error: true
       run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
       working-directory: ${{ env.repo_root }}
-
-    - name: Running Go Lint
-      uses: dominikh/staticcheck-action@v1.3.0
+      
+    - uses: dominikh/staticcheck-action@v1.3.0
       with:
-        version: "2022.1.3"
         install-go: false
+        min-go-version: 1.21
         working-directory: ${{ env.repo_root }}
 
     - name: Build Binaries
