@@ -120,7 +120,7 @@ func uninstall(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to delete data dir")
 	}
 	lg.Info("removed data dir", slog.String("path", dataDir))
-	lg.Info("uninstalled")
+	lg.Info("uninstalled", slog.String("path", dataDir))
 	return "", nil
 }
 
