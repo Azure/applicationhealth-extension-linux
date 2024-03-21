@@ -158,10 +158,6 @@ jobs:
         echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
         go env
 
-    - name: Install Go Packages
-      run: |
-        choco install golang-lint
-
     - name: Pull Repository
       uses: actions/checkout@v3
       with:
