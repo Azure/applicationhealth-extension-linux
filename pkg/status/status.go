@@ -1,4 +1,4 @@
-package main
+package status
 
 import (
 	"encoding/json"
@@ -72,20 +72,6 @@ func NewSubstatus(name string, t StatusType, message string) SubstatusItem {
 			Lang:    "en",
 			Message: message,
 		},
-	}
-}
-
-func (r StatusReport) AddSubstatus(t StatusType, name, message string, state HealthStatus) {
-	if len(r) > 0 {
-		substatusItem := SubstatusItem{
-			Name:   name,
-			Status: t,
-			FormattedMessage: FormattedMessage{
-				Lang:    "en",
-				Message: message,
-			},
-		}
-		r[0].Status.SubstatusList = append(r[0].Status.SubstatusList, substatusItem)
 	}
 }
 

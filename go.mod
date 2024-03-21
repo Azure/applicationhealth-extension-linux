@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d
-	github.com/Azure/azure-extension-platform v0.0.0-20230218002700-ca684482c954
+	github.com/Azure/azure-extension-platform v0.0.0-20240308223811-e14387603600
 	github.com/containerd/cgroups/v3 v3.0.2
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/pkg/errors v0.9.1

@@ -1,4 +1,4 @@
-package main
+package vmwatch
 
 import (
 	"bytes"
@@ -14,7 +14,11 @@ import (
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
+	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
+	"github.com/Azure/azure-extension-platform/pkg/utils"
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup1"
 	"github.com/containerd/cgroups/v3/cgroup2"
@@ -45,14 +49,14 @@ const (
 	AppHealthPublisherNameTest                      string = "Microsoft.ManagedServices.Edp"
 )
 
-func (p VMWatchStatus) GetStatusType() StatusType {
+func (p VMWatchStatus) GetStatusType() status.StatusType {
 	switch p {
 	case Disabled:
-		return StatusWarning
+		return status.StatusWarning
 	case Failed:
-		return StatusError
+		return status.StatusError
 	default:
-		return StatusSuccess
+		return status.StatusSuccess
 	}
 }
 
@@ -76,7 +80,7 @@ func (r *VMWatchResult) GetMessage() string {
 
 // We will setup and execute VMWatch as a separate process. Ideally VMWatch should run indefinitely,
 // but as a best effort we will attempt at most 3 times to run the process
-func executeVMWatch(lg logging.Logger, s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
+func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
 	var vmWatchErr error
 	defer func() {
 		if r := recover(); r != nil {
@@ -89,8 +93,8 @@ func executeVMWatch(lg logging.Logger, s *vmWatchSettings, hEnv handlerenv.Handl
 
 	// Best effort to start VMWatch process each time it fails start immediately up to VMWatchMaxProcessAttempts before waiting for
 	// a longer time before trying again
-	for !shutdown {
-		for i := 1; i <= VMWatchMaxProcessAttempts && !shutdown; i++ {
+	for !global.Shutdown {
+		for i := 1; i <= VMWatchMaxProcessAttempts && !global.Shutdown; i++ {
 			vmWatchResultChannel <- VMWatchResult{Status: Running}
 			vmWatchErr = executeVMWatchHelper(lg, i, s, hEnv)
 			vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
@@ -102,7 +106,7 @@ func executeVMWatch(lg logging.Logger, s *vmWatchSettings, hEnv handlerenv.Handl
 	}
 }
 
-func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *vmWatchSettings, hEnv handlerenv.HandlerEnvironment) (err error) {
+func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (err error) {
 	pid := -1
 	var cmd *exec.Cmd
 	defer func() {
@@ -121,10 +125,12 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *vmWat
 	}
 
 	lg.Info(fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", attempt, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
+
 	// TODO: Combined output may get excessively long, especially since VMWatch is a long running process
 	// We should trim the output or only get from Stderr
 	combinedOutput := &bytes.Buffer{}
 	cmd.Stdout = combinedOutput
+
 	cmd.Stderr = combinedOutput
 
 	// Start command
@@ -135,7 +141,6 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *vmWat
 	}
 	pid = cmd.Process.Pid // cmd.Process should be populated on success
 	lg.Info(fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
-
 	err = createAndAssignCgroups(lg, vmWatchSettings, pid)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
@@ -149,7 +154,7 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *vmWat
 		// this allows us to test both cases
 		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
 			lg.Info("Killing VMWatch process as cgroup assigment failed")
-			_ = killVMWatch(lg, cmd)
+			_ = KillVMWatch(lg, cmd)
 			return err
 		}
 	}
@@ -192,11 +197,11 @@ func monitorHeartBeat(lg logging.Logger, heartBeatFile string, processDone chan 
 			} else {
 				// heartbeat file was not updated within 60 seconds, process is hung
 				err = fmt.Errorf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
-				lg.Error("VMWatch process did not update heartbeat file within the time limit", slog.Any("error", err))
-				err = killVMWatch(lg, cmd)
+				lg.Error(fmt.Sprintf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid), slog.Any("error", err))
+				err = KillVMWatch(lg, cmd)
 				if err != nil {
 					err = fmt.Errorf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
-					lg.Error("Failed to Kill VMWatch", slog.Any("error", err))
+					lg.Error(fmt.Sprintf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid), slog.Any("error", err))
 				}
 			}
 		case <-processDone:
@@ -205,14 +210,15 @@ func monitorHeartBeat(lg logging.Logger, heartBeatFile string, processDone chan 
 	}
 }
 
-func killVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
+func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil || cmd.ProcessState != nil {
 		lg.Info("VMWatch is not running, killing process is not necessary.")
 		return nil
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		lg.Error(fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err))
+		s := fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err)
+		lg.Error(s, slog.Any("error", err))
 		return err
 	}
 
@@ -220,8 +226,8 @@ func killVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 	return nil
 }
 
-func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
-	processDirectory, err := GetProcessDirectory()
+func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
+	processDirectory, err := utils.GetCurrentProcessWorkingDir()
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +236,6 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 	args = append(args, "--debug")
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
 	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
-
 	// 0 is the default so allow that but any value below 30MB is not allowed
 	if s.MemoryLimitInBytes == 0 {
 		s.MemoryLimitInBytes = DefaultMaxMemoryInBytes
@@ -297,7 +302,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 		args = append(args, "--local")
 	}
 
-	extVersion, err := GetExtensionManifestVersion()
+	extVersion, err := version.GetExtensionVersion()
 	if err == nil {
 		args = append(args, "--apphealth-version", extVersion)
 	}
@@ -309,7 +314,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv handlerenv.HandlerEnvironment)
 	return cmd, nil
 }
 
-func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
+func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *VMWatchSettings, vmWatchPid int) error {
 	// get our process and use this to determine the appropriate mount points for the cgroups
 	myPid := os.Getpid()
 	memoryLimitInBytes := int64(vmwatchSettings.MemoryLimitInBytes)
@@ -378,21 +383,12 @@ func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *vmWatchSettings,
 	return nil
 }
 
-func GetProcessDirectory() (string, error) {
-	p, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Dir(p), nil
+func GetVMWatchHeartbeatFilePath(hEnv *handlerenv.HandlerEnvironment) string {
+	return filepath.Join(hEnv.LogFolder, "vmwatch-heartbeat.txt")
 }
 
-func GetVMWatchHeartbeatFilePath(hEnv handlerenv.HandlerEnvironment) string {
-	return filepath.Join(hEnv.HandlerEnvironment.LogFolder, "vmwatch-heartbeat.txt")
-}
-
-func GetExecutionEnvironment(hEnv handlerenv.HandlerEnvironment) string {
-	if strings.Contains(hEnv.HandlerEnvironment.LogFolder, AppHealthPublisherNameTest) {
+func GetExecutionEnvironment(hEnv *handlerenv.HandlerEnvironment) string {
+	if strings.Contains(hEnv.LogFolder, AppHealthPublisherNameTest) {
 		return AppHealthExecutionEnvironmentTest
 	}
 	return AppHealthExecutionEnvironmentProd
@@ -411,7 +407,7 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 	return filepath.Join(processDirectory, "VMWatch", binaryName)
 }
 
-func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv handlerenv.HandlerEnvironment) []string {
+func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv *handlerenv.HandlerEnvironment) []string {
 	var arr []string
 	// make sure we get the keys out in order
 	keys := make([]string, 0, len(parameterOverrides))
@@ -426,8 +422,8 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 		fmt.Println(k, parameterOverrides[k])
 	}
 
-	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.HandlerEnvironment.EventsFolder))
-	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.HandlerEnvironment.LogFolder, VMWatchVerboseLogFileName)))
+	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.EventsFolder))
+	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.LogFolder, VMWatchVerboseLogFileName)))
 
 	return arr
 }

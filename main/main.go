@@ -1,133 +1,58 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
-	"os"
-	"os/exec"
-	"os/signal"
-	"strconv"
-	"strings"
-	"syscall"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/seqnum"
+	"github.com/Azure/applicationhealth-extension-linux/platform/cmdhandler"
+	"github.com/Azure/azure-extension-platform/pkg/exithelper"
 )
 
 var (
-	// dataDir is where we store the logs and state for the extension handler
-	dataDir = "/var/lib/waagent/apphealth"
-
-	shutdown = false
-
-	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
-	// when a shutdown signal is received
-	vmWatchCommand *exec.Cmd
 	// the logger that will be used throughout
-	lg, err = logging.NewExtensionLogger(nil)
+	logger, err = logging.NewExtensionLogger(nil)
+	// Exit helper
+	exiter = exithelper.Exiter
 )
 
 func main() {
 	if err != nil {
 		slog.Error("failed to create logger", slog.Any("error", err))
-		os.Exit(3)
+		exiter.Exit(exithelper.EnvironmentError)
 	}
+	logger.With("version", version.VersionString())
 
-	lg.With("version", VersionString())
-
-	// parse command line arguments
-	cmd := parseCmd(os.Args)
-
-	h, err := handlerenv.GetHandlerEnviroment()
+	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
 	if err != nil {
-		lg.Error("failed to parse Handler Enviroment", slog.Any("error", err))
-		os.Exit(cmd.failExitCode)
+		logger.Error("failed to parse command", slog.Any("error", err))
+		exiter.Exit(exithelper.ArgumentError)
 	}
-	// Creating new Logger with the handler environment
-	var logger logging.Logger
-	logger, err = logging.NewExtensionLogger(&h)
+
+	hEnv, err := handlerenv.GetHandlerEnviroment() // parse handler environment
 	if err != nil {
-		lg.Error("failed to create logger", slog.Any("error", err))
-		os.Exit(cmd.failExitCode)
+		logger.Error("failed to parse Handler Enviroment", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
 	}
-	lg = logger
 
-	lg.With("version", VersionString())
-	lg.With("operation", strings.ToLower(cmd.name))
-
-	seqNum, err := FindSeqNum(h.HandlerEnvironment.ConfigFolder)
+	seqNum, err := seqnum.FindSeqNum(hEnv.ConfigFolder) // find sequence number
 	if err != nil {
-		lg.Error("failed to find sequence number", slog.Any("error", err))
+		logger.Error("failed to find sequence number", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
 	}
 
-	lg.With("seq", strconv.Itoa(seqNum))
-
-	lg.Info("Starting AppHealth Extension")
-	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
-
-	// subscribe to cleanly shutdown
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		lg.Info("Received shutdown request")
-		shutdown = true
-		err := killVMWatch(lg, vmWatchCommand)
-		if err != nil {
-			lg.Error("error when killing vmwatch", slog.Any("error", err))
-		}
-	}()
-	if cmd.pre != nil {
-		lg.Info("pre-check")
-		if err := cmd.pre(lg, seqNum); err != nil {
-			lg.Error("pre-check failed", slog.Any("error", err))
-			os.Exit(cmd.failExitCode)
-		}
-	}
-	// execute the subcommand
-	reportStatus(lg, h, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, h, seqNum)
+	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
-		lg.Error("failed to handle", slog.Any("error", err))
-		reportStatus(lg, h, seqNum, StatusError, cmd, err.Error()+msg)
-		os.Exit(cmd.failExitCode)
+		logger.Error("failed to create command handler", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
 	}
-	reportStatus(lg, h, seqNum, StatusSuccess, cmd, msg)
-	lg.Info("end")
-}
 
-// parseCmd looks at os.Args and parses the subcommand. If it is invalid,
-// it prints the usage string and an error message and exits with code 0.
-func parseCmd(args []string) cmd {
-	if len(os.Args) != 2 {
-		printUsage(args)
-		err := fmt.Errorf("failed to parse command line arguments, expected 2, got %d", len(os.Args))
-		lg.Error("Incorrect usage", slog.Any("error", err))
-		os.Exit(2)
+	err = handler.Execute(cmdKey, hEnv, seqNum, logger) // execute the command
+	if err != nil {
+		logger.Error("failed to execute command", slog.Any("error", err))
+		exiter.Exit(exithelper.ExecutionError)
 	}
-	op := os.Args[1]
-	cmd, ok := cmds[op]
-	if !ok {
-		printUsage(args)
-		err := fmt.Errorf("failed to parse command line arguments, command not found: %s", op)
-		lg.Error(fmt.Sprintf("Incorrect command: %q\n", op), slog.Any("error", err))
-		os.Exit(2)
-	}
-	return cmd
-}
-
-// printUsage prints the help string and version of the program to stdout with a
-// trailing new line.
-func printUsage(args []string) {
-	fmt.Printf("Usage: %s ", os.Args[0])
-	i := 0
-	for k := range cmds {
-		fmt.Printf(k)
-		if i != len(cmds)-1 {
-			fmt.Printf("|")
-		}
-		i++
-	}
-	fmt.Println()
-	fmt.Println(DetailedVersionString())
+	logger.Info("end")
 }

@@ -1,8 +1,9 @@
-package main
+package apphealth
 
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +26,7 @@ func (p ProbeResponse) validateApplicationHealthState() error {
 	return nil
 }
 
-func (p ProbeResponse) validateCustomMetrics() error {
+func (p ProbeResponse) ValidateCustomMetrics() error {
 	if p.CustomMetrics != "" {
 		var js map[string]interface{}
 		if json.Unmarshal([]byte(p.CustomMetrics), &js) != nil {
