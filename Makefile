@@ -1,14 +1,14 @@
 BINDIR=bin
 LINUX_BIN=applicationhealth-extension
 LINUX_BIN_ARM64=applicationhealth-extension-arm64
-WINDOWS_BIN=applicationhealth-extension-windows.exe
-WINDOWS_BIN_ARM64=applicationhealth-extension-windows-arm64.exe
+WINDOWS_BIN=AppHealthExtension.exe
+WINDOWS_BIN_ARM64=AppHealthExtension-arm64.exe
 BUNDLEDIR=bundle
 BUNDLE=applicationhealth-extension.zip
 TESTBINDIR=testbin
 WEBSERVERBIN=webserver
 WINDOWS_TEST_BUNDLEDIR=bundle-windows-test
-WINDOWS_TEST_BUNDLE=applicationhealth-extension-windows.zip
+WINDOWS_TEST_BUNDLE=AppHealthExtension-windows.zip
 
 bundle: clean binary
 	@mkdir -p $(BUNDLEDIR)
@@ -78,7 +78,7 @@ endif
 	mkdir -p /var/lib/waagent/Extension/config/
 	cp ./.devcontainer/extension-settings.json /var/lib/waagent/Extension/config/0.settings
 
-devcontainer: binary testenv-linux
+devcontainer: binary-linux testenv-linux
 
 testenv-windows: binary-windows 
 	@mkdir -p $(WINDOWS_TEST_BUNDLEDIR)
@@ -91,6 +91,6 @@ testenv-windows: binary-windows
 	# Copy windows directory to the localdev directory
 	cp -r ./integration-test/env/windows $(WINDOWS_TEST_BUNDLEDIR)/localdev
 	zip -r -j ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) $(WINDOWS_TEST_BUNDLEDIR)/localdev
-	zip -j ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./misc/windows/manifest.xml
+	zip -j ./$(WINDOWS_TEST_BUNDLEDIR)/$(WINDOWS_TEST_BUNDLE) ./misc/windows/*
 
 .PHONY: clean binary
