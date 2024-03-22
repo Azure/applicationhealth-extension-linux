@@ -46,7 +46,7 @@
             "request": "launch",
             "command": "./integration-test/run.sh",
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "make binary"
+            "preLaunchTask": "make binary - linux"
         }
     ]
 }

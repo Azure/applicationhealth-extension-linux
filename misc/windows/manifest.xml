@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<ExtensionImage xmlns="http://schemas.microsoft.com/windowsazure">
+  <ProviderNameSpace>Microsoft.ManagedServices</ProviderNameSpace>
+  <Type>ApplicationHealthWindows</Type>
+  <Version>2.0.10</Version>
+  <Label>Microsoft Azure Application Health Extension for Windows Virtual Machines</Label>
+  <HostingResources>VmRole</HostingResources>
+  <MediaLink></MediaLink>
+  <Description>Microsoft Azure Application Health Extension is an extension installed on a VM to report the health of the application running on the VM.</Description>
+  <IsInternalExtension>false</IsInternalExtension>
+  <IsJsonExtension>true</IsJsonExtension>
+  <SupportedOS>Windows</SupportedOS>
+  <CompanyName>Microsoft</CompanyName>
+  <!--%REGIONS%-->
+</ExtensionImage>

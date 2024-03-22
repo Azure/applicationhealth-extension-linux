@@ -1,0 +1,13 @@
+[
+    {
+        "version": 1,
+        "handlerEnvironment": {
+            "logFolder": "C:\\Temp\\applicationhealth-extension\\Logs",
+            "configFolder": "C:\\Temp\\applicationhealth-extension\\config",
+            "statusFolder": "C:\\Temp\\applicationhealth-extension\\Status",
+            "heartbeatFile": "C:\\Temp\\applicationhealth-extension\\Status\\HeartBeat.Json",
+            "deploymentid": "2829cfa1-f267-48dc-9eb4-a6d97b99941a",
+            "eventsFolder": "C:\\Temp\\applicationhealth-extension\\Events"
+        }
+    }
+]

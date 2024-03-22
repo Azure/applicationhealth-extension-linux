@@ -270,6 +270,6 @@ delete_certificate() {
 
 get_extension_version() {
     # extract version from manifest.xml
-    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/manifest.xml)
+    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/linux/manifest.xml)
     echo $version
 }

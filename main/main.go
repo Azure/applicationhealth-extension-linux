@@ -23,7 +23,12 @@ func main() {
 		slog.Error("failed to create logger", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
-	logger.With("version", version.VersionString())
+	v, err := version.GetExtensionVersion()
+	if err != nil {
+		logger.Error("failed to get extension version", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
+	}
+	logger.With("version", v)
 
 	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
 	if err != nil {
@@ -46,6 +51,18 @@ func main() {
 	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
 		logger.Error("failed to create command handler", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
+	}
+
+	logger, err = logging.NewExtensionLogger(hEnv) // create a new logger
+	if err != nil {
+		logger.Error("failed to create logger", slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
+	}
+
+	logger, err = logging.NewExtensionLogger(hEnv) // create a new logger
+	if err != nil {
+		logger.Error("failed to create logger", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 

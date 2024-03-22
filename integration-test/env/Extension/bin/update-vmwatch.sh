@@ -12,7 +12,7 @@ fi
 az artifacts universal download --organization "https://msazure.visualstudio.com/" --project "b32aa71e-8ed2-41b2-9d77-5bc261222004" --scope project --feed "VMWatch" --name "vmwatch" --version "$1" --path ./VMWatch 
 
 # remove the windows and darwin binaries
-rm ./VMWatch/*windows*
 rm ./VMWatch/*darwin*
 
 chmod +x ./VMWatch/vmwatch_linux*
+chmod +x ./VMWatch/vmwatch_windows*

@@ -12,10 +12,10 @@
             "problemMatcher": []
         },
         {
-            "label": "make binary",
+            "label": "make binary - linux",
             "command": "make",
             "args": [
-                "binary"
+                "binary-linux"
             ],
             "type": "shell",
             "group": "build",

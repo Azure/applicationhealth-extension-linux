@@ -24,7 +24,7 @@ RUN ln -s /var/lib/waagent/fake-waagent /sbin/fake-waagent && \
         ln -s /var/lib/waagent/webserver_shim /sbin/webserver_shim
 
 # Copy the handler files
-COPY misc/HandlerManifest.json ./Extension/
-COPY misc/manifest.xml ./Extension/
-COPY misc/applicationhealth-shim ./Extension/bin/
+COPY misc/linux/HandlerManifest.json ./Extension/
+COPY misc/linux/manifest.xml ./Extension/
+COPY misc/linux/applicationhealth-shim ./Extension/bin/
 COPY bin/applicationhealth-extension ./Extension/bin/
