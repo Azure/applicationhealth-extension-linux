@@ -95,8 +95,8 @@ func noop(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (stri
 	return "", nil
 }
 
-// parseCmd looks at os.Args and parses the subcommand. If it is invalid,
-// it prints the usage string and an error message and exits with code 0.
+// parseCmd looks at os.Args and parses the subcommand. If it is invalid, it
+// prints the usage string and returns an error
 func ParseCmd() (CommandKey, error) {
 	if len(os.Args) != 2 {
 		printUsage(os.Args)
