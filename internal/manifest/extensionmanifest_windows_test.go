@@ -24,7 +24,7 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 		HostingResources:    "VmRole",
 		MediaLink:           "",
 		Description:         "Microsoft Azure Application Health Extension is an extension installed on a VM to report the health of the application running on the VM.",
-		IsInternalExtension: true,
+		IsInternalExtension: false,
 		IsJsonExtension:     true,
 		SupportedOS:         "Windows",
 		CompanyName:         "Microsoft",
