@@ -10,13 +10,20 @@ WEBSERVERBIN=webserver
 WINDOWS_TEST_BUNDLEDIR=bundle-windows-test
 WINDOWS_TEST_BUNDLE=AppHealthExtension-windows.zip
 
-bundle: clean binary
+bundle: clean binary-linux
 	@mkdir -p $(BUNDLEDIR)
-	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(LINUX_BIN)
-	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(LINUX_BIN_ARM64)
-	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/applicationhealth-shim
-	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/HandlerManifest.json
-	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/manifest.xml
+	mkdir -p ./$(BINDIR)/VMWatch
+	cp -r ./integration-test/env/Extension/bin/VMWatch/* ./$(BINDIR)/VMWatch
+	zip -r ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)
+	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/linux/HandlerManifest.json
+	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/linux/manifest.xml
+
+bundle-windows: clean binary-windows
+	@mkdir -p $(BUNDLEDIR)
+	mkdir -p ./$(BINDIR)/VMWatch
+	cp -r ./integration-test/env/Extension/bin/VMWatch/* ./$(BINDIR)/VMWatch
+	zip -r ./$(BUNDLEDIR)/$(BUNDLE)  ./$(BINDIR)
+	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/windows/*
 
 binary-linux: clean
 	if [ -z "$$GOPATH" ]; then \
