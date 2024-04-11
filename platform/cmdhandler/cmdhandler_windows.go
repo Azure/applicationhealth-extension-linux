@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
+
+	"golang.org/x/sys/windows/registry"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
@@ -18,12 +21,29 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	regKeyPath              string = `SOFTWARE\Microsoft\Windows Azure\AppHealthExtension`
+	enabledRegKeyValueName  string = "IsEnabled"
+	updatingRegKeyValueName string = "IsUpdating"
+
+	// Windows Specific Commands
+	ResetStateKey  CommandKey  = "resetState"
+	ResetStateName CommandName = "ResetState"
+)
+
+var (
+	ErrFailedToCreateRegKey       error = errors.New("Failed to create Windows Registry SubKey")
+	ErrFailedToOpenRegKey         error = errors.New("Failed to create or open Windows Registry SubKey")
+	ErrFailedToGetValueFromRegKey error = errors.New("Failed to get value from Windows Registry SubsKey")
+)
+
 var extCommands = CommandMap{
-	InstallKey:   cmd{f: noop, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},  // TODO: Implement
-	UninstallKey: cmd{f: noop, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3}, // TODO: Implement
-	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
-	UpdateKey:    cmd{f: noop, Name: UpdateName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
-	DisableKey:   cmd{f: noop, Name: DisableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
+	InstallKey:    cmd{f: noop, Name: InstallName, ShouldReportStatus: false, pre: installHandler, failExitCode: 52},    // TODO: Implement
+	UninstallKey:  cmd{f: noop, Name: UninstallName, ShouldReportStatus: false, pre: uninstallHandler, failExitCode: 3}, // TODO: Implement
+	EnableKey:     cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: enableHandler, failExitCode: 3},
+	UpdateKey:     cmd{f: noop, Name: UpdateName, ShouldReportStatus: true, pre: updateHandler, failExitCode: 3},
+	DisableKey:    cmd{f: noop, Name: DisableName, ShouldReportStatus: true, pre: disableHandler, failExitCode: 3},
+	ResetStateKey: cmd{f: noop, Name: ResetStateName, ShouldReportStatus: true, pre: resetStateHandler, failExitCode: 3},
 }
 
 type WindowsCommandHandler struct {
@@ -94,4 +114,130 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 
 func (ch *WindowsCommandHandler) CommandMap() CommandMap {
 	return ch.commands
+}
+
+func installHandler(lg logging.Logger, seqNum int) error {
+	lg.Info("Installing Handler")
+	lg.Info(`Creating Windows Registry Key "HKLM\%s"`, regKeyPath)
+	// Create a new registry key with all access permissions.
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrFailedToCreateRegKey, err) // Wrap the original error with your predefined error
+	}
+	defer k.Close()
+	lg.Info("Handler successfully installed")
+	return nil
+}
+
+func enableHandler(lg logging.Logger, seqNum int) error {
+	lg.Info("Enabling Handler")
+	// Create or open registry key with all access permissions.
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
+
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrFailedToCreateRegKey, err)
+	}
+	defer k.Close()
+
+	lg.Info(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName)
+	// Get the current value of the registry key.
+	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrFailedToGetValueFromRegKey, err)
+	}
+	lg.Info(fmt.Sprintf(`Windows Registry SubKey "HKLM\%s\%s" has value: "%s"`, regKeyPath, enabledRegKeyValueName, isEnabled))
+
+	// Set the value of the registry key.
+	err = k.SetStringValue(enabledRegKeyValueName, "True")
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry key value "HKLM\%s\%s" to "True"`, regKeyPath, enabledRegKeyValueName))
+	}
+
+	lg.Info(`Successfully set the registry key value "HKLM\%s\%s" to "True"`, regKeyPath, enabledRegKeyValueName)
+	return nil
+}
+
+func disableHandler(lg logging.Logger, seqNum int) error {
+	lg.Info("Disabling Handler")
+
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrFailedToCreateRegKey, err)
+	}
+	defer k.Close()
+
+	lg.Info(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName)
+	// Get the current value of the registry key.
+	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrFailedToGetValueFromRegKey, err)
+	}
+	lg.Info(fmt.Sprintf(`Windows Registry SubKey "HKLM\%s\%s" has value: "%s"`, regKeyPath, enabledRegKeyValueName, isEnabled))
+
+	err = k.SetStringValue(enabledRegKeyValueName, "False")
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "False"`, regKeyPath, enabledRegKeyValueName))
+	}
+	lg.Info(`Successfully set the registry key value "HKLM\%s\%s" to "False"`, regKeyPath, enabledRegKeyValueName)
+	return nil
+}
+
+func updateHandler(lg logging.Logger, seqNum int) error {
+	lg.Info("Updating Handler")
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrFailedToCreateRegKey, err)
+	}
+	defer k.Close()
+
+	lg.Info(`Setting the value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, updatingRegKeyValueName)
+	err = k.SetStringValue(updatingRegKeyValueName, "True")
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName))
+	}
+
+	lg.Info(`Successfully set the registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName)
+	return nil
+}
+
+func uninstallHandler(lg logging.Logger, seqNum int) error {
+	lg.Info("Uninstalling Handler")
+
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
+	if err != nil {
+		return fmt.Errorf(`Unable to open registry subkey "HKLM\%s".`, regKeyPath)
+	}
+	defer k.Close()
+
+	isUpdating, _, err := k.GetStringValue(updatingRegKeyValueName)
+	if err != nil {
+		lg.Info(fmt.Sprintf(`Registry Value "%s" was not found under the %s key beneath the LOCAL_MACHINE root. Deleting subkey tree anyways.`, updatingRegKeyValueName, regKeyPath))
+	}
+
+	if isUpdating == "True" {
+		lg.Info(fmt.Sprintf(`Resetting registry value "HKLM\%s\%s" to "False"`, regKeyPath, updatingRegKeyValueName))
+		err = k.SetStringValue(updatingRegKeyValueName, "False")
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "False"`, regKeyPath, updatingRegKeyValueName))
+		}
+	}
+
+	lg.Info("Deleting Subkey Tree beneath the LOCAL_MACHINE root with the path %s", regKeyPath)
+	err = registry.DeleteKey(registry.LOCAL_MACHINE, regKeyPath)
+	if err != nil {
+		return fmt.Errorf(`Unable to delete registry subkey tree rooted at "HKLM\%s". Exception is: %v`, regKeyPath, err)
+	}
+
+	return nil
+}
+
+func resetStateHandler(lg logging.Logger, seqNum int) error {
+	lg.Info("Reset State Handler")
+
+	err := registry.DeleteKey(registry.LOCAL_MACHINE, regKeyPath)
+	if err != nil {
+		return fmt.Errorf(`Failed to delete registry subkey tree rooted at "HKLM\%s". Exception is: %v`, regKeyPath, err)
+	}
+
+	return nil
 }
