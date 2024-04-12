@@ -47,6 +47,17 @@
             "command": "./integration-test/run.sh",
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "make binary - linux"
+        },
+        {
+            "name": "devcontainer run - enable NOBUILD",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "program": "/var/lib/waagent/Extension/bin/applicationhealth-extension",
+            "cwd": "${workspaceFolder}",
+            "args" : [
+                "enable"
+            ]
         }
     ]
 }
