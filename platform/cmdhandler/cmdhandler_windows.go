@@ -151,7 +151,7 @@ func enableHandler(lg logging.Logger, seqNum int) error {
 	}
 	defer k.Close()
 
-	lg.Info(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName)
+	lg.Info(fmt.Sprintf(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName))
 	// Get the current value of the registry key.
 	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
 	if err != nil {
@@ -165,7 +165,7 @@ func enableHandler(lg logging.Logger, seqNum int) error {
 		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry key value "HKLM\%s\%s" to "True"`, regKeyPath, enabledRegKeyValueName))
 	}
 
-	lg.Info(`Successfully set the registry key value "HKLM\%s\%s" to "True"`, regKeyPath, enabledRegKeyValueName)
+	lg.Info(fmt.Sprintf(`Successfully set the registry key value "HKLM\%s\%s" to "True"`, regKeyPath, enabledRegKeyValueName))
 	return nil
 }
 
@@ -178,7 +178,7 @@ func disableHandler(lg logging.Logger, seqNum int) error {
 	}
 	defer k.Close()
 
-	lg.Info(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName)
+	lg.Info(fmt.Sprintf(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName))
 	// Get the current value of the registry key.
 	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
 	if err != nil {
@@ -190,7 +190,7 @@ func disableHandler(lg logging.Logger, seqNum int) error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "False"`, regKeyPath, enabledRegKeyValueName))
 	}
-	lg.Info(`Successfully set the registry key value "HKLM\%s\%s" to "False"`, regKeyPath, enabledRegKeyValueName)
+	lg.Info(fmt.Sprintf(`Successfully set the registry key value "HKLM\%s\%s" to "False"`, regKeyPath, enabledRegKeyValueName))
 	return nil
 }
 
@@ -202,13 +202,13 @@ func updateHandler(lg logging.Logger, seqNum int) error {
 	}
 	defer k.Close()
 
-	lg.Info(`Setting the value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, updatingRegKeyValueName)
+	lg.Info(fmt.Sprintf(`Setting the value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, updatingRegKeyValueName))
 	err = k.SetStringValue(updatingRegKeyValueName, "True")
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName))
 	}
 
-	lg.Info(`Successfully set the registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName)
+	lg.Info(fmt.Sprintf(`Successfully set the registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName))
 	return nil
 }
 
