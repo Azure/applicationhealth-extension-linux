@@ -83,6 +83,25 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 		}
 	}()
 
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				isEnabled, err := isExtensionEnabled()
+				if err != nil {
+					lg.Error("error when checking if extension is enabled", slog.Any("error", err))
+				}
+				if !isEnabled {
+					lg.Info("Windows Registry Key was set to disabled, shutting down extension")
+					lg.Info("Sending shutdown signal")
+					sigs <- syscall.SIGTERM
+					ticker.Stop()
+				}
+			}
+		}
+	}()
+
 	if cmd.pre != nil {
 		lg.Info("pre-check")
 		if err := cmd.pre(lg, seqNum); err != nil {
@@ -233,4 +252,18 @@ func resetStateHandler(lg logging.Logger, seqNum int) error {
 	}
 
 	return nil
+}
+
+func isExtensionEnabled() (bool, error) {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, regKeyPath, registry.READ)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to open registry key")
+	}
+	defer k.Close()
+
+	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
+	if err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("Registry Value %s not found under the %s key beneath the %s root", enabledRegKeyValueName, regKeyPath, string(registry.LOCAL_MACHINE)))
+	}
+	return isEnabled == "True", nil
 }
