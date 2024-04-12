@@ -263,7 +263,7 @@ func isExtensionEnabled() (bool, error) {
 
 	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
 	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("Registry Value %s not found under the %s key beneath the %s root", enabledRegKeyValueName, regKeyPath, string(registry.LOCAL_MACHINE)))
+		return false, errors.Wrap(err, fmt.Sprintf("Registry Value %s not found under the %s key beneath the %s root", enabledRegKeyValueName, regKeyPath, fmt.Sprint(registry.LOCAL_MACHINE)))
 	}
 	return isEnabled == "True", nil
 }
