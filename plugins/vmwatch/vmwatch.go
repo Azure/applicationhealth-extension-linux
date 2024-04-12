@@ -1,7 +1,6 @@
 package vmwatch
 
 import (
-	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
@@ -43,6 +42,10 @@ const (
 	AppHealthExecutionEnvironmentProd               string = "Prod"
 	AppHealthExecutionEnvironmentTest               string = "Test"
 	AppHealthPublisherNameTest                      string = "Microsoft.ManagedServices.Edp"
+)
+
+var (
+	VMWatchCommand *exec.Cmd // We need a reference to the command here so that we can cleanly shutdown VMWatch process
 )
 
 func (p VMWatchStatus) GetStatusType() status.StatusType {
@@ -104,7 +107,6 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 
 func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (err error) {
 	pid := -1
-	var cmd *exec.Cmd
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("error: %w\n Additonal Details: %+v", err, r)
@@ -113,30 +115,20 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	}()
 
 	// Setup command
-	cmd, err = setupVMWatchCommand(vmWatchSettings, hEnv)
+	VMWatchCommand, combinedOutput, err := setupVMWatch(lg, attempt, vmWatchSettings, hEnv)
 	if err != nil {
-		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
-		lg.Error("VMWatch setup failed", slog.Any("error", err))
 		return err
 	}
 
-	lg.Info(fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", attempt, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
-
-	// TODO: Combined output may get excessively long, especially since VMWatch is a long running process
-	// We should trim the output or only get from Stderr
-	combinedOutput := &bytes.Buffer{}
-	cmd.Stdout = combinedOutput
-
-	cmd.Stderr = combinedOutput
-
 	// Start command
-	if err := cmd.Start(); err != nil {
+	if err := VMWatchCommand.Start(); err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch failed to start. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), attempt, err, combinedOutput.String())
 		lg.Error("VMWatch failed to start", slog.Any("error", err))
 		return err
 	}
-	pid = cmd.Process.Pid // cmd.Process should be populated on success
+	pid = VMWatchCommand.Process.Pid // cmd.Process should be populated on success
 	lg.Info(fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
+
 	err = createAndAssignCgroups(lg, vmWatchSettings, pid)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
@@ -150,7 +142,7 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 		// this allows us to test both cases
 		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
 			lg.Info("Killing VMWatch process as cgroup assigment failed")
-			_ = KillVMWatch(lg, cmd)
+			_ = KillVMWatch(lg, VMWatchCommand)
 			return err
 		}
 	}
@@ -163,7 +155,7 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = cmd.Wait()
+		err = VMWatchCommand.Wait()
 		processDone <- true
 		close(processDone)
 	}()
@@ -171,7 +163,7 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		monitorHeartBeat(lg, GetVMWatchHeartbeatFilePath(hEnv), processDone, cmd)
+		monitorHeartBeat(lg, GetVMWatchHeartbeatFilePath(hEnv), processDone, VMWatchCommand)
 	}()
 	wg.Wait()
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
@@ -194,7 +186,7 @@ func monitorHeartBeat(lg logging.Logger, heartBeatFile string, processDone chan 
 				// heartbeat file was not updated within 60 seconds, process is hung
 				err = fmt.Errorf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
 				lg.Error(fmt.Sprintf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid), slog.Any("error", err))
-				err = KillVMWatch(lg, cmd)
+				err = KillVMWatch(lg, VMWatchCommand)
 				if err != nil {
 					err = fmt.Errorf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
 					lg.Error(fmt.Sprintf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid), slog.Any("error", err))

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
 	"strings"
@@ -56,12 +55,6 @@ func newOSCommandHandler() (CommandHandler, error) {
 	}, nil
 }
 
-var (
-	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
-	// when a shutdown signal is received
-	vmWatchCommand *exec.Cmd
-)
-
 func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error {
 	// TODO: Implement command execution
 	lg.Info(fmt.Sprintf("WindowsCommandHandler was Created, with command: %s and sequenceNumber: %d", c, seqNum))
@@ -84,7 +77,7 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 		<-sigs
 		lg.Info("Received shutdown request")
 		global.Shutdown = true
-		err := vmwatch.KillVMWatch(lg, vmWatchCommand)
+		err := vmwatch.KillVMWatch(lg, vmwatch.VMWatchCommand)
 		if err != nil {
 			lg.Error("error when killing vmwatch", slog.Any("error", err))
 		}
