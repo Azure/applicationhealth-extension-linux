@@ -1,6 +1,7 @@
 package vmwatch
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
@@ -115,7 +116,8 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	}()
 
 	// Setup command
-	VMWatchCommand, combinedOutput, err := setupVMWatch(lg, attempt, vmWatchSettings, hEnv)
+	var combinedOutput *bytes.Buffer = nil
+	VMWatchCommand, combinedOutput, err = setupVMWatch(lg, attempt, vmWatchSettings, hEnv)
 	if err != nil {
 		return err
 	}

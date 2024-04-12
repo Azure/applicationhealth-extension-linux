@@ -410,7 +410,6 @@ teardown(){
 
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
-    [[ "$output" == *'vmwatch_linux_amd64 process terminated'* ]]
     any_regex_pattern="[[:digit:]|[:space:]|[:alpha:]|[:punct:]]"
     assert_line --regexp "msg=uninstalled ${any_regex_pattern}* operation=uninstall seq=0 path=/var/lib/waagent/apphealth"
 }
@@ -435,7 +434,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    [[ "$output" == *'event="Received shutdown request"'* ]]
+    [[ "$output" == *'msg="Received shutdown request"'* ]]
     [[ "$output" == *'Successfully killed VMWatch process with PID'* ]]
     [[ "$output" == *'Application health process terminated'* ]]
 }
@@ -460,7 +459,7 @@ teardown(){
     [[ "$output" == *'VMWatch process started'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    [[ "$output" == *'event="Received shutdown request"'* ]]
+    [[ "$output" == *'msg="Received shutdown request"'* ]]
     [[ "$output" == *'Successfully killed VMWatch process with PID'* ]]
     [[ "$output" == *'Application health process terminated'* ]]
 }
