@@ -53,6 +53,20 @@ jobs:
         sudo apt install npm
         sudo npm install -g bats
 
+    - name: Setup bats libs
+      uses: bats-core/bats-action@1.5.6
+      with:
+        assert-install: true
+        support-install: true
+        bats-install: false
+        detik-install: false
+        file-install: false
+      
+    - name: Testing Bats Installation
+      run: |
+        bats --version
+        sudo bats --version
+
     - name: Install Parallel
       run: |
         sudo apt install parallel
@@ -79,7 +93,7 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Unit Tests
-      continue-on-error: true
+      continue-on-error: false
       run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
       working-directory: ${{ env.repo_root }}
 

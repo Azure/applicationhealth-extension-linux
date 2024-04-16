@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-load ../test_helper
-
 setup(){
+    load "../test_helper"
+    _load_bats_libs
     build_docker_image
     container_name="vmwatch_$BATS_TEST_NUMBER"
     extension_version=$(get_extension_version)
@@ -11,6 +11,7 @@ setup(){
 
 teardown(){
     rm -rf "$certs_dir"
+    cleanup
 }
 
 @test "handler command: enable - vm watch disabled - vmwatch settings omitted" {

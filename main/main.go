@@ -8,7 +8,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-kit/kit/log"
+	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/go-kit/log"
 )
 
 var (
@@ -23,57 +24,60 @@ var (
 )
 
 func main() {
-	ctx := log.NewContext(log.NewSyncLogger(log.NewLogfmtLogger(
-		os.Stdout))).With("time", log.DefaultTimestamp).With("version", VersionString())
+	logger := log.NewSyncLogger(log.NewLogfmtLogger(
+		os.Stdout))
+
+	logger = log.With(logger, "time", log.DefaultTimestamp)
+	logger = log.With(logger, "version", VersionString())
 
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
-	ctx = ctx.With("operation", strings.ToLower(cmd.name))
+	logger = log.With(logger, "operation", strings.ToLower(cmd.name))
 
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		ctx.Log("event", "Received shutdown request")
+		logger.Log("event", "Received shutdown request")
 		shutdown = true
-		err := killVMWatch(ctx, vmWatchCommand)
+		err := killVMWatch(logger, vmWatchCommand)
 		if err != nil {
-			ctx.Log("error", "error when killing vmwatch", err.Error())
+			logger.Log("error", "error when killing vmwatch", err.Error())
 		}
 	}()
 
 	// parse extension environment
-	hEnv, err := GetHandlerEnv()
+	hEnv, err := handlerenv.GetHandlerEnviroment()
 	if err != nil {
-		ctx.Log("message", "failed to parse handlerenv", "error", err)
+		logger.Log("message", "failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	seqNum, err := FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
-		ctx.Log("messsage", "failed to find sequence number", "error", err)
+		logger.Log("messsage", "failed to find sequence number", "error", err)
 	}
-	ctx = ctx.With("seq", seqNum)
+	logger = log.With(logger, "seq", seqNum)
 
 	// check sub-command preconditions, if any, before executing
-	ctx.Log("event", "start")
+	logger.Log("event", "start")
 	if cmd.pre != nil {
-		ctx.Log("event", "pre-check")
-		if err := cmd.pre(ctx, seqNum); err != nil {
-			ctx.Log("event", "pre-check failed", "error", err)
+		logger.Log("event", "pre-check")
+		if err := cmd.pre(logger, seqNum); err != nil {
+			logger.Log("event", "pre-check failed", "error", err)
 			os.Exit(cmd.failExitCode)
 		}
 	}
 	// execute the subcommand
-	reportStatus(ctx, hEnv, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(ctx, hEnv, seqNum)
+	reportStatus(logger, hEnv, seqNum, StatusTransitioning, cmd, "")
+	msg, err := cmd.f(logger, hEnv, seqNum)
 	if err != nil {
-		ctx.Log("event", "failed to handle", "error", err)
-		reportStatus(ctx, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
+		logger.Log("event", "failed to handle", "error", err)
+		reportStatus(logger, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(ctx, hEnv, seqNum, StatusSuccess, cmd, msg)
-	ctx.Log("event", "end")
+	reportStatus(logger, hEnv, seqNum, StatusSuccess, cmd, msg)
+	logger.Log("event", "end")
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,

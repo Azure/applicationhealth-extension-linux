@@ -12,7 +12,7 @@ import (
 
 	"net/url"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
 
@@ -55,7 +55,7 @@ func (p HealthStatus) GetMessageForAppHealthStatus() string {
 }
 
 type HealthProbe interface {
-	evaluate(ctx *log.Context) (ProbeResponse, error)
+	evaluate(lg log.Logger) (ProbeResponse, error)
 	address() string
 	healthStatusAfterGracePeriodExpires() HealthStatus
 }
@@ -69,7 +69,7 @@ type HttpHealthProbe struct {
 	Address    string
 }
 
-func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
+func NewHealthProbe(lg log.Logger, cfg *handlerSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
 	switch cfg.protocol() {
@@ -77,20 +77,20 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.port()),
 		}
-		ctx.Log("event", "creating tcp probe targeting "+p.address())
+		lg.Log("event", "creating tcp probe targeting "+p.address())
 	case "http":
 		fallthrough
 	case "https":
 		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		ctx.Log("event", "creating "+cfg.protocol()+" probe targeting "+p.address())
+		lg.Log("event", "creating "+cfg.protocol()+" probe targeting "+p.address())
 	default:
-		ctx.Log("event", "default settings without probe")
+		lg.Log("event", "default settings without probe")
 	}
 
 	return p
 }
 
-func (p *TcpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
+func (p *TcpHealthProbe) evaluate(lg log.Logger) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -173,7 +173,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
+func (p *HttpHealthProbe) evaluate(lg log.Logger) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -209,7 +209,7 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
 	}
 
 	if err := probeResponse.validateCustomMetrics(); err != nil {
-		ctx.Log("error", err)
+		lg.Log("error", err)
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {
@@ -240,7 +240,7 @@ func noRedirect(req *http.Request, via []*http.Request) error {
 type DefaultHealthProbe struct {
 }
 
-func (p DefaultHealthProbe) evaluate(ctx *log.Context) (ProbeResponse, error) {
+func (p DefaultHealthProbe) evaluate(lg log.Logger) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
 	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
