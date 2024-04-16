@@ -1,6 +1,9 @@
 # github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d
 ## explicit
 github.com/Azure/azure-docker-extension/pkg/vmextension
+# github.com/Azure/azure-extension-platform v0.0.0-20240327184133-73b5b3b55955
+## explicit; go 1.21
+github.com/Azure/azure-extension-platform/pkg/utils
 # github.com/cilium/ebpf v0.9.1
 ## explicit; go 1.17
 github.com/cilium/ebpf
@@ -26,25 +29,22 @@ github.com/davecgh/go-spew/spew
 # github.com/docker/go-units v0.4.0
 ## explicit
 github.com/docker/go-units
-# github.com/go-kit/kit v0.1.1-0.20160721083846-b076b44dbec2
-## explicit
+# github.com/go-kit/kit v0.12.0
+## explicit; go 1.17
 github.com/go-kit/kit/log
-# github.com/go-logfmt/logfmt v0.2.1-0.20160601130801-d4327190ff83
-## explicit
+# github.com/go-kit/log v0.2.0
+## explicit; go 1.17
+github.com/go-kit/log
+# github.com/go-logfmt/logfmt v0.5.1
+## explicit; go 1.17
 github.com/go-logfmt/logfmt
-# github.com/go-stack/stack v1.5.2
-## explicit
-github.com/go-stack/stack
 # github.com/godbus/dbus/v5 v5.0.4
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
-# github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
-## explicit
-github.com/kr/logfmt
 # github.com/opencontainers/runtime-spec v1.0.2
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/pkg/errors v0.7.1-0.20160627222352-a2d6902c6d2a
+# github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
