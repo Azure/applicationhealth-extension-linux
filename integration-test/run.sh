@@ -27,4 +27,5 @@ err1=$?
 bats integration-test/test/parallel  --jobs 10 -T --trace $FILTER
 err2=$?
 delete_certificate
+rm_image
 exit $((err1 + err2))

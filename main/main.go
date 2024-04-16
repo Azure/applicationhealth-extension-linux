@@ -55,7 +55,7 @@ func main() {
 	}
 	seqNum, err := FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
-		logger.Log("messsage", "failed to find sequence number", "error", err)
+		logger.Log("message", "failed to find sequence number", "error", err)
 	}
 	logger = log.With(logger, "seq", seqNum)
 
