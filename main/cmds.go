@@ -50,8 +50,8 @@ func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (strin
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
 
-	lg.Log("event", "created data dir", "path", dataDir)
-	lg.Log("event", "installed")
+	sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Created data dir", "path", dataDir)
+	sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Handler successfully installed")
 	return "", nil
 }
 
