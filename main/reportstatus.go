@@ -30,7 +30,7 @@ func reportStatusWithSubstatuses(lg log.Logger, hEnv *handlerenv.HandlerEnvironm
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		lg.Log("event", "failed to save handler status", "error", err)
+		sendTelemetry(lg, EventLevelInfo, AppHealthStatusTask, "failed to save handler status", "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil
