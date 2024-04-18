@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -95,6 +96,13 @@ type vmWatchSignalFilters struct {
 	DisabledSignals        []string `json:"disabledSignals,array"`
 }
 
+func (v vmWatchSignalFilters) String() string {
+	return fmt.Sprintf(
+		"{EnabledTags: %v, DisabledTags: %v, EnabledOptionalSignals: %v, DisabledSignals: %v}",
+		v.EnabledTags, v.DisabledTags, v.EnabledOptionalSignals, v.DisabledSignals,
+	)
+}
+
 type vmWatchSettings struct {
 	Enabled               bool                   `json:"enabled,boolean"`
 	MemoryLimitInBytes    int64                  `json:"memoryLimitInBytes,int64"`
@@ -104,6 +112,13 @@ type vmWatchSettings struct {
 	EnvironmentAttributes map[string]interface{} `json:"environmentAttributes,object"`
 	GlobalConfigUrl       string                 `json:"globalConfigUrl"`
 	DisableConfigReader   bool                   `json:"disableConfigReader,boolean"`
+}
+
+func (v vmWatchSettings) String() string {
+	return fmt.Sprintf(
+		"vmWatchSettings{Enabled: %v, MemoryLimitInBytes: %d, MaxCpuPercentage: %d, SignalFilters: %s, ParameterOverrides: %v, EnvironmentAttributes: %v, GlobalConfigUrl: %s, DisableConfigReader: %v}",
+		v.Enabled, v.MemoryLimitInBytes, v.MaxCpuPercentage, v.SignalFilters, v.ParameterOverrides, v.EnvironmentAttributes, v.GlobalConfigUrl, v.DisableConfigReader,
+	)
 }
 
 // publicSettings is the type deserialized from public configuration section of
@@ -126,30 +141,29 @@ type protectedSettings struct {
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
 func parseAndValidateSettings(lg log.Logger, configFolder string) (h handlerSettings, _ error) {
-	lg.Log("event", "reading configuration")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "Reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
-	lg.Log("event", "read configuration")
 
-	lg.Log("event", "validating json schema")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	lg.Log("event", "json schema valid")
 
-	lg.Log("event", "parsing configuration json")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "json schema valid")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "parsing configuration json")
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
-	lg.Log("event", "parsed configuration json")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "parsed configuration json")
 
-	lg.Log("event", "validating configuration logically")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "validating configuration logically")
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	lg.Log("event", "validated configuration")
+	sendTelemetry(lg, EventLevelInfo, MainTask, "validated configuration")
 	return h, nil
 }
 
