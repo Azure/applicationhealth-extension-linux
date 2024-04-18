@@ -44,15 +44,15 @@ func NewTelemetryEventSender(eem *extensionevents.ExtensionEventManager) *Teleme
 
 func (t *TelemetryEventSender) sendEvent(level EventLevel, taskName EventTask, message string) {
 	switch level {
-	case "Critical":
+	case EventLevelCritical:
 		t.eem.LogCriticalEvent(string(taskName), message)
-	case "Error":
+	case EventLevelError:
 		t.eem.LogErrorEvent(string(taskName), message)
-	case "Warning":
+	case EventLevelWarning:
 		t.eem.LogWarningEvent(string(taskName), message)
-	case "Verbose":
+	case EventLevelVerbose:
 		t.eem.LogVerboseEvent(string(taskName), message)
-	case "Informational":
+	case EventLevelInfo:
 		t.eem.LogInformationalEvent(string(taskName), message)
 	default:
 		return
