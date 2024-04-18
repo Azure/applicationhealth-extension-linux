@@ -3,6 +3,10 @@
 github.com/Azure/azure-docker-extension/pkg/vmextension
 # github.com/Azure/azure-extension-platform v0.0.0-20240327184133-73b5b3b55955
 ## explicit; go 1.21
+github.com/Azure/azure-extension-platform/pkg/extensionerrors
+github.com/Azure/azure-extension-platform/pkg/extensionevents
+github.com/Azure/azure-extension-platform/pkg/handlerenv
+github.com/Azure/azure-extension-platform/pkg/logging
 github.com/Azure/azure-extension-platform/pkg/utils
 # github.com/cilium/ebpf v0.9.1
 ## explicit; go 1.17
@@ -29,9 +33,6 @@ github.com/davecgh/go-spew/spew
 # github.com/docker/go-units v0.4.0
 ## explicit
 github.com/docker/go-units
-# github.com/go-kit/kit v0.12.0
-## explicit; go 1.17
-github.com/go-kit/kit/log
 # github.com/go-kit/log v0.2.0
 ## explicit; go 1.17
 github.com/go-kit/log
@@ -41,6 +42,8 @@ github.com/go-logfmt/logfmt
 # github.com/godbus/dbus/v5 v5.0.4
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
+# github.com/google/go-cmp v0.5.8
+## explicit; go 1.13
 # github.com/opencontainers/runtime-spec v1.0.2
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
@@ -71,8 +74,6 @@ github.com/xeipuuv/gojsonschema
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
-## explicit; go 1.11
 # google.golang.org/protobuf v1.27.1
 ## explicit; go 1.9
 google.golang.org/protobuf/encoding/prototext
