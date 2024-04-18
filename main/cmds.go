@@ -58,13 +58,13 @@ func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (strin
 func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
 		lg = log.With(lg, "path", dataDir)
-		lg.Log("event", "removing data dir", "path", dataDir)
+		sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Removing data dir")
 		if err := os.RemoveAll(dataDir); err != nil {
 			return "", errors.Wrap(err, "failed to delete data dir")
 		}
-		lg.Log("event", "removed data dir")
+		sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Successfully removed data dir")
 	}
-	lg.Log("event", "uninstalled")
+	sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Handler successfully uninstalled")
 	return "", nil
 }
 
