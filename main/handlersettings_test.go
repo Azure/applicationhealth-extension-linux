@@ -73,7 +73,7 @@ func Test_unMarshalPublicSetting(t *testing.T) {
 
 func Test_ExtensionManifestVersion(t *testing.T) {
 
-	currVersion := "2.0.8"
+	currVersion := "2.0.9"
 	expectedManifest := ExtensionManifest{
 		ProviderNameSpace:   "Microsoft.ManagedServices",
 		Type:                "ApplicationHealthLinux",
