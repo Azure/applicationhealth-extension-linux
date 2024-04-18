@@ -77,14 +77,14 @@ func NewHealthProbe(lg log.Logger, cfg *handlerSettings) HealthProbe {
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.port()),
 		}
-		lg.Log("event", "creating tcp probe targeting "+p.address())
+		sendTelemetry(lg, EventLevelInfo, AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
 	case "http":
 		fallthrough
 	case "https":
 		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		lg.Log("event", "creating "+cfg.protocol()+" probe targeting "+p.address())
+		sendTelemetry(lg, EventLevelInfo, AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
 	default:
-		lg.Log("event", "default settings without probe")
+		sendTelemetry(lg, EventLevelInfo, AppHealthProbeTask, "Configuration not provided. Using default reporting.")
 	}
 
 	return p
@@ -209,7 +209,7 @@ func (p *HttpHealthProbe) evaluate(lg log.Logger) (ProbeResponse, error) {
 	}
 
 	if err := probeResponse.validateCustomMetrics(); err != nil {
-		lg.Log("error", err)
+		sendTelemetry(lg, EventLevelError, AppHealthProbeTask, err.Error(), "error", err)
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {
