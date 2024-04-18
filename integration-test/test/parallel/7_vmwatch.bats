@@ -411,7 +411,8 @@ teardown(){
 
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
-    [[ "$output" == *'operation=uninstall seq=0 path=/var/lib/waagent/apphealth event=uninstalled'* ]]
+    any_regex_pattern="[[:digit:]|[:space:]|[:alpha:]|[:punct:]]"
+    assert_line --regexp "operation=uninstall seq=0 path=/var/lib/waagent/apphealth ${any_regex_pattern}* event=\"Handler successfully uninstalled\""
 }
 
 @test "handler command: enable - Graceful Shutdown - vm watch killed when Apphealth is killed gracefully with SIGTERM" {
