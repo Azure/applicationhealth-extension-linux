@@ -351,7 +351,7 @@ teardown(){
     echo "$output"
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Killing VMWatch process as cgroup assigment failed'* ]]
+    [[ "$output" == *'Killing VMWatch process as cgroup assignment failed'* ]]
     [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
