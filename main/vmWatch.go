@@ -110,7 +110,8 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	}()
 
 	// Setup command
-	vmWatchCommand, err = setupVMWatchCommand(vmWatchSettings, hEnv)
+	runningInSystemd := false
+	vmWatchCommand, runningInSystemd, err = setupVMWatchCommand(vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		ctx.Log("error", err.Error())
@@ -135,21 +136,25 @@ func executeVMWatchHelper(ctx *log.Context, attempt int, vmWatchSettings *vmWatc
 	pid = vmWatchCommand.Process.Pid // cmd.Process should be populated on success
 	ctx.Log("event", fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
 
-	err = createAndAssignCgroups(ctx, vmWatchSettings, pid)
-	if err != nil {
-		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
-		ctx.Log("error", err.Error())
-		// On real VMs we want this to stop vwmwatch from runing at all since we want to make sure we are protected
-		// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
-		// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
-		// work at all because the base OS doesn't support it).
-		// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
-		// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
-		// this allows us to test both cases
-		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
-			ctx.Log("event", fmt.Sprintf("Killing VMWatch process as cgroup assigment failed"))
-			_ = killVMWatch(ctx, vmWatchCommand)
-			return err
+	// The default way to run vmwatch is via systemd-run.  There are some cases where system-run is not available
+	// (in a container or in a distro without systemd).  In those cases we will manage the cgroups directly
+	if (!runningInSystemd) {
+		err = createAndAssignCgroups(ctx, vmWatchSettings, pid)
+		if err != nil {
+			err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
+			ctx.Log("error", err.Error())
+			// On real VMs we want this to stop vwmwatch from runing at all since we want to make sure we are protected
+			// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
+			// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
+			// work at all because the base OS doesn't support it).
+			// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
+			// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
+			// this allows us to test both cases
+			if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
+				ctx.Log("event", fmt.Sprintf("Killing VMWatch process as cgroup assignment failed"))
+				_ = killVMWatch(ctx, vmWatchCommand)
+				return err
+			}
 		}
 	}
 
@@ -219,10 +224,13 @@ func killVMWatch(ctx *log.Context, cmd *exec.Cmd) error {
 	return nil
 }
 
-func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd, error) {
+// setupVMWatchCommand sets up the command to run VMWatch
+// Returns the command and a boolean indicating if the command is run with systemd-run or directly
+// if the boolean is true, the command is run with systemd-run, otherwise it is run directly
+func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd, bool, error) {
 	processDirectory, err := GetProcessDirectory()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
@@ -237,7 +245,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	}
 	if s.MemoryLimitInBytes < 30000000 {
 		err = fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
-		return nil, err
+		return nil, false, err
 	}
 
 	// check cpu, if 0 (default) set to the default value
@@ -247,7 +255,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 
 	if s.MaxCpuPercentage < 0 || s.MaxCpuPercentage > 100 {
 		err = fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
-		return nil, err
+		return nil, false, err
 	}
 
 	args = append(args, "--memory-limit-bytes", strconv.FormatInt(s.MemoryLimitInBytes, 10))
@@ -300,12 +308,27 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	if err == nil {
 		args = append(args, "--apphealth-version", extVersion)
 	}
+	runningWithSystemd := false
+	var cmd *exec.Cmd
+	// if we have systemd-run available, we will use that to launch the process, otherwise we will launch directly and manipulate our own cgroups
+	// check if /usr/bin/systemd-run exists
+	if _, err := os.Stat("/usr/bin/systemd-run"); err == nil {
+		systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage), "-p", fmt.Sprintf("MemoryMax=%v", s.MemoryLimitInBytes)}
+		// now append the env variables
+		for _, v := range GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv) {
+			systemdArgs = append(systemdArgs, "-E", v)
+		}
+		systemdArgs = append(systemdArgs, GetVMWatchBinaryFullPath(processDirectory))
+		systemdArgs = append(systemdArgs, args...)
 
-	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
+		cmd = exec.Command("/usr/bin/systemd-run", systemdArgs...)
+		runningWithSystemd = true
+	} else {
+		cmd = exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
+		cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
+	}
 
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
-
-	return cmd, nil
+	return cmd, runningWithSystemd, nil
 }
 
 func createAndAssignCgroups(ctx *log.Context, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
