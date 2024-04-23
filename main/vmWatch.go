@@ -310,9 +310,11 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 	}
 	runningWithSystemd := false
 	var cmd *exec.Cmd
-	// if we have systemd-run available, we will use that to launch the process, otherwise we will launch directly and manipulate our own cgroups
-	// check if /usr/bin/systemd-run exists
-	if _, err := os.Stat("/usr/bin/systemd-run"); err == nil {
+	// if we have systemd available, we will use that to launch the process, otherwise we will launch directly and manipulate our own cgroups
+	// check if /run/systemd/system exists, if so we have systemd and can use systemd-run
+	// since systemd-run is in different paths on different distros, we will check for systemd but not use the full path
+	// to systemd-run.  This is how guest agent handles it also so seems appropriate.
+	if info, err := os.Stat("/run/systemd/system"); err == nil && info.IsDir() {
 		systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage), "-p", fmt.Sprintf("MemoryMax=%v", s.MemoryLimitInBytes)}
 		// now append the env variables
 		for _, v := range GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv) {
@@ -321,7 +323,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv HandlerEnvironment) (*exec.Cmd
 		systemdArgs = append(systemdArgs, GetVMWatchBinaryFullPath(processDirectory))
 		systemdArgs = append(systemdArgs, args...)
 
-		cmd = exec.Command("/usr/bin/systemd-run", systemdArgs...)
+		cmd = exec.Command("systemd-run", systemdArgs...)
 		runningWithSystemd = true
 	} else {
 		cmd = exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
