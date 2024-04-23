@@ -1,6 +1,6 @@
 module github.com/Azure/applicationhealth-extension-linux
 
-go 1.18
+go 1.22
 
 require (
 	github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d
