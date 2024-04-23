@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
@@ -30,7 +31,7 @@ func reportStatusWithSubstatuses(lg log.Logger, hEnv *handlerenv.HandlerEnvironm
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		sendTelemetry(lg, EventLevelInfo, ReportStatusTask, "failed to save handler status", "error", err.Error())
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask, "failed to save handler status", "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil

@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
 	"github.com/go-kit/log"
@@ -26,7 +27,7 @@ var (
 
 	eem *extensionevents.ExtensionEventManager
 
-	sendTelemetry LogEventFunc
+	sendTelemetry telemetry.LogEventFunc
 )
 
 func main() {
@@ -45,11 +46,11 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		sendTelemetry(logger, EventLevelInfo, KillVMWatchTask, "Received shutdown request")
+		sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, "Received shutdown request")
 		shutdown = true
 		err := killVMWatch(logger, vmWatchCommand)
 		if err != nil {
-			sendTelemetry(logger, EventLevelError, KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
+			sendTelemetry(logger, telemetry.EventLevelError, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()
 
@@ -65,9 +66,9 @@ func main() {
 	}
 	logger = log.With(logger, "seq", seqNum)
 	eem = extensionevents.New(logging.NewNopLogger(), hEnv)
-	sendTelemetry = LogStdOutAndEventWithSender(NewTelemetryEventSender(eem))
+	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
 	// check sub-command preconditions, if any, before executing
-	sendTelemetry(logger, EventLevelInfo, MainTask, fmt.Sprintf("Starting AppHealth Extension %s", GetExtensionVersion()))
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s", GetExtensionVersion()))
 	if cmd.pre != nil {
 		logger.Log("event", "pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
@@ -84,7 +85,7 @@ func main() {
 		os.Exit(cmd.failExitCode)
 	}
 	reportStatus(logger, hEnv, seqNum, StatusSuccess, cmd, msg)
-	sendTelemetry(logger, EventLevelInfo, MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s", GetExtensionVersion()))
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s", GetExtensionVersion()))
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,

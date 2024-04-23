@@ -12,6 +12,7 @@ import (
 
 	"net/url"
 
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
@@ -77,14 +78,14 @@ func NewHealthProbe(lg log.Logger, cfg *handlerSettings) HealthProbe {
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.port()),
 		}
-		sendTelemetry(lg, EventLevelInfo, AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
 	case "http":
 		fallthrough
 	case "https":
 		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		sendTelemetry(lg, EventLevelInfo, AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
 	default:
-		sendTelemetry(lg, EventLevelInfo, AppHealthProbeTask, "Configuration not provided. Using default reporting.")
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthProbeTask, "Configuration not provided. Using default reporting.")
 	}
 
 	return p
@@ -209,7 +210,7 @@ func (p *HttpHealthProbe) evaluate(lg log.Logger) (ProbeResponse, error) {
 	}
 
 	if err := probeResponse.validateCustomMetrics(); err != nil {
-		sendTelemetry(lg, EventLevelError, AppHealthProbeTask, err.Error(), "error", err)
+		sendTelemetry(lg, telemetry.EventLevelError, telemetry.AppHealthProbeTask, err.Error(), "error", err)
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {

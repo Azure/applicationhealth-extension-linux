@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/log"
 	"github.com/pkg/errors"
@@ -141,29 +142,29 @@ type protectedSettings struct {
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
 func parseAndValidateSettings(lg log.Logger, configFolder string) (h handlerSettings, _ error) {
-	sendTelemetry(lg, EventLevelInfo, MainTask, "Reading configuration")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "Reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
 
-	sendTelemetry(lg, EventLevelInfo, MainTask, "validating json schema")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
 
-	sendTelemetry(lg, EventLevelInfo, MainTask, "json schema valid")
-	sendTelemetry(lg, EventLevelInfo, MainTask, "parsing configuration json")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "json schema valid")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsing configuration json")
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
-	sendTelemetry(lg, EventLevelInfo, MainTask, "parsed configuration json")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsed configuration json")
 
-	sendTelemetry(lg, EventLevelInfo, MainTask, "validating configuration logically")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validating configuration logically")
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	sendTelemetry(lg, EventLevelInfo, MainTask, "validated configuration")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validated configuration")
 	return h, nil
 }
 

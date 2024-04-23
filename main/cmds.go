@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
@@ -50,21 +51,21 @@ func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (strin
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
 
-	sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Created data dir", "path", dataDir)
-	sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Handler successfully installed")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Created data dir", "path", dataDir)
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Handler successfully installed")
 	return "", nil
 }
 
 func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
 		lg = log.With(lg, "path", dataDir)
-		sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Removing data dir")
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Removing data dir")
 		if err := os.RemoveAll(dataDir); err != nil {
 			return "", errors.Wrap(err, "failed to delete data dir")
 		}
-		sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Successfully removed data dir")
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Successfully removed data dir")
 	}
-	sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Handler successfully uninstalled")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Handler successfully uninstalled")
 	return "", nil
 }
 
@@ -100,14 +101,14 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 	)
 
 	if !honorGracePeriod {
-		sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Grace period not set")
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Grace period not set")
 	} else {
-		sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
-	sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
-		sendTelemetry(lg, EventLevelInfo, StartVMWatchTask, "VMWatch is disabled, not starting process.")
+		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "VMWatch is disabled, not starting process.")
 	} else {
 		vmWatchResult = VMWatchResult{Status: NotRunning, Error: nil}
 		go executeVMWatch(lg, vmWatchSettings, h, vmWatchResultChannel)
@@ -128,12 +129,12 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 		probeResponse, err := probe.evaluate(lg)
 		state := probeResponse.ApplicationHealthState
 		if err != nil {
-			sendTelemetry(lg, EventLevelError, AppHealthProbeTask,
+			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask,
 				fmt.Sprintf("Error evaluating health probe: %v", err), "error", err)
 		}
 
 		if shutdown {
-			sendTelemetry(lg, EventLevelInfo, AppHealthTask, "Shutting down AppHealth Extension Gracefully")
+			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Shutting down AppHealth Extension Gracefully")
 			return "", errTerminated
 		}
 
@@ -146,16 +147,16 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 			if !ok {
 				vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
 			} else if result.Status == Running {
-				sendTelemetry(lg, EventLevelInfo, ReportHeatBeatTask, "VMWatch is running")
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportHeatBeatTask, "VMWatch is running")
 			} else if result.Status == Failed {
-				sendTelemetry(lg, EventLevelError, ReportHeatBeatTask, vmWatchResult.GetMessage())
+				sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportHeatBeatTask, vmWatchResult.GetMessage())
 			} else if result.Status == NotRunning {
-				sendTelemetry(lg, EventLevelInfo, ReportHeatBeatTask, "VMWatch is not running")
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportHeatBeatTask, "VMWatch is not running")
 			}
 		default:
 			if vmWatchResult.Status == Running && time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
 				timeOfLastVMWatchLog = time.Now()
-				sendTelemetry(lg, EventLevelInfo, ReportHeatBeatTask, "VMWatch is running")
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportHeatBeatTask, "VMWatch is running")
 			}
 		}
 
@@ -164,7 +165,7 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 			numConsecutiveProbes++
 			// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
-			sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("Health state changed to %s", strings.ToLower(string(state))))
+			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Health state changed to %s", strings.ToLower(string(state))))
 			numConsecutiveProbes = 1
 			prevState = state
 		}
@@ -173,7 +174,7 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application didn't initialize on time
 			if timeElapsed >= gracePeriodInSeconds {
-				sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				state = probe.healthStatusAfterGracePeriodExpires()
 				prevState = probe.healthStatusAfterGracePeriodExpires()
@@ -181,11 +182,11 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 				committedState = Empty
 				// If grace period has not expired, check if we have consecutive valid probes
 			} else if (numConsecutiveProbes == numberOfProbes) && (state != probe.healthStatusAfterGracePeriodExpires()) {
-				sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				// Application will be in Initializing state since we have not received consecutive valid health states
 			} else {
-				sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 				state = Initializing
 			}
 		}
@@ -193,7 +194,7 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 		if (numConsecutiveProbes == numberOfProbes) || (committedState == Empty) {
 			if state != committedState {
 				committedState = state
-				sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+				sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			}
 			// Only reset if we've observed consecutive probes in order to preserve previous observations when handling grace period
 			if numConsecutiveProbes == numberOfProbes {
@@ -215,7 +216,7 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 				customMetricsStatusType = StatusSuccess
 			}
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
-			sendTelemetry(lg, EventLevelInfo, ReportStatusTask,
+			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask,
 				fmt.Sprintf("Reporting CustomMetric Substatus with status: %s , message: %s",
 					customMetricsStatusType, probeResponse.CustomMetrics))
 		}
@@ -223,14 +224,14 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 		// VMWatch substatus should only be displayed when settings are present
 		if vmWatchSettings != nil {
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
-			sendTelemetry(lg, EventLevelInfo, ReportStatusTask,
+			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask,
 				fmt.Sprintf("Reporting VMWatch Substatus with status: %s, message: %s",
 					vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
 		err = reportStatusWithSubstatuses(lg, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
-			sendTelemetry(lg, EventLevelError, ReportStatusTask, fmt.Sprintf("Error while trying to report health status: %v", err), "error", err)
+			sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportStatusTask, fmt.Sprintf("Error while trying to report health status: %v", err), "error", err)
 		}
 
 		endTime := time.Now()
