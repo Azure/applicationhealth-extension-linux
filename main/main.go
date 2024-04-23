@@ -45,11 +45,11 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		sendTelemetry(logger, EventLevelInfo, AppHealthStatusTask, "Received shutdown request")
+		sendTelemetry(logger, EventLevelInfo, KillVMWatchTask, "Received shutdown request")
 		shutdown = true
 		err := killVMWatch(logger, vmWatchCommand)
 		if err != nil {
-			sendTelemetry(logger, EventLevelError, VMWatchStatusTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
+			sendTelemetry(logger, EventLevelError, KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()
 

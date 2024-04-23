@@ -107,7 +107,7 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 
 	sendTelemetry(lg, EventLevelInfo, AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
-		sendTelemetry(lg, EventLevelInfo, VMWatchSetupTask, "VMWatch is disabled, not starting process.")
+		sendTelemetry(lg, EventLevelInfo, StartVMWatchTask, "VMWatch is disabled, not starting process.")
 	} else {
 		vmWatchResult = VMWatchResult{Status: NotRunning, Error: nil}
 		go executeVMWatch(lg, vmWatchSettings, h, vmWatchResultChannel)
@@ -146,14 +146,16 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 			if !ok {
 				vmWatchResult = VMWatchResult{Status: Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
 			} else if result.Status == Running {
-				sendTelemetry(lg, EventLevelInfo, VMWatchStatusTask, "VMWatch is running")
+				sendTelemetry(lg, EventLevelInfo, ReportHeatBeatTask, "VMWatch is running")
 			} else if result.Status == Failed {
-				sendTelemetry(lg, EventLevelError, VMWatchStatusTask, vmWatchResult.GetMessage())
+				sendTelemetry(lg, EventLevelError, ReportHeatBeatTask, vmWatchResult.GetMessage())
+			} else if result.Status == NotRunning {
+				sendTelemetry(lg, EventLevelInfo, ReportHeatBeatTask, "VMWatch is not running")
 			}
 		default:
 			if vmWatchResult.Status == Running && time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
 				timeOfLastVMWatchLog = time.Now()
-				sendTelemetry(lg, EventLevelInfo, VMWatchStatusTask, "VMWatch is running")
+				sendTelemetry(lg, EventLevelInfo, ReportHeatBeatTask, "VMWatch is running")
 			}
 		}
 
@@ -213,22 +215,22 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 				customMetricsStatusType = StatusSuccess
 			}
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
-			sendTelemetry(lg, EventLevelInfo, AppHealthTask,
-				fmt.Sprintf("Reporting CustomScript Substatus with status: %s , message: %s",
+			sendTelemetry(lg, EventLevelInfo, ReportStatusTask,
+				fmt.Sprintf("Reporting CustomMetric Substatus with status: %s , message: %s",
 					customMetricsStatusType, probeResponse.CustomMetrics))
 		}
 
 		// VMWatch substatus should only be displayed when settings are present
 		if vmWatchSettings != nil {
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
-			sendTelemetry(lg, EventLevelInfo, VMWatchStatusTask,
+			sendTelemetry(lg, EventLevelInfo, ReportStatusTask,
 				fmt.Sprintf("Reporting VMWatch Substatus with status: %s, message: %s",
 					vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
 		err = reportStatusWithSubstatuses(lg, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
-			sendTelemetry(lg, EventLevelError, AppHealthStatusTask, fmt.Sprintf("Error while trying to report health status: %v", err), "error", err)
+			sendTelemetry(lg, EventLevelError, ReportStatusTask, fmt.Sprintf("Error while trying to report health status: %v", err), "error", err)
 		}
 
 		endTime := time.Now()

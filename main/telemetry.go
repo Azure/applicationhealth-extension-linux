@@ -20,13 +20,15 @@ const (
 )
 
 const (
-	MainTask            EventTask = "Main"
-	AppHealthTask       EventTask = "AppHealth"
-	AppHealthProbeTask  EventTask = "AppHealth-HealthProbe"
-	AppHealthStatusTask EventTask = "AppHealth-Status"
-	VMWatchTask         EventTask = "VMWatch"
-	VMWatchSetupTask    EventTask = "VMWatch-Setup"
-	VMWatchStatusTask   EventTask = "VMWatch-Status"
+	MainTask           EventTask = "Main"
+	AppHealthTask      EventTask = "AppHealth"
+	AppHealthProbeTask EventTask = "AppHealth-HealthProbe"
+	ReportStatusTask   EventTask = "ReportStatus"
+	ReportHeatBeatTask EventTask = "CheckHealthAndReportHeartBeat"
+	StartVMWatchTask   EventTask = "StartVMWatchIfApplicable"
+	StopVMWatchTask    EventTask = "OnExited"
+	SetupVMWatchTask   EventTask = "SetupVMWatchProcess"
+	KillVMWatchTask    EventTask = "KillVMWatchIfApplicable"
 )
 
 type LogFunc func(logger log.Logger, keyvals ...interface{})
