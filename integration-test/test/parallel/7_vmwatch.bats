@@ -351,12 +351,12 @@ teardown(){
     echo "$output"
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Killing VMWatch process as cgroup assigment failed'* ]]
+    [[ "$output" == *'Killing VMWatch process as cgroup assignment failed'* ]]
     [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
-    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Failed to assign VMWatch process to cgroup.*"
+    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* VMWatch process exited. Error: signal: killed.**"
 }
 
 @test "handler command: enable/disable - vm watch killed when disable is called" {
