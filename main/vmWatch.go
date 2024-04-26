@@ -142,24 +142,9 @@ func executeVMWatchHelper(lg log.Logger, attempt int, vmWatchSettings *vmWatchSe
 		return err
 	}
 	pid = vmWatchCommand.Process.Pid // cmd.Process should be populated on success
+
 	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Attempt %d: Started VMWatch with PID %d", attempt, pid))
-	err = createAndAssignCgroups(lg, vmWatchSettings, pid)
-	if err != nil {
-		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
-		sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, err.Error(), "error", err)
-		// On real VMs we want this to stop vwmwatch from runing at all since we want to make sure we are protected
-		// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
-		// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
-		// work at all because the base OS doesn't support it).
-		// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
-		// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
-		// this allows us to test both cases
-		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
-			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, "Killing VMWatch process as cgroup assigment failed")
-			_ = killVMWatch(lg, vmWatchCommand)
-			return err
-		}
-	}
+	err = applyResourceGovernanceIfApplicable(lg, vmWatchSettings, vmWatchCommand)
 
 	processDone := make(chan bool)
 
@@ -183,6 +168,35 @@ func executeVMWatchHelper(lg log.Logger, attempt int, vmWatchSettings *vmWatchSe
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
 	sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, err.Error(), "error", err)
 	return err
+}
+
+// Sets resource governance for VMWatch process if applicable
+// if it is already being run with system-run this is a no-op
+func applyResourceGovernanceIfApplicable(lg log.Logger, vmWatchSettings *vmWatchSettings, vmWatchCommand *exec.Cmd) error {
+	// The default way to run vmwatch is via systemd-run.  There are some cases where system-run is not available
+	// (in a container or in a distro without systemd).  In those cases we will manage the cgroups directly
+	runningInSystemd := vmWatchCommand.Path == "systemd-run"
+	if !runningInSystemd {
+		pid := vmWatchCommand.Process.Pid
+		err := createAndAssignCgroups(lg, vmWatchSettings, pid)
+		if err != nil {
+			err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
+			sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, err.Error(), "error", err)
+			// On real VMs we want this to stop vwmwatch from running at all since we want to make sure we are protected
+			// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
+			// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
+			// work at all because the base OS doesn't support it)).
+			// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
+			// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
+			// this allows us to test both cases
+			if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
+				lg.Log("event", "Killing VMWatch process as cgroup assignment failed")
+				_ = killVMWatch(lg, vmWatchCommand)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func monitorHeartBeat(lg log.Logger, heartBeatFile string, processDone chan bool, cmd *exec.Cmd) {
@@ -228,6 +242,9 @@ func killVMWatch(lg log.Logger, cmd *exec.Cmd) error {
 	return nil
 }
 
+// setupVMWatchCommand sets up the command to run VMWatch
+// if we are on a linux distro with systemd-run available, cmd.Path will be systemd-run else it will be the vmwatch
+// binary path
 func setupVMWatchCommand(s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
 	processDirectory, err := GetProcessDirectory()
 	if err != nil {
@@ -309,12 +326,32 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment
 	if err == nil {
 		args = append(args, "--apphealth-version", extVersion)
 	}
+	var cmd *exec.Cmd
+	// if we have systemd available, we will use that to launch the process, otherwise we will launch directly and manipulate our own cgroups
+	if isSystemdAvailable() {
+		// since systemd-run is in different paths on different distros, we will check for systemd but not use the full path
+		// to systemd-run.  This is how guest agent handles it also so seems appropriate.
+		systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage), "-p", fmt.Sprintf("MemoryMax=%v", s.MemoryLimitInBytes)}
+		// now append the env variables
+		for _, v := range GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv) {
+			systemdArgs = append(systemdArgs, "-E", v)
+		}
+		systemdArgs = append(systemdArgs, GetVMWatchBinaryFullPath(processDirectory))
+		systemdArgs = append(systemdArgs, args...)
 
-	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
-
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
+		cmd = exec.Command("systemd-run", systemdArgs...)
+	} else {
+		cmd = exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
+		cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
+	}
 
 	return cmd, nil
+}
+
+func isSystemdAvailable() bool {
+	// check if /run/systemd/system exists, if so we have systemd
+	info, err := os.Stat("/run/systemd/system")
+	return err == nil && info.IsDir()
 }
 
 func createAndAssignCgroups(lg log.Logger, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
