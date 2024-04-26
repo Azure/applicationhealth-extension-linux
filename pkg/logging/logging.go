@@ -6,6 +6,8 @@ import (
 	"github.com/go-kit/log"
 )
 
+// NopLogger is a logger implementation that discards all log messages.
+// It Implements the Logger interface from the Azure-extension-platform package.
 type NopLogger struct {
 	log.Logger
 }
