@@ -44,6 +44,7 @@ func NewTelemetryEventSender(eem *extensionevents.ExtensionEventManager) *Teleme
 	}
 }
 
+// sendEvent sends a telemetry event with the specified level, task name, and message.
 func (t *TelemetryEventSender) sendEvent(level EventLevel, taskName EventTask, message string) {
 	switch level {
 	case EventLevelCritical:
@@ -61,6 +62,11 @@ func (t *TelemetryEventSender) sendEvent(level EventLevel, taskName EventTask, m
 	}
 }
 
+// LogStdOutAndEventWithSender is a higher-order function that returns a LogEventFunc.
+// It logs the event to the provided logger and sends the event to the specified sender.
+// If the taskName is empty, it automatically determines the caller's function name as the taskName.
+// The event level, task name, and message are appended to the keyvals slice.
+// Finally, it calls the sender's sendEvent method to send the event.
 func LogStdOutAndEventWithSender(sender *TelemetryEventSender) LogEventFunc {
 	return func(logger log.Logger, level EventLevel, taskName EventTask, message string, keyvals ...interface{}) {
 		if taskName == "" {
