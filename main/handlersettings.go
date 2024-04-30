@@ -28,6 +28,10 @@ type handlerSettings struct {
 	protectedSettings
 }
 
+func (s handlerSettings) String() string {
+	return fmt.Sprintf("publicSettings: %s, protectedSettings: %s", s.publicSettings, s.protectedSettings)
+}
+
 func (s *handlerSettings) protocol() string {
 	return s.publicSettings.Protocol
 }
@@ -97,7 +101,11 @@ type vmWatchSignalFilters struct {
 	DisabledSignals        []string `json:"disabledSignals,array"`
 }
 
-func (v vmWatchSignalFilters) String() string {
+func (v *vmWatchSignalFilters) String() string {
+	if v == nil {
+		return "NONE"
+	}
+
 	return fmt.Sprintf(
 		"{EnabledTags: %v, DisabledTags: %v, EnabledOptionalSignals: %v, DisabledSignals: %v}",
 		v.EnabledTags, v.DisabledTags, v.EnabledOptionalSignals, v.DisabledSignals,
@@ -115,9 +123,13 @@ type vmWatchSettings struct {
 	DisableConfigReader   bool                   `json:"disableConfigReader,boolean"`
 }
 
-func (v vmWatchSettings) String() string {
+func (v *vmWatchSettings) String() string {
+	if v == nil {
+		return "NONE"
+	}
+
 	return fmt.Sprintf(
-		"vmWatchSettings{Enabled: %v, MemoryLimitInBytes: %d, MaxCpuPercentage: %d, SignalFilters: %s, ParameterOverrides: %v, EnvironmentAttributes: %v, GlobalConfigUrl: %s, DisableConfigReader: %v}",
+		"{Enabled: %v, MemoryLimitInBytes: %d, MaxCpuPercentage: %d, SignalFilters: %s, ParameterOverrides: %v, EnvironmentAttributes: %v, GlobalConfigUrl: %s, DisableConfigReader: %v}",
 		v.Enabled, v.MemoryLimitInBytes, v.MaxCpuPercentage, v.SignalFilters, v.ParameterOverrides, v.EnvironmentAttributes, v.GlobalConfigUrl, v.DisableConfigReader,
 	)
 }
@@ -134,9 +146,25 @@ type publicSettings struct {
 	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
 }
 
+func (p publicSettings) String() string {
+
+	if p == (publicSettings{}) { // publicSettings is empty
+		return "NONE"
+	}
+
+	return fmt.Sprintf(
+		"{protocol: %s, port: %d, requestPath: %s, intervalInSeconds: %d, numberOfProbes: %d, gracePeriod: %d, vmWatchSettings: %s}",
+		p.Protocol, p.Port, p.RequestPath, p.IntervalInSeconds, p.NumberOfProbes, p.GracePeriod, p.VMWatchSettings,
+	)
+}
+
 // protectedSettings is the type decoded and deserialized from protected
 // configuration section. This should be in sync with protectedSettingsSchema.
 type protectedSettings struct {
+}
+
+func (p protectedSettings) String() string {
+	return "NONE"
 }
 
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,

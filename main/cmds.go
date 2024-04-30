@@ -84,6 +84,9 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Successfully parsed and validated settings")
+	sendTelemetry(lg, telemetry.EventLevelVerbose, telemetry.AppHealthTask, fmt.Sprintf("HandlerSettings = %s", cfg))
+
 	probe := NewHealthProbe(lg, &cfg)
 	var (
 		intervalBetweenProbesInMs = time.Duration(cfg.intervalInSeconds()) * time.Millisecond * 1000
