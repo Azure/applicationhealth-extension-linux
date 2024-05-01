@@ -29,7 +29,8 @@ type handlerSettings struct {
 }
 
 func (s handlerSettings) String() string {
-	return fmt.Sprintf("publicSettings: %s, protectedSettings: %s", s.publicSettings, s.protectedSettings)
+	settings, _ := json.MarshalIndent(s, "", "    ")
+	return string(settings)
 }
 
 func (s *handlerSettings) protocol() string {

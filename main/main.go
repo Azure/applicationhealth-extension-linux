@@ -65,7 +65,7 @@ func main() {
 		logger.Log("message", "failed to find sequence number", "error", err)
 	}
 	logger = log.With(logger, "seq", seqNum)
-	eem = extensionevents.New(logging.NewNopLogger(), hEnv.HandlerEnvironment)
+	eem = extensionevents.New(logging.NewNopLogger(), &hEnv.HandlerEnvironment)
 	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
 	// check sub-command preconditions, if any, before executing
 	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s", GetExtensionVersion()))
