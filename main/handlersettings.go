@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -102,17 +101,6 @@ type vmWatchSignalFilters struct {
 	DisabledSignals        []string `json:"disabledSignals,array"`
 }
 
-func (v *vmWatchSignalFilters) String() string {
-	if v == nil {
-		return "NONE"
-	}
-
-	return fmt.Sprintf(
-		"{EnabledTags: %v, DisabledTags: %v, EnabledOptionalSignals: %v, DisabledSignals: %v}",
-		v.EnabledTags, v.DisabledTags, v.EnabledOptionalSignals, v.DisabledSignals,
-	)
-}
-
 type vmWatchSettings struct {
 	Enabled               bool                   `json:"enabled,boolean"`
 	MemoryLimitInBytes    int64                  `json:"memoryLimitInBytes,int64"`
@@ -141,25 +129,9 @@ type publicSettings struct {
 	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
 }
 
-func (p publicSettings) String() string {
-
-	if p == (publicSettings{}) { // publicSettings is empty
-		return "NONE"
-	}
-
-	return fmt.Sprintf(
-		"{protocol: %s, port: %d, requestPath: %s, intervalInSeconds: %d, numberOfProbes: %d, gracePeriod: %d, vmWatchSettings: %s}",
-		p.Protocol, p.Port, p.RequestPath, p.IntervalInSeconds, p.NumberOfProbes, p.GracePeriod, p.VMWatchSettings,
-	)
-}
-
 // protectedSettings is the type decoded and deserialized from protected
 // configuration section. This should be in sync with protectedSettingsSchema.
 type protectedSettings struct {
-}
-
-func (p protectedSettings) String() string {
-	return "NONE"
 }
 
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,
