@@ -125,14 +125,8 @@ type vmWatchSettings struct {
 }
 
 func (v *vmWatchSettings) String() string {
-	if v == nil {
-		return "NONE"
-	}
-
-	return fmt.Sprintf(
-		"{Enabled: %v, MemoryLimitInBytes: %d, MaxCpuPercentage: %d, SignalFilters: %s, ParameterOverrides: %v, EnvironmentAttributes: %v, GlobalConfigUrl: %s, DisableConfigReader: %v}",
-		v.Enabled, v.MemoryLimitInBytes, v.MaxCpuPercentage, v.SignalFilters, v.ParameterOverrides, v.EnvironmentAttributes, v.GlobalConfigUrl, v.DisableConfigReader,
-	)
+	setting, _ := json.MarshalIndent(v, "", "    ")
+	return string(setting)
 }
 
 // publicSettings is the type deserialized from public configuration section of
