@@ -15,7 +15,7 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 	originalGetDir := getDir
 	defer func() { getDir = originalGetDir }()
 
-	currVersion := "2.0.9"
+	currVersion := "2.0.10"
 	expectedManifest := ExtensionManifest{
 		ProviderNameSpace:   "Microsoft.ManagedServices",
 		Type:                "ApplicationHealthLinux",
@@ -31,7 +31,7 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 	}
 	// Override the getDir function to return a mock directory
 	getDir = func() (string, error) {
-		return "../../misc/linux", nil
+		return "../../misc", nil
 	}
 
 	currentManifest, err := GetExtensionManifest()
