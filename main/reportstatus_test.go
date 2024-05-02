@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
+
+	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,10 +24,10 @@ func Test_statusMsg(t *testing.T) {
 }
 
 func Test_reportStatus_fails(t *testing.T) {
-	fakeEnv := HandlerEnvironment{}
-	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
+	fakeEnv := &handlerenv.HandlerEnvironment{}
+	fakeEnv.StatusFolder = "/non-existing/dir/"
 
-	err := reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 1, StatusSuccess, cmdEnable, "")
+	err := reportStatus(log.NewNopLogger(), fakeEnv, 1, StatusSuccess, cmdEnable, "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
 }
@@ -35,10 +37,10 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	fakeEnv := HandlerEnvironment{}
-	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
+	fakeEnv := &handlerenv.HandlerEnvironment{}
+	fakeEnv.StatusFolder = tmpDir
 
-	require.Nil(t, reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
+	require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
 
 	path := filepath.Join(tmpDir, "1.status")
 	b, err := ioutil.ReadFile(path)
@@ -52,9 +54,9 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 		require.Nil(t, err)
 		defer os.RemoveAll(tmpDir)
 
-		fakeEnv := HandlerEnvironment{}
-		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-		require.Nil(t, reportStatus(log.NewContext(log.NewNopLogger()), fakeEnv, 2, StatusSuccess, c, ""))
+		fakeEnv := &handlerenv.HandlerEnvironment{}
+		fakeEnv.StatusFolder = tmpDir
+		require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 2, StatusSuccess, c, ""))
 
 		fp := filepath.Join(tmpDir, "2.status")
 		_, err = os.Stat(fp) // check if the .status file is there
