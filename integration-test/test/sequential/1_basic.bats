@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
-load ../test_helper
-
+setup() {
+    load "../test_helper"
+}
 @test "meta: docker is installed" {
     run docker version
     echo "$output">&2

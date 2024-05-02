@@ -8,7 +8,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/go-kit/kit/log"
+	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
+	"github.com/go-kit/log"
 )
 
 var (
@@ -20,60 +24,69 @@ var (
 	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
+
+	eem *extensionevents.ExtensionEventManager
+
+	sendTelemetry telemetry.LogEventFunc
 )
 
 func main() {
-	ctx := log.NewContext(log.NewSyncLogger(log.NewLogfmtLogger(
-		os.Stdout))).With("time", log.DefaultTimestamp).With("version", VersionString())
+	logger := log.NewSyncLogger(log.NewLogfmtLogger(
+		os.Stdout))
+
+	logger = log.With(logger, "time", log.DefaultTimestamp)
+	logger = log.With(logger, "version", VersionString())
 
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
-	ctx = ctx.With("operation", strings.ToLower(cmd.name))
+	logger = log.With(logger, "operation", strings.ToLower(cmd.name))
 
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		ctx.Log("event", "Received shutdown request")
+		sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, "Received shutdown request")
 		shutdown = true
-		err := killVMWatch(ctx, vmWatchCommand)
+		err := killVMWatch(logger, vmWatchCommand)
 		if err != nil {
-			ctx.Log("error", "error when killing vmwatch", err.Error())
+			sendTelemetry(logger, telemetry.EventLevelError, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()
 
 	// parse extension environment
-	hEnv, err := GetHandlerEnv()
+	hEnv, err := handlerenv.GetHandlerEnviroment()
 	if err != nil {
-		ctx.Log("message", "failed to parse handlerenv", "error", err)
+		logger.Log("message", "failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	seqNum, err := FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
-		ctx.Log("messsage", "failed to find sequence number", "error", err)
+		logger.Log("message", "failed to find sequence number", "error", err)
 	}
-	ctx = ctx.With("seq", seqNum)
-
+	logger = log.With(logger, "seq", seqNum)
+	eem = extensionevents.New(logging.NewNopLogger(), &hEnv.HandlerEnvironment)
+	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
 	// check sub-command preconditions, if any, before executing
-	ctx.Log("event", "start")
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s", GetExtensionVersion()))
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("HandlerEnviroment = %s", hEnv))
 	if cmd.pre != nil {
-		ctx.Log("event", "pre-check")
-		if err := cmd.pre(ctx, seqNum); err != nil {
-			ctx.Log("event", "pre-check failed", "error", err)
+		logger.Log("event", "pre-check")
+		if err := cmd.pre(logger, seqNum); err != nil {
+			logger.Log("event", "pre-check failed", "error", err)
 			os.Exit(cmd.failExitCode)
 		}
 	}
 	// execute the subcommand
-	reportStatus(ctx, hEnv, seqNum, StatusTransitioning, cmd, "")
-	msg, err := cmd.f(ctx, hEnv, seqNum)
+	reportStatus(logger, hEnv, seqNum, StatusTransitioning, cmd, "")
+	msg, err := cmd.f(logger, hEnv, seqNum)
 	if err != nil {
-		ctx.Log("event", "failed to handle", "error", err)
-		reportStatus(ctx, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
+		logger.Log("event", "failed to handle", "error", err)
+		reportStatus(logger, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(ctx, hEnv, seqNum, StatusSuccess, cmd, msg)
-	ctx.Log("event", "end")
+	reportStatus(logger, hEnv, seqNum, StatusSuccess, cmd, msg)
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s", GetExtensionVersion()))
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,
