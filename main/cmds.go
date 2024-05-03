@@ -219,22 +219,22 @@ func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string
 				customMetricsStatusType = StatusSuccess
 			}
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
-			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask,
-				fmt.Sprintf("Reporting CustomMetric Substatus with status: %s , message: %s",
-					customMetricsStatusType, probeResponse.CustomMetrics))
 		}
 
 		// VMWatch substatus should only be displayed when settings are present
 		if vmWatchSettings != nil {
 			substatuses = append(substatuses, NewSubstatus(SubstatusKeyNameVMWatch, vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
-			sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask,
-				fmt.Sprintf("Reporting VMWatch Substatus with status: %s, message: %s",
-					vmWatchResult.Status.GetStatusType(), vmWatchResult.GetMessage()))
 		}
 
 		err = reportStatusWithSubstatuses(lg, h, seqNum, StatusSuccess, "enable", statusMessage, substatuses)
 		if err != nil {
-			sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportStatusTask, fmt.Sprintf("Error while trying to report health status: %v", err), "error", err)
+			sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportStatusTask,
+				fmt.Sprintf("Error while trying to report extension status with seqNum: %d, StatusType: %s, message: %s, substatuses: %#v, error: %s",
+					seqNum,
+					StatusSuccess,
+					statusMessage,
+					substatuses,
+					err.Error()))
 		}
 
 		endTime := time.Now()
