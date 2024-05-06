@@ -369,36 +369,36 @@ func isSystemdAvailable() bool {
 func getSystemdVersion() (int) {
 	cmd := exec.Command("systemd-run", "--version")
 
-    // Execute the command and capture the output
-    output, err := cmd.CombinedOutput()
-    if err != nil {
-        return 0
-    }
+	// Execute the command and capture the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0
+	}
 
-    // Convert output bytes to string
-    outputStr := string(output)
+	// Convert output bytes to string
+	outputStr := string(output)
 
-    // Find the version information in the output
-    return extractVersion(outputStr)
+	// Find the version information in the output
+	return extractVersion(outputStr)
 }
 
 // Function to extract the version information from the output
 // returns the version or 0 if not found
 func extractVersion(output string) int {
-    lines := strings.Split(output, "\n")
-    for _, line := range lines {
-        if strings.HasPrefix(line, "systemd") {
-            parts := strings.Fields(line)
-            if len(parts) >= 2 {
-                ret, err := strconv.Atoi(parts[1])
-                if err == nil {
-                    return ret
-                }
-                return 0
-            }
-        }
-    }
-    return 0
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "systemd") {
+			parts := strings.Fields(line)
+			if len(parts) >= 2 {
+				ret, err := strconv.Atoi(parts[1])
+				if err == nil {
+					return ret
+				}
+				return 0
+			}
+		}
+	}
+	return 0
 }
 
 
