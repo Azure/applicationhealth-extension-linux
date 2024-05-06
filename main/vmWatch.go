@@ -329,16 +329,28 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment
 	var cmd *exec.Cmd
 	// if we have systemd available, we will use that to launch the process, otherwise we will launch directly and manipulate our own cgroups
 	if isSystemdAvailable() {
+		systemdVersion := getSystemdVersion()
+
 		// since systemd-run is in different paths on different distros, we will check for systemd but not use the full path
 		// to systemd-run.  This is how guest agent handles it also so seems appropriate.
-		systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage), "-p", fmt.Sprintf("MemoryMax=%v", s.MemoryLimitInBytes)}
-		// now append the env variables
+		systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage)}
+
+		// systemd versions prior to 246 do not support MemoryMax, instead MemoryLimit should be used
+		if (systemdVersion < 246) {
+			systemdArgs = append(systemdArgs, "-p", fmt.Sprintf("MemoryLimit=%v", s.MemoryLimitInBytes))
+		} else {
+			systemdArgs = append(systemdArgs, "-p", fmt.Sprintf("MemoryMax=%v", s.MemoryLimitInBytes))
+		}
+
+		// now append the env variables (--setenv is supported in all versions, -E only in newer versions)
 		for _, v := range GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv) {
-			systemdArgs = append(systemdArgs, "-E", v)
+			systemdArgs = append(systemdArgs, "--setenv", v)
 		}
 		systemdArgs = append(systemdArgs, GetVMWatchBinaryFullPath(processDirectory))
 		systemdArgs = append(systemdArgs, args...)
 
+		// since systemd-run is in different paths on different distros, we will check for systemd but not use the full path
+		// to systemd-run.  This is how guest agent handles it also so seems appropriate.
 		cmd = exec.Command("systemd-run", systemdArgs...)
 	} else {
 		cmd = exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
@@ -353,6 +365,42 @@ func isSystemdAvailable() bool {
 	info, err := os.Stat("/run/systemd/system")
 	return err == nil && info.IsDir()
 }
+
+func getSystemdVersion() (int) {
+	cmd := exec.Command("systemd-run", "--version")
+
+	// Execute the command and capture the output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0
+	}
+
+	// Convert output bytes to string
+	outputStr := string(output)
+
+	// Find the version information in the output
+	return extractVersion(outputStr)
+}
+
+// Function to extract the version information from the output
+// returns the version or 0 if not found
+func extractVersion(output string) int {
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "systemd") {
+			parts := strings.Fields(line)
+			if len(parts) >= 2 {
+				ret, err := strconv.Atoi(parts[1])
+				if err == nil {
+					return ret
+				}
+				return 0
+			}
+		}
+	}
+	return 0
+}
+
 
 func createAndAssignCgroups(lg log.Logger, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
 	// get our process and use this to determine the appropriate mount points for the cgroups
