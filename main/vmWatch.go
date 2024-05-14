@@ -291,7 +291,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment
 		}
 
 		if s.SignalFilters.DisabledTags != nil && len(s.SignalFilters.DisabledTags) > 0 {
-			args = append(args, "--disabled-tas")
+			args = append(args, "--disabled-tags")
 			args = append(args, strings.Join(s.SignalFilters.DisabledTags, ":"))
 		}
 
