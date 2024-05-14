@@ -148,7 +148,9 @@ func executeVMWatchHelper(lg log.Logger, attempt int, vmWatchSettings *vmWatchSe
 		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid))
 	} else {
 		err = applyResourceGovernance(lg, vmWatchSettings, vmWatchCommand)
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	processDone := make(chan bool)
@@ -289,7 +291,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment
 		}
 
 		if s.SignalFilters.DisabledTags != nil && len(s.SignalFilters.DisabledTags) > 0 {
-			args = append(args, "--disabled-tags")
+			args = append(args, "--disabled-tas")
 			args = append(args, strings.Join(s.SignalFilters.DisabledTags, ":"))
 		}
 
