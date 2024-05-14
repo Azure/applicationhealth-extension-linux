@@ -117,7 +117,8 @@ func executeVMWatchHelper(lg log.Logger, attempt int, vmWatchSettings *vmWatchSe
 	}()
 
 	// Setup command
-	vmWatchCommand, resourceGovernanceRequired, err := setupVMWatchCommand(vmWatchSettings, hEnv)
+	var resourceGovernanceRequired bool
+	vmWatchCommand, resourceGovernanceRequired, err = setupVMWatchCommand(vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		sendTelemetry(lg, telemetry.EventLevelError, telemetry.SetupVMWatchTask, err.Error())
