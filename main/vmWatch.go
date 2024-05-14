@@ -148,9 +148,6 @@ func executeVMWatchHelper(lg log.Logger, attempt int, vmWatchSettings *vmWatchSe
 		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid))
 	} else {
 		err = applyResourceGovernance(lg, vmWatchSettings, vmWatchCommand)
-		if err != nil {
-			return err
-		}
 	}
 
 	processDone := make(chan bool)
