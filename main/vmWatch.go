@@ -149,6 +149,12 @@ func executeVMWatchHelper(lg log.Logger, attempt int, vmWatchSettings *vmWatchSe
 		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid))
 	} else {
 		err = applyResourceGovernance(lg, vmWatchSettings, vmWatchCommand)
+		if err != nil {
+			// if this has failed we have already killed the process as we failed to assign to cgroup so log the appropriate error
+			err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
+			sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, err.Error(), "error", err)
+			return err
+		}
 	}
 
 	processDone := make(chan bool)
