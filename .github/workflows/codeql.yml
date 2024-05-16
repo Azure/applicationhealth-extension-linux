@@ -70,8 +70,6 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        path: ${{ github.workspace }}
         
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -93,8 +91,8 @@ jobs:
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - if: matrix.build-mode == 'manual'
-      shell: bash
       run: |
+        go env
         make binary
 
     - name: Perform CodeQL Analysis
