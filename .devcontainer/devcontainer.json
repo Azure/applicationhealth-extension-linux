@@ -14,7 +14,8 @@
     ],
     "containerEnv": {
         "RUNNING_IN_DEV_CONTAINER": "1",
-        "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1"
+        "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1",
+        "DOCKER_DEFAULT_PLATFORM": "linux/amd64"
     },
 
     "customizations": {
