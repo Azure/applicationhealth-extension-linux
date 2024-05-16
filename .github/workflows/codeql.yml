@@ -33,6 +33,8 @@ jobs:
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ matrix.os }}
+    env:
+      GO111MODULE: on
 
     timeout-minutes: 360
     permissions:
