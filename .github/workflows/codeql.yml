@@ -33,6 +33,10 @@ jobs:
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ matrix.os }}
+
+    env:
+      GOPATH : ${{ github.workspace }}/../go
+
     timeout-minutes: 360
     permissions:
       # required for all workflows
@@ -64,12 +68,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22.2' 
-    - run: |
-        echo "GOPATH=${{ github.workspace }}/go" >> $GITHUB_ENV
-        echo "GO111MODULE=auto" >> $GITHUB_ENV
-        echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
-        go env
+        go-version: '1.22.2'
 
     - name: Checkout repository
       uses: actions/checkout@v4
