@@ -34,7 +34,8 @@ jobs:
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ matrix.os }}
     env:
-      GO111MODULE: on
+      GOPATH: ${{ github.workspace }}/go
+      repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     timeout-minutes: 360
     permissions:
@@ -72,6 +73,8 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        path: ${{ env.repo_root }}
         
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -96,6 +99,7 @@ jobs:
       run: |
         go env
         make binary
+      working-directory: ${{ env.repo_root }}
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
