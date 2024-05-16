@@ -21,7 +21,11 @@ done
 sleep 1
 bin="bin/applicationhealth-extension"
 while true; do
-    out="$(ps aux)"
+    # get running processes removing sh which is the entry command and has a bunch of commands in it
+    # this allows the statements below to work in native linux and on mac silicon where rosetta will
+    # show up so the format of ps aux changes a bit and more restrictive regexes don't find the data
+    # removing the entrypoint command allows the regexes to be less restrictive.
+    out="$(ps aux | grep -v sh)"
     if [ $waitonstatus == "y" ]; then
         log "waiting on successful status"
         if grep -q 'success' /var/lib/waagent/Extension/status/0.status; then
@@ -39,7 +43,7 @@ while true; do
         if [[ "$1" != "webserverexit" ]]; then
             log "'$bin' process exited"
             exit 0
-        elif [[ "$out" != **"0 webserver -args="** ]]; then
+        elif [[ "$out" != **"webserver -args="** ]]; then
             log "webserver exited"
             exit 0
         fi 
