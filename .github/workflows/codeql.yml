@@ -34,9 +34,6 @@ jobs:
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
     runs-on: ${{ matrix.os }}
 
-    env:
-      GOPATH : ${{ github.workspace }}/../go
-
     timeout-minutes: 360
     permissions:
       # required for all workflows
