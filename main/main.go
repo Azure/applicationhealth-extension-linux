@@ -74,8 +74,7 @@ func main() {
 	if cmd.pre != nil {
 		logger.Log("event", "pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
-			logger.Log("event", "pre-check failed", "error", err)
-			sendTelemetry(logger, telemetry.EventLevelError, telemetry.MainTask, fmt.Sprintf("pre-check failed with error %s", err))
+			sendTelemetry(logger, telemetry.EventLevelError, telemetry.MainTask, "pre-check failed", "error", err.Error())
 			os.Exit(cmd.failExitCode)
 		}
 	}
