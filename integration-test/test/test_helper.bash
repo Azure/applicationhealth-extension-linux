@@ -6,14 +6,6 @@ TEST_CONTAINER=test
 
 certs_dir="$BATS_TEST_DIRNAME/certs"
 
-_load_bats_libs() {
-    export BATS_LIB_PATH=${CUSTOM_BATS_LIB_PATH:-"/usr/lib:/usr/local/lib/node_modules"}
-    echo "BATS_LIB_PATH: $BATS_LIB_PATH"
-    bats_load_library bats-support
-    bats_load_library bats-assert
-}
-
-# This function builds a Docker image for testing purposes, if it already doesn't exist.
 # This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image_nocache() {
     # Check if the image already exists
@@ -223,7 +215,7 @@ verify_state_change_timestamps() {
 # second argument is an array of expected state log strings
 verify_states() {
     expectedStateLogs="$2"
-    regex='msg="(.*)"'
+    regex='event="(.*)"'
     index=0
     while IFS=$'\n' read -ra stateLogs; do
         for i in "${!stateLogs[@]}"; do

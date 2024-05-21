@@ -18,13 +18,17 @@ import (
 )
 
 type HealthStatus string
+type CustomMetricsStatus string
 
 const (
 	Initializing HealthStatus = "Initializing"
 	Healthy      HealthStatus = "Healthy"
 	Unhealthy    HealthStatus = "Unhealthy"
 	Unknown      HealthStatus = "Unknown"
-	Empty        HealthStatus = ""
+)
+
+const (
+	Empty string = ""
 )
 
 func (p HealthStatus) GetStatusType() status.StatusType {
