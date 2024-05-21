@@ -124,3 +124,8 @@ func (r StatusReport) Save(statusFolder string, seqNum int) error {
 	}
 	return nil
 }
+
+func (r StatusReport) String() string {
+	report, _ := json.MarshalIndent(r, "", "\t")
+	return string(report)
+}

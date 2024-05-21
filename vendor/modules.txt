@@ -1,7 +1,7 @@
 # github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d
 ## explicit
 github.com/Azure/azure-docker-extension/pkg/vmextension
-# github.com/Azure/azure-extension-platform v0.0.0-20240327184133-73b5b3b55955
+# github.com/Azure/azure-extension-platform v0.0.0-20240521173920-6b2acfda81e9
 ## explicit; go 1.21
 github.com/Azure/azure-extension-platform/pkg/extensionerrors
 github.com/Azure/azure-extension-platform/pkg/extensionevents

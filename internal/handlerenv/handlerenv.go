@@ -12,7 +12,7 @@ type HandlerEnvironment struct {
 }
 
 func (he *HandlerEnvironment) String() string {
-	env, _ := json.MarshalIndent(he, "", "    ")
+	env, _ := json.MarshalIndent(he, "", "\t")
 	return string(env)
 }
 
