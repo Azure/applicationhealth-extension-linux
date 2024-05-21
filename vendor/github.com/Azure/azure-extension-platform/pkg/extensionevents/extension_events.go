@@ -49,7 +49,7 @@ func (eem *ExtensionEventManager) logEvent(taskName string, eventLevel string, m
 	}
 
 	extensionVersion := os.Getenv("AZURE_GUEST_AGENT_EXTENSION_VERSION")
-	timestamp := time.Now().UTC().Format(time.RFC3339)
+	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
 	pid := fmt.Sprintf("%v", os.Getpid())
 	tid := getThreadID()
 
