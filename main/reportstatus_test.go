@@ -9,8 +9,16 @@ import (
 	"github.com/go-kit/log"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
 	"github.com/stretchr/testify/require"
 )
+
+func initTelemetry(he *handlerenv.HandlerEnvironment) {
+	eem = extensionevents.New(logging.NewNopLogger(), &he.HandlerEnvironment)
+	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
+}
 
 func Test_statusMsg(t *testing.T) {
 	require.Equal(t, "Enable succeeded", statusMsg(cmdEnable, StatusSuccess, ""))
@@ -27,6 +35,8 @@ func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := &handlerenv.HandlerEnvironment{}
 	fakeEnv.StatusFolder = "/non-existing/dir/"
 
+	initTelemetry(fakeEnv)
+
 	err := reportStatus(log.NewNopLogger(), fakeEnv, 1, StatusSuccess, cmdEnable, "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
@@ -39,6 +49,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 
 	fakeEnv := &handlerenv.HandlerEnvironment{}
 	fakeEnv.StatusFolder = tmpDir
+	initTelemetry(fakeEnv)
 
 	require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
 
@@ -56,6 +67,8 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 
 		fakeEnv := &handlerenv.HandlerEnvironment{}
 		fakeEnv.StatusFolder = tmpDir
+		initTelemetry(fakeEnv)
+
 		require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 2, StatusSuccess, c, ""))
 
 		fp := filepath.Join(tmpDir, "2.status")
