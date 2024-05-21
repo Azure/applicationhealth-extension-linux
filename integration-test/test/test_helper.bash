@@ -6,19 +6,19 @@ TEST_CONTAINER=test
 
 certs_dir="$BATS_TEST_DIRNAME/certs"
 
-_load_bats_libs() {
-    export BATS_LIB_PATH=${CUSTOM_BATS_LIB_PATH:-"/usr/lib:/usr/local/lib/node_modules"}
-    echo "BATS_LIB_PATH: $BATS_LIB_PATH"
-    bats_load_library bats-support
-    bats_load_library bats-assert
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
+build_docker_image_nocache() {
+    # Check if the image already exists
+    echo "Building test image $IMAGE..."
+    docker build --no-cache -q -f $DOCKERFILE -t $IMAGE . 1>&2
 }
 
 # This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image() {
     # Check if the image already exists
     if [ -z "$(docker images -q $IMAGE)" ]; then
-        echo "Building test image $IMAGE..."
-        docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+    echo "Building test image $IMAGE..."
+    docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
     else
         echo "Test image $IMAGE already exists. Skipping build."
     fi
@@ -108,7 +108,7 @@ container_read_handler_log() {
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail
-    mkdir -p "$certs_dir" && cd "$certs_dir" && rm -f "$certs_dir/*"
+    mkdir -p "$certs_dir" && rm -f "$certs_dir/*" && cd "$certs_dir"
     openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -batch &>/dev/null
     thumbprint=$(openssl x509 -in cert.pem -fingerprint -noout| sed 's/.*=//g' | sed 's/://g')
     mv cert.pem $thumbprint.crt && \
@@ -205,7 +205,7 @@ verify_state_change_timestamps() {
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
-        prevDate=$currentDate
+        prevDate=$currentDate     
         done
     done <<< "$1"
 }
@@ -272,4 +272,29 @@ get_extension_version() {
     # extract version from manifest.xml
     version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/manifest.xml)
     echo $version
+}
+# Accepted Kill Signals SIGINT SIGTERM
+kill_apphealth_extension_gracefully() {
+    # kill the applicationhealth extension gracefully
+    # echo "Printing the process list Before killing the applicationhealth extension"
+    ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
+    kill_signal=$1
+    [[ $kill_signal == "SIGINT" || $kill_signal == "SIGTERM" ]] || { echo "Invalid signal: $kill_signal"; return 1; }
+    app_health_pid=$(ps -ef | grep "applicationhealth-extension" | grep -v grep | grep -v tee | awk '{print $2}')
+    if [ -z "$app_health_pid" ]; then
+        echo "Applicationhealth extension is not running"
+        return 0
+    fi
+    # echo "Killing applicationhealth extension with signal: $kill_signal"
+    # echo "PID: $app_health_pid"
+    kill -s $kill_signal $app_health_pid
+    # echo "Printing the process list after killing the applicationhealth extension"
+    ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
+}
+
+_load_bats_libs() {
+    export BATS_LIB_PATH=${CUSTOM_BATS_LIB_PATH:-"/usr/lib:/usr/local/lib/node_modules"}
+    echo "BATS_LIB_PATH: $BATS_LIB_PATH"
+    bats_load_library bats-support
+    bats_load_library bats-assert
 }

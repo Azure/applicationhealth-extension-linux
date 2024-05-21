@@ -22,6 +22,11 @@ type HandlerSettings struct {
 	protectedSettings
 }
 
+func (s HandlerSettings) String() string {
+	settings, _ := json.MarshalIndent(s, "", "    ")
+	return string(settings)
+}
+
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 //   - AppHealthPluginSettings holds the configuration of the AppHealth plugin

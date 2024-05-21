@@ -1,5 +1,7 @@
 package vmwatch
 
+import "encoding/json"
+
 // VMWatchPluginSettings holds the configuration of VMWatch plugin, It will belong as an embedded field in the publicSettings struct.
 // Which will be deserialized from public configuration section of the extension handler.
 // This should be in sync with publicSettingsSchema from platform/schema/schema.go.
@@ -24,6 +26,11 @@ type VMWatchSettings struct {
 	EnvironmentAttributes map[string]interface{} `json:"environmentAttributes,object"`
 	GlobalConfigUrl       string                 `json:"globalConfigUrl"`
 	DisableConfigReader   bool                   `json:"disableConfigReader,boolean"`
+}
+
+func (v *VMWatchSettings) String() string {
+	setting, _ := json.MarshalIndent(v, "", "    ")
+	return string(setting)
 }
 
 func (s *VMWatchPluginSettings) GetVMWatchSettings() *VMWatchSettings {

@@ -2,6 +2,7 @@
 
 setup(){
     load "../test_helper"
+    build_docker_image
     container_name="rich-states_$BATS_TEST_NUMBER"
 }
 

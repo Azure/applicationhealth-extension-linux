@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
 	"strings"
@@ -39,12 +38,6 @@ func newOSCommandHandler() (CommandHandler, error) {
 	}, nil
 }
 
-var (
-	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
-	// when a shutdown signal is received
-	vmWatchCommand *exec.Cmd
-)
-
 func (ch *LinuxCommandHandler) CommandMap() CommandMap {
 	return ch.commands
 }
@@ -68,7 +61,7 @@ func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnviro
 		<-sigs
 		lg.Info("Received shutdown request")
 		global.Shutdown = true
-		err := vmwatch.KillVMWatch(lg, vmWatchCommand)
+		err := vmwatch.KillVMWatch(lg, vmwatch.VMWatchCommand)
 		if err != nil {
 			lg.Error("error when killing vmwatch", slog.Any("error", err))
 		}
@@ -133,29 +126,34 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 
 	probe := apphealth.NewHealthProbe(lg, &cfg.AppHealthPluginSettings)
 	var (
-		intervalBetweenProbesInMs = time.Duration(cfg.GetIntervalInSeconds()) * time.Millisecond * 1000
-		numberOfProbes            = cfg.GetNumberOfProbes()
-		gracePeriodInSeconds      = time.Duration(cfg.GetGracePeriod()) * time.Second
-		numConsecutiveProbes      = 0
-		prevState                 = apphealth.Empty
-		committedState            = apphealth.Empty
-		honorGracePeriod          = gracePeriodInSeconds > 0
-		gracePeriodStartTime      = time.Now()
-		vmWatchSettings           = cfg.GetVMWatchSettings()
-		vmWatchResult             = vmwatch.VMWatchResult{Status: vmwatch.Disabled, Error: nil}
-		vmWatchResultChannel      = make(chan vmwatch.VMWatchResult)
-		timeOfLastVMWatchLog      = time.Time{}
+		intervalBetweenProbesInMs  = time.Duration(cfg.GetIntervalInSeconds()) * time.Millisecond * 1000
+		numberOfProbes             = cfg.GetNumberOfProbes()
+		gracePeriodInSeconds       = time.Duration(cfg.GetGracePeriod()) * time.Second
+		numConsecutiveProbes       = 0
+		prevState                  = apphealth.HealthStatus(apphealth.Empty)
+		committedState             = apphealth.HealthStatus(apphealth.Empty)
+		commitedCustomMetricsState = apphealth.CustomMetricsStatus(apphealth.Empty)
+		honorGracePeriod           = gracePeriodInSeconds > 0
+		gracePeriodStartTime       = time.Now()
+		vmWatchSettings            = cfg.GetVMWatchSettings()
+		vmWatchResult              = vmwatch.VMWatchResult{Status: vmwatch.Disabled, Error: nil}
+		vmWatchResultChannel       = make(chan vmwatch.VMWatchResult)
+		timeOfLastVMWatchLog       = time.Time{}
 	)
 
 	if !honorGracePeriod {
 		lg.Info("Grace period not set")
+		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Grace period not set")
 	} else {
 		lg.Info(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
+		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
 	lg.Info(fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
+	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
 		lg.Info("VMWatch is disabled, not starting process.")
+		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "VMWatch is disabled, not starting process.")
 	} else {
 		vmWatchResult = vmwatch.VMWatchResult{Status: vmwatch.NotRunning, Error: nil}
 		go vmwatch.ExecuteVMWatch(lg, vmWatchSettings, h, vmWatchResultChannel)
@@ -175,11 +173,15 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 		startTime := time.Now()
 		probeResponse, err := probe.Evaluate(lg)
 		state := probeResponse.ApplicationHealthState
+		customMetrics := probeResponse.CustomMetrics
 		if err != nil {
 			lg.Error("Error occurred during probe evaluation", slog.Any("error", err))
+			// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask,
+			// fmt.Sprintf("Error evaluating health probe: %v", err), "error", err)
 		}
 
 		if global.Shutdown {
+			// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Shutting down AppHealth Extension Gracefully")
 			return "", errTerminated
 		}
 
@@ -193,13 +195,19 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 				vmWatchResult = vmwatch.VMWatchResult{Status: vmwatch.Failed, Error: errors.New("VMWatch channel has closed, unknown error")}
 			} else if result.Status == vmwatch.Running {
 				lg.Info("VMWatch is running")
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportHeatBeatTask, "VMWatch is running")
 			} else if result.Status == vmwatch.Failed {
 				lg.Error("VMWatch failed", slog.String("error", vmWatchResult.GetMessage()))
+				// sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportHeatBeatTask, vmWatchResult.GetMessage())
+			} else if result.Status == vmwatch.NotRunning {
+				lg.Info("VMWatch is not running")
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportHeatBeatTask, "VMWatch is not running")
 			}
 		default:
 			if vmWatchResult.Status == vmwatch.Running && time.Since(timeOfLastVMWatchLog) >= 60*time.Second {
 				timeOfLastVMWatchLog = time.Now()
 				lg.Info("VMWatch is running")
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportHeatBeatTask, "VMWatch is running")
 			}
 		}
 
@@ -209,6 +217,7 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 			// Log stage changes and also reset consecutive count to 1 as a new state was observed
 		} else {
 			lg.Info("Health state changed to " + strings.ToLower(string(state)))
+			// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Health state changed to %s", strings.ToLower(string(state))))
 			numConsecutiveProbes = 1
 			prevState = state
 		}
@@ -218,26 +227,30 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 			// If grace period expires, application didn't initialize on time
 			if timeElapsed >= gracePeriodInSeconds {
 				lg.Info(fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				state = probe.HealthStatusAfterGracePeriodExpires()
 				prevState = probe.HealthStatusAfterGracePeriodExpires()
 				numConsecutiveProbes = 1
-				committedState = apphealth.Empty
+				committedState = apphealth.HealthStatus(apphealth.Empty)
 				// If grace period has not expired, check if we have consecutive valid probes
 			} else if (numConsecutiveProbes == numberOfProbes) && (state != probe.HealthStatusAfterGracePeriodExpires()) {
 				lg.Info(fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("No longer honoring grace period - successful probes. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
 				// Application will be in Initializing state since we have not received consecutive valid health states
 			} else {
 				lg.Info(fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Honoring grace period. Time elapsed = %v", timeElapsed))
 				state = apphealth.Initializing
 			}
 		}
 
-		if (numConsecutiveProbes == numberOfProbes) || (committedState == apphealth.Empty) {
+		if (numConsecutiveProbes == numberOfProbes) || (committedState == apphealth.HealthStatus(apphealth.Empty)) {
 			if state != committedState {
 				committedState = state
 				lg.Info(fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Committed health state is %s", strings.ToLower(string(committedState))))
 			}
 			// Only reset if we've observed consecutive probes in order to preserve previous observations when handling grace period
 			if numConsecutiveProbes == numberOfProbes {
@@ -253,12 +266,19 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 			status.NewSubstatus(apphealth.SubstatusKeyNameApplicationHealthState, committedState.GetStatusType(), string(committedState)),
 		}
 
-		if probeResponse.CustomMetrics != "" {
+		if customMetrics != "" {
 			customMetricsStatusType := status.StatusError
 			if probeResponse.ValidateCustomMetrics() == nil {
 				customMetricsStatusType = status.StatusSuccess
 			}
-			substatuses = append(substatuses, status.NewSubstatus(apphealth.SubstatusKeyNameCustomMetrics, customMetricsStatusType, probeResponse.CustomMetrics))
+			substatuses = append(substatuses, status.NewSubstatus(apphealth.SubstatusKeyNameCustomMetrics, customMetricsStatusType, customMetrics))
+
+			if commitedCustomMetricsState != apphealth.CustomMetricsStatus(customMetrics) {
+				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask,
+				// 	fmt.Sprintf("Reporting CustomMetric Substatus with status: %s , message: %s", customMetricsStatusType, customMetrics))
+				lg.Info(fmt.Sprintf("Reporting CustomMetric Substatus with status: %s , message: %s", customMetricsStatusType, customMetrics))
+				commitedCustomMetricsState = apphealth.CustomMetricsStatus(customMetrics)
+			}
 		}
 
 		// VMWatch substatus should only be displayed when settings are present

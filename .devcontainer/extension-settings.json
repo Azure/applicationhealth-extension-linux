@@ -5,11 +5,11 @@
                 "protectedSettingsCertThumbprint": "$cert_tp",
                 "publicSettings": {
                     "protocol": "http",
-                    "requestPath": "health",
+                    "requestPath": "/health",
                     "port": 8080,
                     "numberOfProbes": 1,
                     "intervalInSeconds": 5,
-                    "gracePeriod": 600,
+                    "gracePeriod": 10,
                     "vmWatchSettings": {
                         "enabled": true,
                         "signalFilters": {

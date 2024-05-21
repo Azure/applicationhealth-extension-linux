@@ -16,6 +16,10 @@ var (
 	logger, err = logging.NewExtensionLogger(nil)
 	// Exit helper
 	exiter = exithelper.Exiter
+
+	// eem *extensionevents.ExtensionEventManager
+
+	// sendTelemetry telemetry.LogEventFunc
 )
 
 func main() {
