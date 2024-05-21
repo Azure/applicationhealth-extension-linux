@@ -28,7 +28,7 @@ type handlerSettings struct {
 }
 
 func (s handlerSettings) String() string {
-	settings, _ := json.MarshalIndent(s, "", "    ")
+	settings, _ := json.MarshalIndent(s, "", "\t")
 	return string(settings)
 }
 
@@ -113,7 +113,7 @@ type vmWatchSettings struct {
 }
 
 func (v *vmWatchSettings) String() string {
-	setting, _ := json.MarshalIndent(v, "", "    ")
+	setting, _ := json.MarshalIndent(v, "", "\t")
 	return string(setting)
 }
 

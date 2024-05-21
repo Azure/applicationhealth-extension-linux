@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/go-kit/log"
@@ -19,9 +21,11 @@ func reportStatus(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int
 	}
 	s := NewStatus(t, c.name, statusMsg(c, t, msg))
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		lg.Log("event", "failed to save handler status", "error", err)
+		sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportStatusTask, "failed to save handler status", "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask, fmt.Sprintf("saved handler status: %s", s))
+
 	return nil
 }
 
@@ -31,7 +35,7 @@ func reportStatusWithSubstatuses(lg log.Logger, hEnv *handlerenv.HandlerEnvironm
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask, "failed to save handler status", "error", err.Error())
+		sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportStatusTask, fmt.Sprintf("failed to save handler status: %s", s), "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil

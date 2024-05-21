@@ -36,6 +36,7 @@ func main() {
 
 	logger = log.With(logger, "time", log.DefaultTimestamp)
 	logger = log.With(logger, "version", VersionString())
+	logger = log.With(logger, "pid", os.Getpid())
 
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
@@ -68,12 +69,13 @@ func main() {
 	eem = extensionevents.New(logging.NewNopLogger(), &hEnv.HandlerEnvironment)
 	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
 	// check sub-command preconditions, if any, before executing
-	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s", GetExtensionVersion()))
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
 	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("HandlerEnviroment = %s", hEnv))
 	if cmd.pre != nil {
 		logger.Log("event", "pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
 			logger.Log("event", "pre-check failed", "error", err)
+			sendTelemetry(logger, telemetry.EventLevelError, telemetry.MainTask, fmt.Sprintf("pre-check failed with error %s", err))
 			os.Exit(cmd.failExitCode)
 		}
 	}
@@ -86,7 +88,7 @@ func main() {
 		os.Exit(cmd.failExitCode)
 	}
 	reportStatus(logger, hEnv, seqNum, StatusSuccess, cmd, msg)
-	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s", GetExtensionVersion()))
+	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,
