@@ -18,7 +18,7 @@ teardown(){
     run start_container
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" = *'event="Handler successfully installed"'* ]]
+    [[ "$output" = *'msg=installed'* ]]
 
     diff="$(container_diff)"
     echo "$diff"

@@ -4,6 +4,7 @@
             "handlerSettings": {
                 "protectedSettingsCertThumbprint": "$cert_tp",
                 "publicSettings": {
+                    "protocol": "http",
                     "requestPath": "/health",
                     "port": 8080,
                     "numberOfProbes": 1,

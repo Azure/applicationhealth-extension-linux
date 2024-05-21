@@ -3,6 +3,7 @@
 github.com/Azure/azure-docker-extension/pkg/vmextension
 # github.com/Azure/azure-extension-platform v0.0.0-20240327184133-73b5b3b55955
 ## explicit; go 1.21
+github.com/Azure/azure-extension-platform/pkg/exithelper
 github.com/Azure/azure-extension-platform/pkg/extensionerrors
 github.com/Azure/azure-extension-platform/pkg/extensionevents
 github.com/Azure/azure-extension-platform/pkg/handlerenv
@@ -42,8 +43,6 @@ github.com/go-logfmt/logfmt
 # github.com/godbus/dbus/v5 v5.0.4
 ## explicit; go 1.12
 github.com/godbus/dbus/v5
-# github.com/google/go-cmp v0.5.8
-## explicit; go 1.13
 # github.com/opencontainers/runtime-spec v1.0.2
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
@@ -53,6 +52,15 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
+# github.com/samber/lo v1.38.1
+## explicit; go 1.18
+github.com/samber/lo
+# github.com/samber/slog-formatter v1.0.0
+## explicit; go 1.21
+github.com/samber/slog-formatter
+# github.com/samber/slog-multi v1.0.0
+## explicit; go 1.21
+github.com/samber/slog-multi
 # github.com/sirupsen/logrus v1.9.0
 ## explicit; go 1.13
 github.com/sirupsen/logrus
@@ -69,6 +77,9 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v0.0.0-20160623135812-c539bca196be
 ## explicit
 github.com/xeipuuv/gojsonschema
+# golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
+## explicit; go 1.20
+golang.org/x/exp/constraints
 # golang.org/x/sys v0.2.0
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader

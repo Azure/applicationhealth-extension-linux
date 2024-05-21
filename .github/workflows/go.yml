@@ -24,6 +24,7 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
+
     - name: Apt-Get Update
       run: sudo apt-get update
       
@@ -48,7 +49,7 @@ jobs:
       with:
         path: ${{ env.repo_root }}
 
-    - name: Install Bats
+    - name: Install Bats via NPM
       run: |
         sudo apt install npm
         sudo npm install -g bats

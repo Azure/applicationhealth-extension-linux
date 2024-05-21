@@ -17,7 +17,6 @@
         "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1",
         "DOCKER_DEFAULT_PLATFORM": "linux/amd64"
     },
-
     "customizations": {
         "vscode": {
             // Set *default* container specific settings.json values on container create.
