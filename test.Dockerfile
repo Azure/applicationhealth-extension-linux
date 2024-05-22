@@ -28,3 +28,6 @@ COPY misc/HandlerManifest.json ./Extension/
 COPY misc/manifest.xml ./Extension/
 COPY misc/applicationhealth-shim ./Extension/bin/
 COPY bin/applicationhealth-extension ./Extension/bin/
+
+# Copy Helper functions and scripts
+COPY integration-test/test/test_helper.bash /var/lib/waagent
