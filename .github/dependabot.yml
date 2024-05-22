@@ -1,0 +1,28 @@
+
+version: 2
+updates:
+  - package-ecosystem: "gomod" # for Go modules
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "feature/*"
+
+  - package-ecosystem: "bundler" # for Go modules
+    directory: "/vendor/"
+    vendor: true
+    schedule:
+      interval: "daily"
+    target-branch: "feature/*"
+
+  - package-ecosystem: "github-actions"
+    directory: ".github/workflows"
+    schedule:
+      interval: "daily"
+
+    # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    # Look for a `Dockerfile` in the `root` directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
