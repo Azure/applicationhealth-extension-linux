@@ -17,8 +17,8 @@ build_docker_image_nocache() {
 build_docker_image() {
     # Check if the image already exists
     if [ -z "$(docker images -q $IMAGE)" ]; then
-    echo "Building test image $IMAGE..."
-    docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+        echo "Building test image $IMAGE..."
+        docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
     else
         echo "Test image $IMAGE already exists. Skipping build."
     fi
@@ -205,7 +205,7 @@ verify_state_change_timestamps() {
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
-        prevDate=$currentDate     
+        prevDate=$currentDate
         done
     done <<< "$1"
 }
@@ -215,7 +215,7 @@ verify_state_change_timestamps() {
 # second argument is an array of expected state log strings
 verify_states() {
     expectedStateLogs="$2"
-    regex='event="(.*)"'
+    regex='msg="(.*)"'
     index=0
     while IFS=$'\n' read -ra stateLogs; do
         for i in "${!stateLogs[@]}"; do
