@@ -29,9 +29,9 @@ jobs:
       run: sudo apt-get update
       
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.21.7'
+        go-version: '1.22.2'
 
     - name: Setup Go Environment 
       run: |
@@ -67,7 +67,6 @@ jobs:
       run: |
         bats --version
         sudo bats --version
-
 
     - name: Install Parallel
       run: |

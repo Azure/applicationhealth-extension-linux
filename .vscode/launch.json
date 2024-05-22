@@ -29,6 +29,25 @@
             "preLaunchTask": "make devcontainer"
         },
         {
+            "name": "Run integration tests",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "./integration-test/run.sh",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "make binary"
+        },
+        {
+            "name": "devcontainer run - enable NOBUILD",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "program": "/var/lib/waagent/Extension/bin/applicationhealth-extension",
+            "cwd": "${workspaceFolder}",
+            "args" : [
+                "enable"
+            ]
+        },
+        {
             "name": "devcontainer run - uninstall",
             "type": "go",
             "request": "launch",
@@ -39,14 +58,6 @@
                 "uninstall"
             ],
             "preLaunchTask": "make devcontainer"
-        },
-        {
-            "name": "Run integration tests",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "./integration-test/run.sh",
-            "cwd": "${workspaceFolder}",
-            "preLaunchTask": "make binary"
         }
     ]
 }
