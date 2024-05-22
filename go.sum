@@ -1,7 +1,7 @@
 github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d h1:IZq7wAvhHb/IObHOh8RHClV2zv4dHh5MrHdRWTTIwe0=
 github.com/Azure/azure-docker-extension v0.0.0-20160802215703-0dd2f199467d/go.mod h1:tVA4DYQYxotjw+EkJhfywtM99w7nAOatBvgNAkpsBvk=
-github.com/Azure/azure-extension-platform v0.0.0-20240308223811-e14387603600 h1:Jk5PivwiQGiZVl/yV7sgfO0rwagW1dftxuGDOspXwEo=
-github.com/Azure/azure-extension-platform v0.0.0-20240308223811-e14387603600/go.mod h1:1hEkO8M1zN/SQpdFOTDDMTNfeE1Q2tCHmEXXiHrWTgo=
+github.com/Azure/azure-extension-platform v0.0.0-20240327184133-73b5b3b55955 h1:klRZMtNE2mFdG8mO3+Ep7Armk1oewdw/7Z4nANDiGgk=
+github.com/Azure/azure-extension-platform v0.0.0-20240327184133-73b5b3b55955/go.mod h1:nEQQIC3RKmMnpdc+RakYHIdu556jdcHv67ML8PdsQeQ=
 github.com/cilium/ebpf v0.9.1 h1:64sn2K3UKw8NbP/blsixRpF3nXuyhz/VjRlRzvlBRu4=
 github.com/cilium/ebpf v0.9.1/go.mod h1:+OhNOIXx/Fnu1IE8bJz2dzOA+VSfyTfdNUVdlQnxUFY=
 github.com/containerd/cgroups/v3 v3.0.2 h1:f5WFqIVSgo5IZmtTT3qVBo6TzI1ON6sycSBKkymb9L0=
@@ -15,6 +15,10 @@ github.com/docker/go-units v0.4.0 h1:3uh0PgVws3nIA0Q+MwDC8yjEPf9zjRfZZWXZYDct3Tw
 github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/frankban/quicktest v1.14.0 h1:+cqqvzZV87b4adx/5ayVOaYZ2CrvM4ejQvUdBzPPUss=
 github.com/frankban/quicktest v1.14.0/go.mod h1:NeW+ay9A/U67EYXNFA1nPE8e/tnQv/09mUdL/ijj8og=
+github.com/go-kit/log v0.2.0 h1:7i2K3eKTos3Vc0enKCfnVcgHh2olr/MyfboYq7cAcFw=
+github.com/go-kit/log v0.2.0/go.mod h1:NwTd00d/i8cPZ3xOwwiv2PO5MOcx78fFErGNcVmBjv0=
+github.com/go-logfmt/logfmt v0.5.1 h1:otpy5pqBCBZ1ng9RQ0dPu4PN7ba75Y/aA+UpowDyNVA=
+github.com/go-logfmt/logfmt v0.5.1/go.mod h1:WYhtIu8zTZfxdn5+rREduYbwxfcBr/Vr6KEVveWlfTs=
 github.com/godbus/dbus/v5 v5.0.4 h1:9349emZab16e7zQvpmsbtjc18ykshndd8y2PG3sgJbA=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=

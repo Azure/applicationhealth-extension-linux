@@ -10,7 +10,7 @@ setup() {
 }
 
 @test "meta: can build the test container image" {
-    run build_docker_image
+    run build_docker_image_nocache
     echo "$output"
     [ "$status" -eq 0 ]
 }

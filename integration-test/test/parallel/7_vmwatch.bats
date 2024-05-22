@@ -95,7 +95,7 @@ teardown(){
 
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *"--apphealth-version $extension_version"* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
@@ -130,7 +130,7 @@ teardown(){
 
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
     [[ "$output" == *"--apphealth-version $extension_version"* ]]
@@ -176,7 +176,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
     [[ "$output" == *"--apphealth-version $extension_version"* ]]
@@ -229,7 +229,7 @@ teardown(){
     verify_states "$enableLog" "${expectedStateLogs[@]}"
 
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals outbound_connectivity:disk_io'* ]]
     [[ "$output" == *'--enabled-tags Network'* ]]
@@ -270,8 +270,8 @@ teardown(){
     echo "$output"
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Attempt 1: VMWatch process started'* ]]
-    [[ "$output" == *'Attempt 3: VMWatch process started'* ]]
+    [[ "$output" == *'Attempt 1: Started VMWatch'* ]]
+    [[ "$output" == *'Attempt 3: Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
@@ -313,8 +313,8 @@ teardown(){
     echo "$output"
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Attempt 1: VMWatch process started'* ]]
-    [[ "$output" == *'Attempt 3: VMWatch process started'* ]]
+    [[ "$output" == *'Attempt 1: Started VMWatch'* ]]
+    [[ "$output" == *'Attempt 3: Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
@@ -351,12 +351,12 @@ teardown(){
     echo "$output"
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Killing VMWatch process as cgroup assigment failed'* ]]
+    [[ "$output" == *'Killing VMWatch process as cgroup assignment failed'* ]]
     [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
-    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Failed to assign VMWatch process to cgroup.*"
+    verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* VMWatch process exited. Error:.* Failed to assign VMWatch process to cgroup.**"
 }
 
 @test "handler command: enable/disable - vm watch killed when disable is called" {
@@ -377,7 +377,7 @@ teardown(){
 
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim disable'* ]]
@@ -405,13 +405,13 @@ teardown(){
 
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
     any_regex_pattern="[[:digit:]|[:space:]|[:alpha:]|[:punct:]]"
-    assert_line --regexp "msg=uninstalled ${any_regex_pattern}* operation=uninstall seq=0 path=/var/lib/waagent/apphealth"
+     assert_line --regexp "msg=uninstalled ${any_regex_pattern}* operation=uninstall seq=0 path=/var/lib/waagent/apphealth"
 }
 
 @test "handler command: enable - Graceful Shutdown - vm watch killed when Apphealth is killed gracefully with SIGTERM" {
@@ -431,7 +431,7 @@ teardown(){
     run start_container
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'msg="Received shutdown request"'* ]]
@@ -456,7 +456,7 @@ teardown(){
     run start_container
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$output" == *'msg="Received shutdown request"'* ]]
@@ -484,7 +484,7 @@ teardown(){
     shutdown_log="$(container_read_file /var/log/azure/Extension/force-kill-extension.txt)"
     echo "$shutdown_log"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     [[ "$shutdown_log" == *'Successfully killed the apphealth extension'* ]]
@@ -510,7 +510,7 @@ teardown(){
 
     echo "$output"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'VMWatch process started'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'--memory-limit-bytes 40000000'* ]]
 }
@@ -547,8 +547,8 @@ teardown(){
     echo "$output"
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Attempt 1: VMWatch process started'* ]]
-    [[ "$output" == *'Attempt 3: VMWatch process started'* ]]
+    [[ "$output" == *'Attempt 1: Started VMWatch'* ]]
+    [[ "$output" == *'Attempt 3: Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
@@ -595,7 +595,7 @@ teardown(){
     
     [[ "$avg_cpu" == *'PASS'* ]]
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Attempt 1: VMWatch process started'* ]]
+    [[ "$output" == *'Attempt 1: Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
@@ -638,7 +638,7 @@ teardown(){
     
     [[ "$avg_cpu" == *'PASS'* ]]
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
-    [[ "$output" == *'Attempt 1: VMWatch process started'* ]]
+    [[ "$output" == *'Attempt 1: Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"

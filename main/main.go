@@ -30,16 +30,16 @@ func main() {
 	}
 	logger.With("version", v)
 
-	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
-	if err != nil {
-		logger.Error("failed to parse command", slog.Any("error", err))
-		exiter.Exit(exithelper.ArgumentError)
-	}
-
 	hEnv, err := handlerenv.GetHandlerEnviroment() // parse handler environment
 	if err != nil {
 		logger.Error("failed to parse Handler Enviroment", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
+	}
+
+	cmdKey, err := cmdhandler.ParseCmd() // parse command line arguments
+	if err != nil {
+		logger.Error("failed to parse command", slog.Any("error", err))
+		exiter.Exit(exithelper.ArgumentError)
 	}
 
 	seqNum, err := seqnum.FindSeqNum(hEnv.ConfigFolder) // find sequence number
@@ -51,12 +51,6 @@ func main() {
 	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
 		logger.Error("failed to create command handler", slog.Any("error", err))
-		exiter.Exit(exithelper.EnvironmentError)
-	}
-
-	logger, err = logging.NewExtensionLogger(hEnv) // create a new logger
-	if err != nil {
-		logger.Error("failed to create logger", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 

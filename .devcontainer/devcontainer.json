@@ -14,7 +14,8 @@
     ],
     "containerEnv": {
         "RUNNING_IN_DEV_CONTAINER": "1",
-        "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1"
+        "ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE": "1",
+        "DOCKER_DEFAULT_PLATFORM": "linux/amd64"
     },
     "customizations": {
         "vscode": {
@@ -34,10 +35,11 @@
     },
     "remoteUser": "root",
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postCreateCommand": "go mod download",
-    "mounts": [
+    "postCreateCommand": "go mod download && echo hello",
+    "mounts": [ 
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" 
     ]
+
     // // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [5000, 5001],B
     // [Optional] To reuse of your local HTTPS dev cert:

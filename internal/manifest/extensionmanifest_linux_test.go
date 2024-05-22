@@ -15,7 +15,7 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 	originalGetDir := getDir
 	defer func() { getDir = originalGetDir }()
 
-	currVersion := "2.0.8"
+	currVersion := "2.0.10"
 	expectedManifest := ExtensionManifest{
 		ProviderNameSpace:   "Microsoft.ManagedServices",
 		Type:                "ApplicationHealthLinux",
