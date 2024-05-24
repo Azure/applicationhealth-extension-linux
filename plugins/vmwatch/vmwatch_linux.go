@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,21 +20,26 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-func setupVMWatch(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, *bytes.Buffer, error) {
+func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, *bytes.Buffer, error) {
 	// Setup command
-	cmd, err := setupVMWatchCommand(vmWatchSettings, hEnv)
+	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		lg.Error("VMWatch setup failed", slog.Any("error", err))
-		return nil, nil, err
+		// sendTelemetry(lg, telemetry.EventLevelError, telemetry.SetupVMWatchTask, err.Error())
+		return nil, false, nil, err
 	}
 	lg.Info(fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", attempt, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
+	// 	fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n",
+	// 		attempt, vmWatchCommand.Path, vmWatchCommand.Args, vmWatchCommand.Dir, vmWatchCommand.Env),
 	// TODO: Combined output may get excessively long, especially since VMWatch is a long running process
 	// We should trim the output or only get from Stderr
 	combinedOutput := &bytes.Buffer{}
 	cmd.Stdout = combinedOutput
 	cmd.Stderr = combinedOutput
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGTERM}
+	return cmd, resourceGovernanceRequired, combinedOutput, nil
+}
 
 func createCommandForOS(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
 	var (
@@ -76,16 +83,47 @@ func createCommandForOS(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment,
 	resourceGovernanceRequired = false
 	return cmd, resourceGovernanceRequired
 }
+
+// Sets resource governance for VMWatch process, on linux, this is only to be used in the case where systemd-run is not available
+func applyResourceGovernance(lg logging.Logger, vmWatchSettings *VMWatchSettings, vmWatchCommand *exec.Cmd) error {
+	// The default way to run vmwatch is via systemd-run.  There are some cases where system-run is not available
+	// (in a container or in a distro without systemd).  In those cases we will manage the cgroups directly
+	pid := vmWatchCommand.Process.Pid
+	lg.Info(fmt.Sprintf("Applying resource governance to PID %d", pid))
+	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Applying resource governance to PID %d", pid))
+	err := createAndAssignCgroups(lg, vmWatchSettings, pid)
+	if err != nil {
+		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
+		lg.Error("Failed to assign VMWatch process to cgroup", slog.Any("error", err))
+		// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, err.Error(), "error", err)
+		// On real VMs we want this to stop vwmwatch from running at all since we want to make sure we are protected
+		// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
+		// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
+		// work at all because the base OS doesn't support it)).
+		// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
+		// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
+		// this allows us to test both cases
+		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
+			lg.Info("Killing VMWatch process as cgroup assignment failed")
+			_ = KillVMWatch(lg, vmWatchCommand)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *VMWatchSettings, vmWatchPid int) error {
 	// get our process and use this to determine the appropriate mount points for the cgroups
 	myPid := os.Getpid()
 	memoryLimitInBytes := int64(vmwatchSettings.MemoryLimitInBytes)
+	lg.Info(fmt.Sprintf("Assigning VMWatch process with PID %d to cgroup", vmWatchPid))
+	// sendTelemetry(lg, telemetry.EventLsevelInfo, telemetry.StartVMWatchTask, "Assigning VMWatch process to cgroup")
 
 	// check cgroups mode
 	if cgroups.Mode() == cgroups.Unified {
 		lg.Info("cgroups v2 detected")
+		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "cgroups v2 detected")
 		// in cgroup v2, we need to set the period and quota relative to one another.
 		// Quota is the number of microseconds in the period that process can run
 		// Period is the length of the period in microseconds
@@ -112,6 +150,7 @@ func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *VMWatchSettings,
 		}
 	} else {
 		lg.Info("cgroups v1 detected")
+		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "cgroups v1 detected")
 		p := cgroup1.PidPath(myPid)
 
 		cpuPath, err := p("cpu")

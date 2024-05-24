@@ -112,17 +112,21 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 }
 
 func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (err error) {
-	pid := -1
+	var (
+		pid                                      = -1
+		combinedOutput             *bytes.Buffer = nil
+		resourceGovernanceRequired               = false
+	)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("error: %w\n Additonal Details: %+v", err, r)
 			lg.Error(fmt.Sprintf("VMWatch failed: Recovered %+v", r), slog.Any("error", err))
+			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, fmt.Sprintf("Recovered %+v", r))
 		}
 	}()
 
 	// Setup command
-	var combinedOutput *bytes.Buffer = nil
-	VMWatchCommand, combinedOutput, err = setupVMWatch(lg, attempt, vmWatchSettings, hEnv)
+	VMWatchCommand, resourceGovernanceRequired, combinedOutput, err = configureVMWatchProcess(lg, attempt, vmWatchSettings, hEnv)
 	if err != nil {
 		return err
 	}
@@ -131,25 +135,23 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	if err := VMWatchCommand.Start(); err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch failed to start. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), attempt, err, combinedOutput.String())
 		lg.Error("VMWatch failed to start", slog.Any("error", err))
+		// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, err.Error(), "error", err)
 		return err
 	}
 	pid = VMWatchCommand.Process.Pid // cmd.Process should be populated on success
-	lg.Info(fmt.Sprintf("Attempt %d: VMWatch process started with pid %d", attempt, pid))
+	lg.Info(fmt.Sprintf("Attempt %d: Started VMWatch with PID %d", attempt, pid))
+	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Attempt %d: Started VMWatch with PID %d", attempt, pid))
 
-	err = createAndAssignCgroups(lg, vmWatchSettings, pid)
-	if err != nil {
-		err = fmt.Errorf("[%v][PID %d] Failed to assign VMWatch process to cgroup. Error: %w", time.Now().UTC().Format(time.RFC3339), pid, err)
-		lg.Error("Failed to assign VMWatch process to cgroup", slog.Any("error", err))
-		// On real VMs we want this to stop vwmwatch from runing at all since we want to make sure we are protected
-		// by resource governance but on dev machines, we may fail due to limitations of execution environment (ie on dev container
-		// or in a github pipeline container we don't have permission to assign cgroups (also on WSL environments it doesn't
-		// work at all because the base OS doesn't support it).
-		// to allow us to run integration tests we will check the variables RUNING_IN_DEV_CONTAINER and
-		// ALLOW_VMWATCH_GROUP_ASSIGNMENT_FAILURE and if they are both set we will just log and continue
-		// this allows us to test both cases
-		if os.Getenv(AllowVMWatchCgroupAssignmentFailureVariableName) == "" || os.Getenv(RunningInDevContainerVariableName) == "" {
-			lg.Info("Killing VMWatch process as cgroup assigment failed")
-			_ = KillVMWatch(lg, VMWatchCommand)
+	if !resourceGovernanceRequired {
+		lg.Info((fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid)))
+		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid))
+	} else {
+		err = applyResourceGovernance(lg, vmWatchSettings, VMWatchCommand)
+		if err != nil {
+			// if this has failed we have already killed the process as we failed to assign to cgroup so log the appropriate error
+			err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
+			lg.Error("VMWatch process exited", slog.Any("error", err))
+			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, err.Error(), "error", err)
 			return err
 		}
 	}
@@ -175,6 +177,7 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	wg.Wait()
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
 	lg.Error("VMWatch process exited", slog.Any("error", err))
+	// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, err.Error(), "error", err)
 	return err
 }
 
@@ -260,7 +263,7 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 	cmd, resourceGovernanceRequired := createCommandForOS(s, hEnv, processDirectory, args)
 
 	return cmd, resourceGovernanceRequired, nil
-	}
+}
 
 func getCommonArgs(hEnv *handlerenv.HandlerEnvironment, s *VMWatchSettings) []string {
 	args := []string{}
