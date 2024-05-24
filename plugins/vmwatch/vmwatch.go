@@ -86,6 +86,7 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 		if r := recover(); r != nil {
 			vmWatchErr = fmt.Errorf("%w\n Additonal Details: %+v", vmWatchErr, r)
 			lg.Error(fmt.Sprintf("VMWatch failed: %+v", r), slog.Any("error", vmWatchErr))
+			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, fmt.Sprintf("Recovered %+v", r))
 		}
 		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
 		close(vmWatchResultChannel)
@@ -99,8 +100,12 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 			vmWatchErr = executeVMWatchHelper(lg, i, s, hEnv)
 			vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
 		}
-		err := fmt.Errorf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts)
-		lg.Error("VMWatch reached max retries", slog.Any("error", err))
+		{
+			// scoping the errMsg variable to avoid shadowing
+			errMsg := fmt.Sprintf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts)
+			lg.Error("VMWatch reached max retries", slog.Any("error", errMsg))
+			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, errMsg, "error", errMsg)
+		}
 		// we have exceeded the retries so now we go to sleep before starting again
 		time.Sleep(time.Hour * HoursBetweenRetryAttempts)
 	}
