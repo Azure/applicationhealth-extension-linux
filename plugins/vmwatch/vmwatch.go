@@ -226,34 +226,40 @@ func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 	return nil
 }
 
-func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, error) {
+// setupVMWatchCommand sets up the command to run VMWatch
+// if we are on a linux distro with systemd-run available, cmd.Path will be systemd-run (or possibly the full path if resolved)
+// else it will be the vmwatch binary path.  the boolean return code indicates whether further resource goverance is needed
+// in the case of running with systemd-run this will be false, otherwise it will be true
+func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, error) {
 	processDirectory, err := utils.GetCurrentProcessWorkingDir()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
-	args = append(args, "--debug")
-	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
-	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
 	// 0 is the default so allow that but any value below 30MB is not allowed
 	if s.MemoryLimitInBytes == 0 {
 		s.MemoryLimitInBytes = DefaultMaxMemoryInBytes
-
 	}
+
 	if s.MemoryLimitInBytes < 30000000 {
-		err = fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
-		return nil, err
+		err := fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
+		return nil, false, err
 	}
 
-	// check cpu, if 0 (default) set to the default value
 	if s.MaxCpuPercentage == 0 {
 		s.MaxCpuPercentage = DefaultMaxCpuPercentage
 	}
 
 	if s.MaxCpuPercentage < 0 || s.MaxCpuPercentage > 100 {
-		err = fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
-		return nil, err
+		err := fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
+		return nil, false, err
+	}
+
+	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
+	args = append(args, getCommonArgs(hEnv, s)...)
+	cmd, resourceGovernanceRequired := createCommandForOS(s, hEnv, processDirectory, args)
+
+	return cmd, resourceGovernanceRequired, nil
 	}
 
 func getCommonArgs(hEnv *handlerenv.HandlerEnvironment, s *VMWatchSettings) []string {
