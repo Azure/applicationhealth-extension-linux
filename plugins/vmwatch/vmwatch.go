@@ -256,6 +256,12 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 		return nil, err
 	}
 
+func getCommonArgs(hEnv *handlerenv.HandlerEnvironment, s *VMWatchSettings) []string {
+	args := []string{}
+
+	args = append(args, "--debug")
+	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
+	args = append(args, "--execution-environment", GetExecutionEnvironment(hEnv))
 	args = append(args, "--memory-limit-bytes", strconv.FormatInt(s.MemoryLimitInBytes, 10))
 
 	if s.SignalFilters != nil {
@@ -306,12 +312,7 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 	if err == nil {
 		args = append(args, "--apphealth-version", extVersion)
 	}
-
-	cmd := exec.Command(GetVMWatchBinaryFullPath(processDirectory), args...)
-
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
-
-	return cmd, nil
+	return args
 }
 
 func GetVMWatchHeartbeatFilePath(hEnv *handlerenv.HandlerEnvironment) string {
