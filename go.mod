@@ -11,7 +11,7 @@ require (
 	github.com/samber/slog-formatter v1.0.0
 	github.com/stretchr/testify v1.8.0
 	github.com/xeipuuv/gojsonschema v0.0.0-20160623135812-c539bca196be
-	golang.org/x/sys v0.2.0
+	golang.org/x/sys v0.20.0
 )
 
 require github.com/go-kit/log v0.2.0

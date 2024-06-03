@@ -33,7 +33,7 @@ const (
 var (
 	ErrFailedToCreateRegKey       error = errors.New("Failed to create Windows Registry SubKey")
 	ErrFailedToOpenRegKey         error = errors.New("Failed to create or open Windows Registry SubKey")
-	ErrFailedToGetValueFromRegKey error = errors.New("Failed to get value from Windows Registry SubsKey")
+	ErrFailedToGetValueFromRegKey error = errors.New("Failed to get value from Windows Registry SubKey")
 )
 
 var extCommands = CommandMap{
@@ -119,7 +119,6 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 		os.Exit(cmd.failExitCode)
 	}
 	ReportStatus(lg, h, seqNum, status.StatusSuccess, cmd, msg)
-	lg.Info("end")
 
 	return nil
 }
@@ -130,7 +129,7 @@ func (ch *WindowsCommandHandler) CommandMap() CommandMap {
 
 func installHandler(lg logging.Logger, seqNum int) error {
 	lg.Info("Installing Handler")
-	lg.Info(`Creating Windows Registry Key "HKLM\%s"`, regKeyPath)
+	lg.Info(fmt.Sprintf(`Creating Windows Registry Key 'HKLM\%s'`, regKeyPath))
 	// Create a new registry key with all access permissions.
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
 	if err != nil {
@@ -152,13 +151,6 @@ func enableHandler(lg logging.Logger, seqNum int) error {
 	defer k.Close()
 
 	lg.Info(fmt.Sprintf(`Updating value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, enabledRegKeyValueName))
-	// Get the current value of the registry key.
-	isEnabled, _, err := k.GetStringValue(enabledRegKeyValueName)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrFailedToGetValueFromRegKey, err)
-	}
-	lg.Info(fmt.Sprintf(`Windows Registry SubKey "HKLM\%s\%s" has value: "%s"`, regKeyPath, enabledRegKeyValueName, isEnabled))
-
 	// Set the value of the registry key.
 	err = k.SetStringValue(enabledRegKeyValueName, "True")
 	if err != nil {
