@@ -3,6 +3,7 @@ package vmwatch
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -371,7 +372,7 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 		log.Printf("Adding Environment Variable %d: Adding the key-value pair %s=%s to VMWatch environment variables", i, k, parameterOverrides[k])
 	}
 
-	arr = append(arr, addVMWatchEnviromentVariables(hEnv)...)
+	arr = append(arr, generateEnvVarsForVMWatch(hEnv)...)
 
 	return arr
 }
