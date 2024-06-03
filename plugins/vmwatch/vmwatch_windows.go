@@ -33,7 +33,8 @@ func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VM
 	return cmd, resourceGovernanceRequired, combinedOutput, nil
 }
 
-func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *VMWatchSettings, vmWatchPid int) error {
+// TODO: Implement resource governance for Windows
+func applyResourceGovernance(lg logging.Logger, vmWatchSettings *VMWatchSettings, vmWatchCommand *exec.Cmd) error {
 	return nil
 }
 
