@@ -339,6 +339,9 @@ func GetVMWatchConfigFullPath(processDirectory string) string {
 	return filepath.Join(processDirectory, "VMWatch", VMWatchConfigFileName)
 }
 
+// GetVMWatchBinaryFullPath returns the full path of the VMWatch binary based on the process directory.
+// It determines the binary name based on the architecture of the running process.
+// The binary name will be either VMWatchBinaryNameAmd64 or VMWatchBinaryNameArm64.s
 func GetVMWatchBinaryFullPath(processDirectory string) string {
 	binaryName := VMWatchBinaryNameAmd64
 	if strings.Contains(os.Args[0], AppHealthBinaryNameArm64) {
@@ -348,22 +351,27 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 	return filepath.Join(processDirectory, "VMWatch", binaryName)
 }
 
+// GetVMWatchEnvironmentVariables returns a list of environment variables to be attached on the VMWatch Process.
+// It takes a map of parameter overrides and a HandlerEnvironment as input.
+// It returns a slice of strings containing the environment variables.s
+// The Environment variables will be returned depending on the OS.
 func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv *handlerenv.HandlerEnvironment) []string {
-	var arr []string
-	// make sure we get the keys out in order
-	keys := make([]string, 0, len(parameterOverrides))
+	var (
+		arr  []string
+		keys []string = make([]string, 0, len(parameterOverrides)) // make sure we get the keys out in order
+	)
 
 	for k := range parameterOverrides {
 		keys = append(keys, k)
 	}
 
 	sort.Strings(keys)
-	for _, k := range keys {
+	for i, k := range keys {
 		arr = append(arr, fmt.Sprintf("%s=%s", k, parameterOverrides[k]))
-		fmt.Println(k, parameterOverrides[k])
+		log.Printf("Adding Environment Variable %d: Adding the key-value pair %s=%s to VMWatch environment variables", i, k, parameterOverrides[k])
 	}
 
-	addVMWatchEnviromentVariables(&arr, hEnv)
+	arr = append(arr, addVMWatchEnviromentVariables(hEnv)...)
 
 	return arr
 }
