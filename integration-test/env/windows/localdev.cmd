@@ -7,6 +7,9 @@ IF NOT EXIST C:\temp\applicationhealth-extension\events MKDIR C:\temp\applicatio
 IF NOT EXIST C:\temp\applicationhealth-extension\logs MKDIR C:\temp\applicationhealth-extension\logs
 IF NOT EXIST C:\temp\applicationhealth-extension\status MKDIR C:\temp\applicationhealth-extension\status
 
+REM create fake registry keys
+reg add "HKLM\SOFTWARE\Microsoft\Windows Azure\AppHealthExtension" /v IsEnabled /t REG_SZ True /f
+
 REM now create the fake config files
 ECHO. > C:\temp\applicationhealth-extension\123.status
 COPY /Y .\localdev.settings C:\temp\applicationhealth-extension\config\123.settings
