@@ -13,21 +13,24 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 )
 
-func setupVMWatch(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, *bytes.Buffer, error) {
+func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, *bytes.Buffer, error) {
 	// Setup command
-	cmd, err := setupVMWatchCommand(vmWatchSettings, hEnv)
+	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		lg.Error("VMWatch setup failed", slog.Any("error", err))
-		return nil, nil, err
+		// sendTelemetry(lg, telemetry.EventLevelError, telemetry.SetupVMWatchTask, err.Error())
+		return nil, false, nil, err
 	}
 	lg.Info(fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n", attempt, cmd.Path, cmd.Args, cmd.Dir, cmd.Env))
+	// 	fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n",
+	// 		attempt, vmWatchCommand.Path, vmWatchCommand.Args, vmWatchCommand.Dir, vmWatchCommand.Env),
 	// TODO: Combined output may get excessively long, especially since VMWatch is a long running process
 	// We should trim the output or only get from Stderr
 	combinedOutput := &bytes.Buffer{}
 	cmd.Stdout = combinedOutput
 	cmd.Stderr = combinedOutput
-	return cmd, combinedOutput, nil
+	return cmd, resourceGovernanceRequired, combinedOutput, nil
 }
 
 func createAndAssignCgroups(lg logging.Logger, vmwatchSettings *VMWatchSettings, vmWatchPid int) error {
