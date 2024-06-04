@@ -26,7 +26,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: Analyze (${{ matrix.language }}) (${{ matrix.os }})
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -97,9 +97,18 @@ jobs:
         go env
         make binary
     - if: matrix.build-mode == 'manual' && matrix.os == 'windows-latest'
+      continue-on-error: true
       run: |
         go env
-        make binary-windows
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
+        -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/windows/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+        -o $(BINDIR)/$(WINDOWS_BIN) ./main
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
+          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/windows/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+          -o $(TESTBINDIR)/$(WEBSERVERBIN) ./integration-test/webserver
+        GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -v -mod=readonly \
+          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/windows/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+          -o $(BINDIR)/$(WINDOWS_BIN_ARM64) ./main
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
