@@ -1,11 +1,19 @@
 
 version: 2
 updates:
-  - package-ecosystem: "gomod" # for Go modules
+  - name: "Feature Branches"
+    package-ecosystem: "gomod" # for Go modules
     directory: "/"
     schedule:
       interval: "daily"
     target-branch: "feature/*"
+
+  - name: "Master Branch"
+    package-ecosystem: "gomod" # for Go modules
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "master"
 
   - package-ecosystem: "bundler" # for Go modules
     directory: "/vendor/"
