@@ -95,7 +95,7 @@ jobs:
     - if: matrix.build-mode == 'manual' && matrix.os == 'ubuntu-latest'
       run: |
         go env
-        make binary
+        make binary-linux
     - if: matrix.build-mode == 'manual' && matrix.os == 'windows-latest'
       run: |
         go env
