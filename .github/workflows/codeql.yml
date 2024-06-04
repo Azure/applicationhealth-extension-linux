@@ -100,14 +100,16 @@ jobs:
       continue-on-error: true
       run: |
         go env
+        [xml]$xmlContent = Get-Content 'path_to_your_manifest.xml'
+        $version = $xmlContent.ExtensionImage.Version
         GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
-        -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/windows/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+        -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=$version \
         -o $(BINDIR)/$(WINDOWS_BIN) ./main
         GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
-          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/windows/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=$version \
           -o $(TESTBINDIR)/$(WEBSERVERBIN) ./integration-test/webserver
         GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -v -mod=readonly \
-          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=`grep -E -m 1 -o '<Version>(.*)</Version>' misc/windows/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
+          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=$version \
           -o $(BINDIR)/$(WINDOWS_BIN_ARM64) ./main
 
     - name: Perform CodeQL Analysis
