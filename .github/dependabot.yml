@@ -1,15 +1,13 @@
 
 version: 2
 updates:
-  - name: "Feature Branches"
-    package-ecosystem: "gomod" # for Go modules
+  - package-ecosystem: "gomod" # for Go modules
     directory: "/"
     schedule:
       interval: "daily"
     target-branch: "feature/*"
 
-  - name: "Master Branch"
-    package-ecosystem: "gomod" # for Go modules
+  - package-ecosystem: "gomod" # for Go modules
     directory: "/"
     schedule:
       interval: "daily"
