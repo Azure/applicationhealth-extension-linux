@@ -3,6 +3,7 @@
 setup(){
     load "../test_helper"
     _load_bats_libs
+    build_docker_image
     container_name="vmwatch_$BATS_TEST_NUMBER"
     extension_version=$(get_extension_version)
     echo "extension version: $extension_version"
