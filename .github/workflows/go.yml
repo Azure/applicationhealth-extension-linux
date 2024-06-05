@@ -146,9 +146,9 @@ jobs:
 
     steps:
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.21.7'
+        go-version: '1.22.2'
       
     - name: Setup Go Environment 
       shell: bash
@@ -177,7 +177,7 @@ jobs:
       continue-on-error: true
       with:
         install-go: false
-        min-go-version: 1.21
+        min-go-version: 1.22
         working-directory: ${{ env.repo_root }}
 
     - name: Build Binaries
