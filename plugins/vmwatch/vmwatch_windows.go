@@ -33,10 +33,12 @@ func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VM
 	return cmd, resourceGovernanceRequired, combinedOutput, nil
 }
 
-// createCommandForOS creates a new command for the operating system with specific settings and environment variables.
-// It takes in a VMWatchSettings object, a HandlerEnvironment object, the path to the command, and a slice of arguments.
-// It returns the created command and a boolean flag indicating whether further resource governance is required.
-func createCommandForOS(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
+// createVMWatchCommand creates a new exec.Cmd instance for running the VMWatch binary with the specified settings.
+// It takes the VMWatchSettings, HandlerEnvironment, command path, and arguments as input parameters.
+// The function returns the created exec.Cmd instance and a boolean value indicating whether further resource governance is required.
+// For Windows, the resourceGovernanceRequired flag is currently set to false by default.
+// TODO: Implement resource governance for Windows.
+func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
 	var (
 		cmd *exec.Cmd
 		// flag to tell the caller that further resource governance is required.

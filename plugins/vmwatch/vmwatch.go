@@ -114,9 +114,9 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 
 func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (err error) {
 	var (
-		pid                                      = -1
+		pid                        int           = -1
 		combinedOutput             *bytes.Buffer = nil
-		resourceGovernanceRequired               = false
+		resourceGovernanceRequired bool          = false
 	)
 	defer func() {
 		if r := recover(); r != nil {

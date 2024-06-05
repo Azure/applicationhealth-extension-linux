@@ -41,7 +41,7 @@ func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VM
 	return cmd, resourceGovernanceRequired, combinedOutput, nil
 }
 
-func createCommandForOS(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
+func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
 	var (
 		cmd *exec.Cmd
 		// flag to tell the caller that further resource governance is required by assigning to cgroups after the process is started
