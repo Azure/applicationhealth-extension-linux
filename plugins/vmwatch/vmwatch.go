@@ -129,7 +129,8 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	// Setup command
 	VMWatchCommand, resourceGovernanceRequired, combinedOutput, err = configureVMWatchProcess(lg, attempt, vmWatchSettings, hEnv)
 	if err != nil {
-		return err
+		err = fmt.Errorf("attempt to Configure VMWatch Process failed. Error: %w", err)
+		lg.Error("Failed to configure VMWatch process", slog.Any("error", err))
 	}
 
 	// Start command
@@ -261,7 +262,7 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
 	args = append(args, getCommonArgs(hEnv, s)...)
-	cmd, resourceGovernanceRequired := createCommandForOS(s, hEnv, processDirectory, args)
+	cmd, resourceGovernanceRequired := createVMWatchCommand(s, hEnv, processDirectory, args)
 
 	return cmd, resourceGovernanceRequired, nil
 }
