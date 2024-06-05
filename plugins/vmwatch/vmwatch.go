@@ -247,16 +247,17 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 	}
 
 	if s.MemoryLimitInBytes < 30000000 {
-		err := fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
+		err = fmt.Errorf("[%v] Invalid MemoryLimitInBytes specified must be at least 30000000", time.Now().UTC().Format(time.RFC3339))
 		return nil, false, err
 	}
 
+	// check cpu, if 0 (default) set to the default value
 	if s.MaxCpuPercentage == 0 {
 		s.MaxCpuPercentage = DefaultMaxCpuPercentage
 	}
 
 	if s.MaxCpuPercentage < 0 || s.MaxCpuPercentage > 100 {
-		err := fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
+		err = fmt.Errorf("[%v] Invalid maxCpuPercentage specified must be between 0 and 100", time.Now().UTC().Format(time.RFC3339))
 		return nil, false, err
 	}
 
