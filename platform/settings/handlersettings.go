@@ -59,8 +59,7 @@ func ParseAndValidateSettings(lg logging.Logger, configFolder string) (h Handler
 	lg.Info("json schema valid")
 	lg.Info("parsing configuration json")
 	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "json schema valid")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsing configuration json")
-
+	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsing configuration json")s
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
