@@ -269,7 +269,9 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 }
 
 func getCommonArgs(hEnv *handlerenv.HandlerEnvironment, s *VMWatchSettings) []string {
-	args := []string{}
+	var (
+		args []string
+	)
 
 	args = append(args, "--debug")
 	args = append(args, "--heartbeat-file", GetVMWatchHeartbeatFilePath(hEnv))
