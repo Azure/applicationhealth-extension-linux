@@ -146,14 +146,14 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 
 	probe := apphealth.NewHealthProbe(lg, &cfg.AppHealthPluginSettings)
 	var (
-		intervalBetweenProbesInMs  = time.Duration(cfg.GetIntervalInSeconds()) * time.Millisecond * 1000
+		intervalBetweenProbes      = time.Duration(cfg.GetIntervalInSeconds()) * time.Millisecond * 1000 // seconds represented in milliseconds
 		numberOfProbes             = cfg.GetNumberOfProbes()
-		gracePeriodInSeconds       = time.Duration(cfg.GetGracePeriod()) * time.Second
+		gracePeriod                = time.Duration(cfg.GetGracePeriod()) * time.Second // seconds
 		numConsecutiveProbes       = 0
 		prevState                  = apphealth.HealthStatus(apphealth.Empty)
 		committedState             = apphealth.HealthStatus(apphealth.Empty)
 		commitedCustomMetricsState = apphealth.CustomMetricsStatus(apphealth.Empty)
-		honorGracePeriod           = gracePeriodInSeconds > 0
+		honorGracePeriod           = gracePeriod > 0
 		gracePeriodStartTime       = time.Now()
 		vmWatchSettings            = cfg.GetVMWatchSettings()
 		vmWatchResult              = vmwatch.VMWatchResult{Status: vmwatch.Disabled, Error: nil}
@@ -167,7 +167,7 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 
 	} else {
 		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
-		lg.Info(fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
+		lg.Info(fmt.Sprintf("Grace period set to %v", gracePeriod))
 	}
 
 	lg.Info(fmt.Sprintf("VMWatch settings: %#v", vmWatchSettings))
@@ -246,7 +246,7 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 		if honorGracePeriod {
 			timeElapsed := time.Now().Sub(gracePeriodStartTime)
 			// If grace period expires, application didn't initialize on time
-			if timeElapsed >= gracePeriodInSeconds {
+			if timeElapsed >= gracePeriod {
 				lg.Info(fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, fmt.Sprintf("No longer honoring grace period - expired. Time elapsed = %v", timeElapsed))
 				honorGracePeriod = false
@@ -318,7 +318,7 @@ func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (st
 		}
 
 		endTime := time.Now()
-		durationToWait := intervalBetweenProbesInMs - endTime.Sub(startTime)
+		durationToWait := intervalBetweenProbes - endTime.Sub(startTime)
 		if durationToWait > 0 {
 			time.Sleep(durationToWait)
 		}

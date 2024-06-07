@@ -57,9 +57,6 @@ func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironmen
 
 	// if we have systemd available, we will use that to launch the process, otherwise we will launch directly and manipulate our own cgroups
 	systemdVersion := getSystemdVersion()
-
-	// since systemd-run is in different paths on different distros, we will check for systemd but not use the full path
-	// to systemd-run.  This is how guest agent handles it also so seems appropriate.
 	systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage)}
 
 	// systemd versions prior to 246 do not support MemoryMax, instead MemoryLimit should be used
