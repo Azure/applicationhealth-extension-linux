@@ -10,7 +10,7 @@
                     "numberOfProbes": 1,
                     "vmWatchSettings": {
                       "enabled": true,
-                      "memoryLimitInBytes": 60000000,
+                      "memoryLimitInBytes": 80000000,
                       "signalFilters": {
                         "enabledTags": [],
                         "disabledTags": [],
