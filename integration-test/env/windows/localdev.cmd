@@ -14,6 +14,3 @@ REM now create the fake config files
 ECHO. > C:\temp\applicationhealth-extension\123.status
 COPY /Y .\localdev.settings C:\temp\applicationhealth-extension\config\123.settings
 ECHO. >  C:\temp\applicationhealth-extension\123.txt
-
-REM now HandlerEnvironment.windows.json for  HandlerEnvironment.json which is in same directory as the script
-REN HandlerEnvironment.windows.json HandlerEnvironment.json
