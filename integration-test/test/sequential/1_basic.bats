@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
-load ../test_helper
-
+setup() {
+    load "../test_helper"
+}
 @test "meta: docker is installed" {
     run docker version
     echo "$output">&2
@@ -9,7 +10,7 @@ load ../test_helper
 }
 
 @test "meta: can build the test container image" {
-    run build_docker_image
+    run build_docker_image_nocache
     echo "$output"
     [ "$status" -eq 0 ]
 }

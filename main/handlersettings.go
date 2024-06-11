@@ -2,9 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
+	"os"
+	"path/filepath"
 
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
 
@@ -21,6 +25,11 @@ var (
 type handlerSettings struct {
 	publicSettings
 	protectedSettings
+}
+
+func (s handlerSettings) String() string {
+	settings, _ := json.MarshalIndent(s, "", "\t")
+	return string(settings)
 }
 
 func (s *handlerSettings) protocol() string {
@@ -62,6 +71,10 @@ func (s *handlerSettings) gracePeriod() int {
 	}
 }
 
+func (s *handlerSettings) vmWatchSettings() *vmWatchSettings {
+	return s.publicSettings.VMWatchSettings
+}
+
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
 func (h handlerSettings) validate() error {
@@ -81,15 +94,39 @@ func (h handlerSettings) validate() error {
 	return nil
 }
 
+type vmWatchSignalFilters struct {
+	EnabledTags            []string `json:"enabledTags,array"`
+	DisabledTags           []string `json:"disabledTags,array"`
+	EnabledOptionalSignals []string `json:"enabledOptionalSignals,array"`
+	DisabledSignals        []string `json:"disabledSignals,array"`
+}
+
+type vmWatchSettings struct {
+	Enabled               bool                   `json:"enabled,boolean"`
+	MemoryLimitInBytes    int64                  `json:"memoryLimitInBytes,int64"`
+	MaxCpuPercentage      int64                  `json:"maxCpuPercentage,int64"`
+	SignalFilters         *vmWatchSignalFilters  `json:"signalFilters"`
+	ParameterOverrides    map[string]interface{} `json:"parameterOverrides,object"`
+	EnvironmentAttributes map[string]interface{} `json:"environmentAttributes,object"`
+	GlobalConfigUrl       string                 `json:"globalConfigUrl"`
+	DisableConfigReader   bool                   `json:"disableConfigReader,boolean"`
+}
+
+func (v *vmWatchSettings) String() string {
+	setting, _ := json.MarshalIndent(v, "", "\t")
+	return string(setting)
+}
+
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {
-	Protocol          string `json:"protocol"`
-	Port              int    `json:"port,int"`
-	RequestPath       string `json:"requestPath"`
-	IntervalInSeconds int    `json:"intervalInSeconds,int"`
-	NumberOfProbes    int    `json:"numberOfProbes,int"`
-	GracePeriod       int    `json:"gracePeriod,int"`
+	Protocol          string           `json:"protocol"`
+	Port              int              `json:"port,int"`
+	RequestPath       string           `json:"requestPath"`
+	IntervalInSeconds int              `json:"intervalInSeconds,int"`
+	NumberOfProbes    int              `json:"numberOfProbes,int"`
+	GracePeriod       int              `json:"gracePeriod,int"`
+	VMWatchSettings   *vmWatchSettings `json:"vmWatchSettings"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected
@@ -99,31 +136,30 @@ type protectedSettings struct {
 
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
-func parseAndValidateSettings(ctx *log.Context, configFolder string) (h handlerSettings, _ error) {
-	ctx.Log("event", "reading configuration")
+func parseAndValidateSettings(lg log.Logger, configFolder string) (h handlerSettings, _ error) {
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "Reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
-	ctx.Log("event", "read configuration")
 
-	ctx.Log("event", "validating json schema")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	ctx.Log("event", "json schema valid")
 
-	ctx.Log("event", "parsing configuration json")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "json schema valid")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsing configuration json")
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
-	ctx.Log("event", "parsed configuration json")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsed configuration json")
 
-	ctx.Log("event", "validating configuration logically")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validating configuration logically")
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	ctx.Log("event", "validated configuration")
+	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validated configuration")
 	return h, nil
 }
 
@@ -164,4 +200,58 @@ func toJSON(o map[string]interface{}) (string, error) {
 	}
 	b, err := json.Marshal(o)
 	return string(b), errors.Wrap(err, "failed to marshal into json")
+}
+
+type ExtensionManifest struct {
+	ProviderNameSpace   string `xml:"ProviderNameSpace"`
+	Type                string `xml:"Type"`
+	Version             string `xml:"Version"`
+	Label               string `xml:"Label"`
+	HostingResources    string `xml:"HostingResources"`
+	MediaLink           string `xml:"MediaLink"`
+	Description         string `xml:"Description"`
+	IsInternalExtension bool   `xml:"IsInternalExtension"`
+	IsJsonExtension     bool   `xml:"IsJsonExtension"`
+	SupportedOS         string `xml:"SupportedOS"`
+	CompanyName         string `xml:"CompanyName"`
+}
+
+func GetExtensionManifest(filepath string) (ExtensionManifest, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return ExtensionManifest{}, err
+	}
+	defer file.Close()
+
+	decoder := xml.NewDecoder(file)
+	var manifest ExtensionManifest
+	err = decoder.Decode(&manifest)
+
+	if err != nil {
+		return ExtensionManifest{}, err
+	}
+	return manifest, nil
+}
+
+// Get Extension Version set at build time or from manifest file.
+func GetExtensionManifestVersion() (string, error) {
+	// First attempting to read the version set during build time.
+	v := GetExtensionVersion()
+	if v != "" {
+		return v, nil
+	}
+
+	// If the version is not set during build time, then reading it from the manifest file as fallback.
+	processDirectory, err := GetProcessDirectory()
+	if err != nil {
+		return "", err
+	}
+	processDirectory = filepath.Dir(processDirectory)
+	fp := filepath.Join(processDirectory, ExtensionManifestFileName)
+
+	manifest, err := GetExtensionManifest(fp)
+	if err != nil {
+		return "", err
+	}
+	return manifest.Version, nil
 }

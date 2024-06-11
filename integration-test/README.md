@@ -40,3 +40,5 @@ root:
 make binary
 ./integration-test/run.sh
 ```
+
+If you are running on a linux host (a real linux host not WSL), you can use the command `./integration-test/run.sh --all` to run all the tests.

@@ -1,19 +1,20 @@
-name: Go
+name: Go (Ext V2)
 
 on:
   workflow_dispatch:
   push:
     branches: 
       - master
-      - feature/*
+      - feature/**
   pull_request:
     branches: 
       - master
-      - feature/*
+      - feature/**
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, ubuntu-20.04]
     
@@ -27,9 +28,9 @@ jobs:
       run: sudo apt-get update
       
     - name: Setup Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.18.10'
+        go-version: '1.22.2'
 
     - name: Setup Go Environment 
       run: |
@@ -51,6 +52,20 @@ jobs:
       run: |
         sudo apt install npm
         sudo npm install -g bats
+
+    - name: Setup bats libs
+      uses: bats-core/bats-action@1.5.6
+      with:
+        assert-install: true
+        support-install: true
+        bats-install: false
+        detik-install: false
+        file-install: false
+      
+    - name: Testing Bats Installation
+      run: |
+        bats --version
+        sudo bats --version
 
     - name: Install Parallel
       run: |
@@ -78,7 +93,7 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Unit Tests
-      continue-on-error: true
+      continue-on-error: false
       run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
       working-directory: ${{ env.repo_root }}
 
@@ -109,10 +124,10 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
-        sudo bats integration-test/test/parallel --jobs 10 -T --trace
+        sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Parallel Integration Tests
       run: |
-        sudo bats integration-test/test/parallel --filter-status failed -T --trace
+        sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}

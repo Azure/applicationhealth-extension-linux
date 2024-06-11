@@ -21,6 +21,7 @@ type StatusType string
 
 const (
 	StatusTransitioning StatusType = "transitioning"
+	StatusWarning       StatusType = "warning"
 	StatusError         StatusType = "error"
 	StatusSuccess       StatusType = "success"
 )
@@ -122,4 +123,9 @@ func (r StatusReport) Save(statusFolder string, seqNum int) error {
 		return fmt.Errorf("status: failed to move to path=%s error=%v", path, err)
 	}
 	return nil
+}
+
+func (r StatusReport) String() string {
+	report, _ := json.MarshalIndent(r, "", "\t")
+	return string(report)
 }

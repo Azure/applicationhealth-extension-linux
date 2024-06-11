@@ -1,4 +1,4 @@
-# Azure ApplicationHealth Extension for Linux (1.0.0)
+# Azure ApplicationHealth Extension for Linux (V2)
 [![Build Status](https://travis-ci.org/Azure/applicationhealth-extension-linux.svg?branch=master)](https://travis-ci.org/Azure/applicationhealth-extension-linux)
 
 [![GitHub Build Status](https://github.com/Azure/applicationhealth-extension-linux/actions/workflows/go.yml/badge.svg)](https://github.com/Azure/applicationhealth-extension-linux/actions/workflows/go.yml)
