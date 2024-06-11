@@ -50,8 +50,8 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 func Test_FindManifestFilePath(t *testing.T) {
 	var (
 		manifestFileName = "manifest.xml"
-		src              = "../../misc/windows"                                                 // Replace with the actual directory path
-		dst              = "/tmp/lib/waagent/Microsoft.ManagedServices-ApplicationHealthLinux/" // Replace with the actual directory path
+		src              = `..\..\misc\windows`                                                  // Replace with the actual directory path for Windows
+		dst              = `C:\TEMP\Microsoft.ManagedServices-ApplicationHealthWindows\Version\` // Replace with the actual directory path for Windows
 	)
 
 	err := copyFileNewDirectory(src, dst, manifestFileName)
