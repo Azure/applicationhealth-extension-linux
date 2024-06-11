@@ -22,7 +22,7 @@ import (
 
 func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, *bytes.Buffer, error) {
 	// Setup command
-	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(vmWatchSettings, hEnv)
+	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(lg, vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		lg.Error("VMWatch setup failed", slog.Any("error", err))
@@ -41,7 +41,7 @@ func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VM
 	return cmd, resourceGovernanceRequired, combinedOutput, nil
 }
 
-func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
+func createVMWatchCommand(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
 	var (
 		cmd *exec.Cmd
 		// flag to tell the caller that further resource governance is required by assigning to cgroups after the process is started
@@ -51,7 +51,7 @@ func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironmen
 
 	if !isSystemdAvailable() {
 		cmd = exec.Command(GetVMWatchBinaryFullPath(cmdPath), args...)
-		cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
+		cmd.Env = GetVMWatchEnvironmentVariables(lg, s.ParameterOverrides, hEnv)
 		return cmd, resourceGovernanceRequired
 	}
 
@@ -67,7 +67,7 @@ func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironmen
 	}
 
 	// now append the env variables (--setenv is supported in all versions, -E only in newer versions)
-	for _, v := range GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv) {
+	for _, v := range GetVMWatchEnvironmentVariables(lg, s.ParameterOverrides, hEnv) {
 		systemdArgs = append(systemdArgs, "--setenv", v)
 	}
 	systemdArgs = append(systemdArgs, GetVMWatchBinaryFullPath(cmdPath))

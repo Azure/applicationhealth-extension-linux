@@ -15,7 +15,7 @@ import (
 
 func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, *bytes.Buffer, error) {
 	// Setup command
-	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(vmWatchSettings, hEnv)
+	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(lg, vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch setup failed. Error: %w", time.Now().UTC().Format(time.RFC3339), attempt, err)
 		lg.Error("VMWatch setup failed", slog.Any("error", err))
@@ -38,7 +38,7 @@ func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VM
 // The function returns the created exec.Cmd instance and a boolean value indicating whether further resource governance is required.
 // For Windows, the resourceGovernanceRequired flag is currently set to false by default.
 // TODO: Implement resource governance for Windows.
-func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
+func createVMWatchCommand(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
 	var (
 		cmd *exec.Cmd
 		// flag to tell the caller that further resource governance is required.
@@ -48,7 +48,7 @@ func createVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironmen
 	)
 
 	cmd = exec.Command(GetVMWatchBinaryFullPath(cmdPath), args...)
-	cmd.Env = GetVMWatchEnvironmentVariables(s.ParameterOverrides, hEnv)
+	cmd.Env = GetVMWatchEnvironmentVariables(lg, s.ParameterOverrides, hEnv)
 	return cmd, resourceGovernanceRequired
 }
 

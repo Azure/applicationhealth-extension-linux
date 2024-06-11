@@ -3,7 +3,6 @@ package vmwatch
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -235,7 +234,7 @@ func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 // if we are on a linux distro with systemd-run available, cmd.Path will be systemd-run (or possibly the full path if resolved)
 // else it will be the vmwatch binary path.  the boolean return code indicates whether further resource goverance is needed
 // in the case of running with systemd-run this will be false, otherwise it will be true
-func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, error) {
+func setupVMWatchCommand(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, error) {
 	processDirectory, err := utils.GetCurrentProcessWorkingDir()
 	if err != nil {
 		return nil, false, err
@@ -263,7 +262,7 @@ func setupVMWatchCommand(s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment
 
 	args := []string{"--config", GetVMWatchConfigFullPath(processDirectory)}
 	args = append(args, getCommonArgs(hEnv, s)...)
-	cmd, resourceGovernanceRequired := createVMWatchCommand(s, hEnv, processDirectory, args)
+	cmd, resourceGovernanceRequired := createVMWatchCommand(lg, s, hEnv, processDirectory, args)
 
 	return cmd, resourceGovernanceRequired, nil
 }
@@ -360,7 +359,7 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 // It takes a map of parameter overrides and a HandlerEnvironment as input.
 // It returns a slice of strings containing the environment variables.
 // The Environment variables will be returned depending on the OS.
-func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv *handlerenv.HandlerEnvironment) []string {
+func GetVMWatchEnvironmentVariables(lg logging.Logger, parameterOverrides map[string]interface{}, hEnv *handlerenv.HandlerEnvironment) []string {
 	var (
 		arr  []string
 		keys []string = make([]string, 0, len(parameterOverrides)) // make sure we get the keys out in order
@@ -373,7 +372,8 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 	sort.Strings(keys)
 	for i, k := range keys {
 		arr = append(arr, fmt.Sprintf("%s=%s", k, parameterOverrides[k]))
-		log.Printf("Adding Environment Variable %d: Adding the key-value pair %s=%s to VMWatch environment variables", i, k, parameterOverrides[k])
+		lg.Debug(fmt.Sprintf("Adding Environment Variable %d: Adding the key-value pair %s=%s to VMWatch environment variables", i, k, parameterOverrides[k]),
+			slog.Any("key", k), slog.Any("value", parameterOverrides[k]), slog.Any("index", i))
 	}
 
 	arr = append(arr, generateEnvVarsForVMWatch(hEnv)...)
