@@ -29,7 +29,7 @@ const (
 
 var (
 	cmdInstall   = cmd{install, "Install", false, nil, 52}
-	cmdEnable    = cmd{enable, "Enable", true, nil, 3}
+	cmdEnable    = cmd{enable, "Enable", true, enablePre, 3}
 	cmdUninstall = cmd{uninstall, "Uninstall", false, nil, 3}
 
 	cmds = map[string]cmd{
@@ -76,6 +76,28 @@ const (
 var (
 	errTerminated = errors.New("Application health process terminated")
 )
+
+func enablePre(lg log.Logger, seqNum int) error {
+	// exit if this sequence number (a snapshot of the configuration) is already
+	// processed. if not, save this sequence number before proceeding.
+
+	mrSeqNum, err := seqnoManager.GetCurrentSequenceNumber(fullName, "")
+	if err != nil {
+		return errors.Wrap(err, "failed to get current sequence number")
+	}
+	// If the most recent sequence number is greater than or equal to the requested sequence number,
+	// then the script has already been run and we should exit.
+	if mrSeqNum != 0 && seqNum <= mrSeqNum {
+		lg.Log("event", "exit", "message", "the script configuration has already been processed, will not run again")
+		return errors.Errorf("most recent sequence number %d is greater than or equal to requested sequence number %d", mrSeqNum, seqNum)
+	}
+
+	// save the sequence number
+	if err := seqnoManager.SetSequenceNumber(fullName, "", seqNum); err != nil {
+		return errors.Wrap(err, "failed to save sequence number")
+	}
+	return nil
+}
 
 func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
