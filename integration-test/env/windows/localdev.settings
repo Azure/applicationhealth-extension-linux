@@ -8,20 +8,20 @@
                     "requestPath": "health",
                     "intervalInSeconds": 5,
                     "numberOfProbes": 1,
-                  "vmWatchSettings": {
-                    "enabled": true,
-                    "memoryLimitInBytes": 60000000,
-                    "signalFilters": {
-                      "enabledTags": [],
-                      "disabledTags": [],
-                      "enabledOptionalSignals": [ "test" ],
-                      "disabledSignals": []
-                    },
-                    "environmentAttributes": {
-                      "outBoundTrafficAllowed": true
+                    "vmWatchSettings": {
+                      "enabled": true,
+                      "memoryLimitInBytes": 60000000,
+                      "signalFilters": {
+                        "enabledTags": [],
+                        "disabledTags": [],
+                        "enabledOptionalSignals": [ "test" ],
+                        "disabledSignals": []
+                      },
+                      "environmentAttributes": {
+                        "outBoundTrafficAllowed": true
+                      }
                     }
-                  }
-                },
+                  },
                 "protectedSettings": null,
                 "protectedSettingsCertThumbprint": null
             }
