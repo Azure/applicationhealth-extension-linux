@@ -346,7 +346,7 @@ func GetVMWatchConfigFullPath(processDirectory string) string {
 
 // GetVMWatchBinaryFullPath returns the full path of the VMWatch binary based on the process directory.
 // It determines the binary name based on the architecture of the running process.
-// The binary name will be either VMWatchBinaryNameAmd64 or VMWatchBinaryNameArm64.s
+// The binary name will be either VMWatchBinaryNameAmd64 or VMWatchBinaryNameArm64.
 func GetVMWatchBinaryFullPath(processDirectory string) string {
 	binaryName := VMWatchBinaryNameAmd64
 	if strings.Contains(os.Args[0], AppHealthBinaryNameArm64) {
@@ -358,7 +358,7 @@ func GetVMWatchBinaryFullPath(processDirectory string) string {
 
 // GetVMWatchEnvironmentVariables returns a list of environment variables to be attached on the VMWatch Process.
 // It takes a map of parameter overrides and a HandlerEnvironment as input.
-// It returns a slice of strings containing the environment variables.s
+// It returns a slice of strings containing the environment variables.
 // The Environment variables will be returned depending on the OS.
 func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, hEnv *handlerenv.HandlerEnvironment) []string {
 	var (
