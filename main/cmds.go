@@ -81,15 +81,15 @@ func enablePre(lg log.Logger, seqNum uint) error {
 	// exit if this sequence number (a snapshot of the configuration) is already
 	// processed. if not, save this sequence number before proceeding.
 
-	mrSeqNum, err := seqnoManager.GetCurrentSequenceNumber(fullName, "")
+	mrSeqNum, err := seqnoManager.GetCurrentSequenceNumber(lg, fullName, "")
 	if err != nil {
 		return errors.Wrap(err, "failed to get current sequence number")
 	}
 	// If the most recent sequence number is greater than or equal to the requested sequence number,
 	// then the script has already been run and we should exit.
-	if mrSeqNum != 0 && seqNum <= mrSeqNum {
+	if mrSeqNum != 0 && seqNum < mrSeqNum {
 		lg.Log("event", "exit", "message", "the script configuration has already been processed, will not run again")
-		return errors.Errorf("most recent sequence number %d is greater than or equal to requested sequence number %d", mrSeqNum, seqNum)
+		return errors.Errorf("most recent sequence number %d is greater than the requested sequence number %d", mrSeqNum, seqNum)
 	}
 
 	// save the sequence number
