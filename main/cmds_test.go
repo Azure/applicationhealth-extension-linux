@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
-	"github.com/Azure/azure-extension-platform/pkg/extensionerrors"
 	"github.com/go-kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_commandsExist(t *testing.T) {
@@ -36,98 +36,55 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 
 func Test_enablePre(t *testing.T) {
 	var (
-		logger = log.NewNopLogger()
-		seqNum = 5
+		logger          = log.NewNopLogger()
+		seqNumToProcess uint
+		ctrl            = gomock.NewController(t)
 	)
 
-	t.Run("SequenceNumberAlreadyProcessed", func(t *testing.T) {
-		mockSeqNumManager := &seqno.SeqNumManager{
-			GetSequenceNumberFunc:    seqno.GetSequenceNumberFunc,
-			SequenceNumberSetterFunc: seqno.SetSequenceNumber,
-			FindSeqNumFunc:           seqno.FindSeqNum,
-			GetCurrentSequenceNumberFunc: func(lg log.Logger, name, version string) (int, error) {
-				return 5, nil
-			},
-		}
-		seqnoManager = mockSeqNumManager
-		err := enablePre(logger, seqNum)
-		assert.Error(t, err)
-		assert.EqualError(t, err, "most recent sequence number 5 is greater than or equal to requested sequence number 5")
-	})
-
+	mockSeqNumManager := seqno.NewMockSequenceNumberManager(ctrl)
 	t.Run("SaveSequenceNumberError_ShouldFail", func(t *testing.T) {
-		seqNum = 0
-		mockSeqNumManager := &seqno.SeqNumManager{
-			GetSequenceNumberFunc:    seqno.GetSequenceNumberFunc,
-			SequenceNumberSetterFunc: seqno.SetSequenceNumber,
-			FindSeqNumFunc:           seqno.FindSeqNum,
-			GetCurrentSequenceNumberFunc: func(lg log.Logger, name, version string) (int, error) {
-				return 1, nil
-			},
-		}
+		// seqNumToProcess = 0, mrSeqNum = 1
+		seqNumToProcess = 0
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(1), nil)
 		seqnoManager = mockSeqNumManager
-		err := enablePre(logger, seqNum)
+		err := enablePre(logger, seqNumToProcess)
 		assert.Error(t, err)
-		assert.EqualError(t, err, "most recent sequence number 1 is greater than or equal to requested sequence number 0")
-	})
-
-	t.Run("SequenceNumberisZero_ShouldPass", func(t *testing.T) {
-		seqNum = 0
-		mockSeqNumManager := &seqno.SeqNumManager{
-			GetSequenceNumberFunc:    seqno.GetSequenceNumberFunc,
-			SequenceNumberSetterFunc: seqno.SetSequenceNumber,
-			FindSeqNumFunc:           seqno.FindSeqNum,
-			GetCurrentSequenceNumberFunc: func(lg log.Logger, name, version string) (int, error) {
-				return 0, nil
-			},
-		}
-		seqnoManager = mockSeqNumManager
-		err := enablePre(logger, seqNum)
-		assert.NoError(t, err)
-	})
-	t.Run("MrSeqFileNotFound_ShouldPass", func(t *testing.T) {
-		seqNum = 0
-		mockGetSequenceNumberFunc := func(name, version string) (int, error) {
-			return 0, extensionerrors.ErrNoMrseqFile
-		}
-		mockSeqNumManager := &seqno.SeqNumManager{
-			GetSequenceNumberFunc:        mockGetSequenceNumberFunc,
-			SequenceNumberSetterFunc:     seqno.SetSequenceNumber,
-			FindSeqNumFunc:               seqno.FindSeqNum,
-			GetCurrentSequenceNumberFunc: seqno.GetCurrentSequenceNumberFunc(mockGetSequenceNumberFunc),
-		}
-		seqnoManager = mockSeqNumManager
-		err := enablePre(logger, seqNum)
-		assert.NoError(t, err)
+		assert.EqualError(t, err, "most recent sequence number 1 is greater than the requested sequence number 0")
 	})
 	t.Run("GetSequenceNumberIsGreaterThanRequestedSequenceNumber_ShouldFail", func(t *testing.T) {
-		seqNum = 4
-		mockSeqNumManager := &seqno.SeqNumManager{
-			GetSequenceNumberFunc:    seqno.GetSequenceNumberFunc,
-			SequenceNumberSetterFunc: seqno.SetSequenceNumber,
-			FindSeqNumFunc:           seqno.FindSeqNum,
-			GetCurrentSequenceNumberFunc: func(lg log.Logger, name, version string) (int, error) {
-				return 8, nil
-			},
-		}
+		// seqNumToProcess = 4, mrSeqNum = 8
+		seqNumToProcess = 4
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(8), nil)
 		seqnoManager = mockSeqNumManager
-		err := enablePre(logger, seqNum)
+		err := enablePre(logger, seqNumToProcess)
 		assert.Error(t, err)
-		assert.EqualError(t, err, "most recent sequence number 8 is greater than or equal to requested sequence number 4")
+		assert.EqualError(t, err, "most recent sequence number 8 is greater than the requested sequence number 4")
 	})
-	t.Run("GetSequenceNumberIsEqualRequestedSequenceNumber_ShouldFail", func(t *testing.T) {
-		seqNum = 4
-		mockSeqNumManager := &seqno.SeqNumManager{
-			GetSequenceNumberFunc:    seqno.GetSequenceNumberFunc,
-			SequenceNumberSetterFunc: seqno.SetSequenceNumber,
-			FindSeqNumFunc:           seqno.FindSeqNum,
-			GetCurrentSequenceNumberFunc: func(lg log.Logger, name, version string) (int, error) {
-				return 4, nil
-			},
-		}
+	t.Run("SequenceNumberisZero_Startup", func(t *testing.T) {
+		// seqNumToProcess = 0, mrSeqNum = 0
+		seqNumToProcess = 0
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(0), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		seqnoManager = mockSeqNumManager
-		err := enablePre(logger, seqNum)
-		assert.Error(t, err)
-		assert.EqualError(t, err, "most recent sequence number 4 is greater than or equal to requested sequence number 4")
+		err := enablePre(logger, seqNumToProcess)
+		assert.NoError(t, err)
+	})
+	t.Run("SequenceNumberAlreadyProcessed", func(t *testing.T) {
+		// seqNumToProcess = 5, mrSeqNum = 5
+		seqNumToProcess = 5
+		seqnoManager = mockSeqNumManager
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(5), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		err := enablePre(logger, seqNumToProcess)
+		assert.NoError(t, err)
+	})
+	t.Run("MostRecentSeqNumIsSmaller_ShouldPass", func(t *testing.T) {
+		// seqNumToProcess = 4, mrSeqNum = 2
+		seqNumToProcess = 4
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(2), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		seqnoManager = mockSeqNumManager
+		err := enablePre(logger, seqNumToProcess)
+		assert.NoError(t, err)
 	})
 }
