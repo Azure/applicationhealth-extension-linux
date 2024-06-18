@@ -12,7 +12,10 @@ require (
 	github.com/xeipuuv/gojsonschema v0.0.0-20160623135812-c539bca196be
 )
 
-require github.com/go-kit/log v0.2.0
+require (
+	github.com/go-kit/log v0.2.0
+	go.uber.org/mock v0.4.0
+)
 
 require (
 	github.com/cilium/ebpf v0.9.1 // indirect
