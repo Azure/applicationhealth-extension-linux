@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cmdFunc func(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
-type preFunc func(lg log.Logger, seqNum int) error
+type cmdFunc func(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint) (msg string, err error)
+type preFunc func(lg log.Logger, seqNum uint) error
 
 type cmd struct {
 	f                  cmdFunc // associated function
@@ -41,12 +41,12 @@ var (
 	}
 )
 
-func noop(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func noop(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	lg.Log("event", "noop")
 	return "", nil
 }
 
-func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -56,7 +56,7 @@ func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (strin
 	return "", nil
 }
 
-func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	{ // a new context scope with path
 		lg = log.With(lg, "path", dataDir)
 		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Removing data dir")
@@ -77,7 +77,7 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func enablePre(lg log.Logger, seqNum int) error {
+func enablePre(lg log.Logger, seqNum uint) error {
 	// exit if this sequence number (a snapshot of the configuration) is already
 	// processed. if not, save this sequence number before proceeding.
 
@@ -99,7 +99,7 @@ func enablePre(lg log.Logger, seqNum int) error {
 	return nil
 }
 
-func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
 	cfg, err := parseAndValidateSettings(lg, h.ConfigFolder)
 	if err != nil {
