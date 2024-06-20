@@ -43,5 +43,8 @@ RUN apt-get install runc -y && \
 RUN curl -fsSL https://test.docker.com -o test-docker.sh && \
         sh test-docker.sh
 
+# Install azure-cli
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
 # Creating ENV variables
 ENV CUSTOM_BATS_LIB_PATH /usr/local/lib/node_modules

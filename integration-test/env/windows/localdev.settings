@@ -1,0 +1,30 @@
+{
+    "runtimeSettings": [
+        {
+            "handlerSettings": {
+                "publicSettings": {
+                    "protocol": "http",
+                    "port": 8080,
+                    "requestPath": "health",
+                    "intervalInSeconds": 5,
+                    "numberOfProbes": 1,
+                    "vmWatchSettings": {
+                      "enabled": true,
+                      "memoryLimitInBytes": 80000000,
+                      "signalFilters": {
+                        "enabledTags": [],
+                        "disabledTags": [],
+                        "enabledOptionalSignals": [ "test" ],
+                        "disabledSignals": []
+                      },
+                      "environmentAttributes": {
+                        "outBoundTrafficAllowed": true
+                      }
+                    }
+                  },
+                "protectedSettings": null,
+                "protectedSettingsCertThumbprint": null
+            }
+        }
+    ]
+}

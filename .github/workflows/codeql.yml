@@ -54,7 +54,7 @@ jobs:
         include:
         - language: go
           build-mode: manual
-        os : [ubuntu-latest]
+        os : [ubuntu-latest, windows-latest]
         # CodeQL supports the following values keywords for 'language': 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -95,23 +95,13 @@ jobs:
     - if: matrix.build-mode == 'manual' && matrix.os == 'ubuntu-latest'
       run: |
         go env
-        make binary
+        make binary-linux
+        
     - if: matrix.build-mode == 'manual' && matrix.os == 'windows-latest'
-      continue-on-error: true
       run: |
         go env
-        [xml]$xmlContent = Get-Content 'path_to_your_manifest.xml'
-        $version = $xmlContent.ExtensionImage.Version
-        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
-        -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=$version \
-        -o $(BINDIR)/$(WINDOWS_BIN) ./main
-        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -v -mod=readonly \
-          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=$version \
-          -o $(TESTBINDIR)/$(WEBSERVERBIN) ./integration-test/webserver
-        GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -v -mod=readonly \
-          -ldflags "-X github.com/Azure/applicationhealth-extension-linux/internal/version.Version=$version \
-          -o $(BINDIR)/$(WINDOWS_BIN_ARM64) ./main
-
+        make binary-windows
+        
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:

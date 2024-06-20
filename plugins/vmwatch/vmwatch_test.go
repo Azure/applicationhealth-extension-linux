@@ -31,19 +31,3 @@ func TestGetMessageCorrectValue(t *testing.T) {
 	res = VMWatchResult{Status: Running}
 	require.Equal(t, "VMWatch is running", res.GetMessage())
 }
-
-func TestExtractVersion(t *testing.T) {
-	v := extractVersion("systemd 123")
-	require.Equal(t, 123, v)
-	v = extractVersion(`someline
-systemd 123
-some other line`)
-	require.Equal(t, 123, v)
-	v = extractVersion(`someline
-systemd abc
-some other line`)
-	require.Equal(t, 0, v)
-	v = extractVersion("junk")
-	require.Equal(t, 0, v)
-}
-

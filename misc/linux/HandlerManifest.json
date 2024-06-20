@@ -1,0 +1,13 @@
+[{
+  "version": 1.0,
+  "handlerManifest": {
+    "installCommand": "bin/applicationhealth-shim install",
+    "uninstallCommand": "bin/applicationhealth-shim uninstall",
+    "updateCommand": "bin/applicationhealth-shim update",
+    "enableCommand": "bin/applicationhealth-shim enable",
+    "disableCommand": "bin/applicationhealth-shim disable",
+    "rebootAfterInstall": false,
+    "reportHeartbeat": false,
+    "updateMode": "UpdateWithInstall"
+  }
+}]

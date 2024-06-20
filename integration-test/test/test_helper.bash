@@ -270,13 +270,12 @@ delete_certificate() {
 
 get_extension_version() {
     # extract version from manifest.xml
-    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/manifest.xml)
+    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/linux/manifest.xml)
     echo $version
 }
 # Accepted Kill Signals SIGINT SIGTERM
 kill_apphealth_extension_gracefully() {
     # kill the applicationhealth extension gracefully
-    # echo "Printing the process list Before killing the applicationhealth extension"
     ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
     kill_signal=$1
     [[ $kill_signal == "SIGINT" || $kill_signal == "SIGTERM" ]] || { echo "Invalid signal: $kill_signal"; return 1; }
@@ -285,8 +284,8 @@ kill_apphealth_extension_gracefully() {
         echo "Applicationhealth extension is not running"
         return 0
     fi
-    # echo "Killing applicationhealth extension with signal: $kill_signal"
-    # echo "PID: $app_health_pid"
+    echo "Killing applicationhealth extension with signal: $kill_signal"
+    echo "PID: $app_health_pid"
     kill -s $kill_signal $app_health_pid
     # echo "Printing the process list after killing the applicationhealth extension"
     ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
