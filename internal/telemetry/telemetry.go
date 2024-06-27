@@ -35,6 +35,7 @@ const (
 
 var (
 	ErrUnableToInitialize = fmt.Errorf("unable to initialize telemetry")
+	ErrTelemetryNotInit   = fmt.Errorf("telemetry not initialized")
 )
 
 type Telemetry struct {
@@ -68,7 +69,7 @@ func GetTelemetry() (*Telemetry, error) {
 	defer mutex.Unlock()
 
 	if instance == nil {
-		return nil, fmt.Errorf("event manager is not initialized")
+		return nil, ErrTelemetryNotInit
 	}
 
 	return instance, nil
