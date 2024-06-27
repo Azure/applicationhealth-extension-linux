@@ -31,52 +31,50 @@ const (
 	KillVMWatchTask    EventTask = "KillVMWatchIfApplicable"
 )
 
-type LogFunc func(logger log.Logger, keyvals ...interface{})
-type LogEventFunc func(logger log.Logger, level EventLevel, taskName EventTask, message string, keyvals ...interface{})
-
-type TelemetryEventSender struct {
+type Telemetry struct {
 	eem *extensionevents.ExtensionEventManager
 }
 
-func NewTelemetryEventSender(eem *extensionevents.ExtensionEventManager) *TelemetryEventSender {
-	return &TelemetryEventSender{
-		eem: eem,
-	}
-}
+var (
+	instance *Telemetry
+	once     sync.Once
+	mutex    sync.Mutex
+)
 
-// sendEvent sends a telemetry event with the specified level, task name, and message.
-func (t *TelemetryEventSender) sendEvent(level EventLevel, taskName EventTask, message string) {
-	switch level {
-	case EventLevelCritical:
-		t.eem.LogCriticalEvent(string(taskName), message)
-	case EventLevelError:
-		t.eem.LogErrorEvent(string(taskName), message)
-	case EventLevelWarning:
-		t.eem.LogWarningEvent(string(taskName), message)
-	case EventLevelVerbose:
-		t.eem.LogVerboseEvent(string(taskName), message)
-	case EventLevelInfo:
-		t.eem.LogInformationalEvent(string(taskName), message)
-	default:
-		return
-	}
-}
-
-// LogStdOutAndEventWithSender is a higher-order function that returns a LogEventFunc.
-// It logs the event to the provided logger and sends the event to the specified sender.
-// If the taskName is empty, it automatically determines the caller's function name as the taskName.
-// The event level, task name, and message are appended to the keyvals slice.
-// Finally, it calls the sender's sendEvent method to send the event.
-func LogStdOutAndEventWithSender(sender *TelemetryEventSender) LogEventFunc {
-	return func(logger log.Logger, level EventLevel, taskName EventTask, message string, keyvals ...interface{}) {
-		if taskName == "" {
-			pc, _, _, _ := runtime.Caller(1)
-			callerName := runtime.FuncForPC(pc).Name()
-			taskName = EventTask(callerName)
+// LogEvent sends a telemetry event with the specified level, task name, and message.
+func (t *Telemetry) SendEvent(level EventLevel, taskName EventTask, message string, keyvals ...interface{}) {
+	var (
+		eventDispatcher = map[EventLevel]func(string, string){
+			CriticalEvent: t.eem.LogCriticalEvent,
+			ErrorEvent:    t.eem.LogErrorEvent,
+			WarningEvent:  t.eem.LogWarningEvent,
+			VerboseEvent:  t.eem.LogVerboseEvent,
+			InfoEvent:     t.eem.LogInformationalEvent,
 		}
-		keyvals = append(keyvals, "level", level, "task", taskName, "event", message)
-		logger.Log(keyvals...)
-		// logger.Log("eventLevel", level, "eventTask", taskName, "event", message)
-		(*sender).sendEvent(level, taskName, message)
+		logDispatcher = map[EventLevel]func(string, ...any){
+			CriticalEvent: slog.Error, // Implement Critical log level
+			ErrorEvent:    slog.Error,
+			WarningEvent:  slog.Warn,
+			VerboseEvent:  slog.Debug, // Implement Verbose log level
+			InfoEvent:     slog.Info,
+		}
+	)
+
+	keyvals = append(keyvals, "task", taskName)
+	// Select the appropriate event dispatcher and log dispatcher based on the event level.
+	// then log and send the event.
+	if dispatchFunc, ok := eventDispatcher[level]; ok {
+		if log, ok := logDispatcher[level]; ok {
+			log(message, keyvals...)
+		}
+		dispatchFunc(string(taskName), message)
+	} else {
+		slog.Error("Invalid event level", "level", level)
 	}
+}
+
+func (t *Telemetry) SetOperationID(operationID string) {
+	t.eem.SetOperationID(operationID)
+}
+
 }
