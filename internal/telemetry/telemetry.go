@@ -33,6 +33,10 @@ const (
 	KillVMWatchTask    EventTask = "KillVMWatchIfApplicable"
 )
 
+var (
+	ErrUnableToInitialize = fmt.Errorf("unable to initialize telemetry")
+)
+
 type Telemetry struct {
 	eem *extensionevents.ExtensionEventManager
 }
@@ -43,16 +47,20 @@ var (
 	mutex    sync.Mutex
 )
 
-func NewTelemetry(h *handlerenv.HandlerEnvironment) *Telemetry {
+func NewTelemetry(h *handlerenv.HandlerEnvironment) (*Telemetry, error) {
 	if instance != nil {
-		return instance
+		slog.Warn("Telemetry instance already initialized")
+		return instance, nil
+	}
+	if h.EventsFolder == "" {
+		return nil, fmt.Errorf("events folder is not set: %w", ErrUnableToInitialize)
 	}
 	once.Do(func() {
 		instance = &Telemetry{
 			eem: extensionevents.New(logging.NewNopLogger(), &h.HandlerEnvironment),
 		}
 	})
-	return instance
+	return instance, nil
 }
 
 func GetTelemetry() (*Telemetry, error) {
