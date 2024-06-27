@@ -12,11 +12,11 @@ type EventLevel string
 type EventTask string
 
 const (
-	EventLevelCritical EventLevel = "Critical"
-	EventLevelError    EventLevel = "Error"
-	EventLevelWarning  EventLevel = "Warning"
-	EventLevelVerbose  EventLevel = "Verbose"
-	EventLevelInfo     EventLevel = "Informational"
+	CriticalEvent EventLevel = "Critical"
+	ErrorEvent    EventLevel = "Error"
+	WarningEvent  EventLevel = "Warning"
+	VerboseEvent  EventLevel = "Verbose"
+	InfoEvent     EventLevel = "Informational"
 )
 
 const (
