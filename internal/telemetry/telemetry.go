@@ -1,14 +1,16 @@
 package telemetry
 
 import (
-	"runtime"
+	"fmt"
+	"log/slog"
+	"sync"
 
+	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
-	"github.com/go-kit/log"
 )
 
 type EventLevel string
-
 type EventTask string
 
 const (
@@ -40,6 +42,29 @@ var (
 	once     sync.Once
 	mutex    sync.Mutex
 )
+
+func NewTelemetry(h *handlerenv.HandlerEnvironment) *Telemetry {
+	if instance != nil {
+		return instance
+	}
+	once.Do(func() {
+		instance = &Telemetry{
+			eem: extensionevents.New(logging.NewNopLogger(), &h.HandlerEnvironment),
+		}
+	})
+	return instance
+}
+
+func GetTelemetry() (*Telemetry, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if instance == nil {
+		return nil, fmt.Errorf("event manager is not initialized")
+	}
+
+	return instance, nil
+}
 
 // LogEvent sends a telemetry event with the specified level, task name, and message.
 func (t *Telemetry) SendEvent(level EventLevel, taskName EventTask, message string, keyvals ...interface{}) {
@@ -77,4 +102,12 @@ func (t *Telemetry) SetOperationID(operationID string) {
 	t.eem.SetOperationID(operationID)
 }
 
+// SendEvent sends an event with the specified level, task name, message, and key-value pairs.
+// It is a package level function that can be used to send telemetry events.
+// If the instance is nil, the function returns without sending the event.
+func SendEvent(level EventLevel, taskName EventTask, message string, keyvals ...interface{}) {
+	if instance == nil {
+		return
+	}
+	instance.SendEvent(level, taskName, message, keyvals...)
 }
