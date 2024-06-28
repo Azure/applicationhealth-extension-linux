@@ -2,18 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
-	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
 
-type cmdFunc func(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
-type preFunc func(lg log.Logger, seqNum int) error
+type cmdFunc func(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
+type preFunc func(lg *slog.Logger, seqNum int) error
 
 type cmd struct {
 	f                  cmdFunc // associated function
@@ -41,31 +41,31 @@ var (
 	}
 )
 
-func noop(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
-	lg.Log("event", "noop")
+func noop(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+	lg.Info("noop")
 	return "", nil
 }
 
-func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
 
-	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Created data dir", "path", dataDir)
-	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Handler successfully installed")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Created data dir", "path", dataDir)
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Handler successfully installed")
 	return "", nil
 }
 
-func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
 	{ // a new context scope with path
-		lg = log.With(lg, "path", dataDir)
-		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Removing data dir")
+		slog.SetDefault(lg.With("path", dataDir))
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Removing data dir", "path", dataDir)
 		if err := os.RemoveAll(dataDir); err != nil {
 			return "", errors.Wrap(err, "failed to delete data dir")
 		}
-		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Successfully removed data dir")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Successfully removed data dir")
 	}
-	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Handler successfully uninstalled")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Handler successfully uninstalled")
 	return "", nil
 }
 
