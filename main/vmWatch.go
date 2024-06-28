@@ -348,7 +348,7 @@ func setupVMWatchCommand(s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment
 		systemdArgs := []string{"--scope", "-p", fmt.Sprintf("CPUQuota=%v%%", s.MaxCpuPercentage)}
 
 		// systemd versions prior to 246 do not support MemoryMax, instead MemoryLimit should be used
-		if (systemdVersion < 246) {
+		if systemdVersion < 246 {
 			systemdArgs = append(systemdArgs, "-p", fmt.Sprintf("MemoryLimit=%v", s.MemoryLimitInBytes))
 		} else {
 			systemdArgs = append(systemdArgs, "-p", fmt.Sprintf("MemoryMax=%v", s.MemoryLimitInBytes))
@@ -380,7 +380,7 @@ func isSystemdAvailable() bool {
 	return err == nil && info.IsDir()
 }
 
-func getSystemdVersion() (int) {
+func getSystemdVersion() int {
 	cmd := exec.Command("systemd-run", "--version")
 
 	// Execute the command and capture the output
@@ -415,17 +415,16 @@ func extractVersion(output string) int {
 	return 0
 }
 
-
-func createAndAssignCgroups(lg log.Logger, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
+func createAndAssignCgroups(lg *slog.Logger, vmwatchSettings *vmWatchSettings, vmWatchPid int) error {
 	// get our process and use this to determine the appropriate mount points for the cgroups
 	myPid := os.Getpid()
 	memoryLimitInBytes := int64(vmwatchSettings.MemoryLimitInBytes)
 
-	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "Assigning VMWatch process to cgroup")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, "Assigning VMWatch process to cgroup")
 
 	// check cgroups mode
 	if cgroups.Mode() == cgroups.Unified {
-		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "cgroups v2 detected")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, "cgroups v2 detected")
 		// in cgroup v2, we need to set the period and quota relative to one another.
 		// Quota is the number of microseconds in the period that process can run
 		// Period is the length of the period in microseconds
@@ -451,7 +450,7 @@ func createAndAssignCgroups(lg log.Logger, vmwatchSettings *vmWatchSettings, vmW
 			return err
 		}
 	} else {
-		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, "cgroups v1 detected")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, "cgroups v1 detected")
 		p := cgroup1.PidPath(myPid)
 
 		cpuPath, err := p("cpu")
