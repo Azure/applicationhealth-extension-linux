@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cmdFunc func(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
-type preFunc func(lg log.Logger, seqNum int) error
+type cmdFunc func(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint) (msg string, err error)
+type preFunc func(lg log.Logger, seqNum uint) error
 
 type cmd struct {
 	f                  cmdFunc // associated function
@@ -29,7 +29,7 @@ const (
 
 var (
 	cmdInstall   = cmd{install, "Install", false, nil, 52}
-	cmdEnable    = cmd{enable, "Enable", true, nil, 3}
+	cmdEnable    = cmd{enable, "Enable", true, enablePre, 3}
 	cmdUninstall = cmd{uninstall, "Uninstall", false, nil, 3}
 
 	cmds = map[string]cmd{
@@ -41,12 +41,12 @@ var (
 	}
 )
 
-func noop(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func noop(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	lg.Log("event", "noop")
 	return "", nil
 }
 
-func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -56,7 +56,7 @@ func install(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (strin
 	return "", nil
 }
 
-func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	{ // a new context scope with path
 		lg = log.With(lg, "path", dataDir)
 		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.AppHealthTask, "Removing data dir")
@@ -77,7 +77,29 @@ var (
 	errTerminated = errors.New("Application health process terminated")
 )
 
-func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func enablePre(lg log.Logger, seqNum uint) error {
+	// exit if this sequence number (a snapshot of the configuration) is already
+	// processed. if not, save this sequence number before proceeding.
+
+	mrSeqNum, err := seqnoManager.GetCurrentSequenceNumber(lg, fullName, "")
+	if err != nil {
+		return errors.Wrap(err, "failed to get current sequence number")
+	}
+	// If the most recent sequence number is greater than or equal to the requested sequence number,
+	// then the script has already been run and we should exit.
+	if mrSeqNum != 0 && seqNum < mrSeqNum {
+		lg.Log("event", "exit", "message", "the script configuration has already been processed, will not run again")
+		return errors.Errorf("most recent sequence number %d is greater than the requested sequence number %d", mrSeqNum, seqNum)
+	}
+
+	// save the sequence number
+	if err := seqnoManager.SetSequenceNumber(fullName, "", seqNum); err != nil {
+		return errors.Wrap(err, "failed to save sequence number")
+	}
+	return nil
+}
+
+func enable(lg log.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
 	cfg, err := parseAndValidateSettings(lg, h.ConfigFolder)
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func reportStatus(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int, t StatusType, c cmd, msg string) error {
+func reportStatus(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint, t StatusType, c cmd, msg string) error {
 	if !c.shouldReportStatus {
 		lg.Log("status", "not reported for operation (by design)")
 		return nil
@@ -29,7 +29,7 @@ func reportStatus(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int
 	return nil
 }
 
-func reportStatusWithSubstatuses(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int, t StatusType, op string, msg string, substatuses []SubstatusItem) error {
+func reportStatusWithSubstatuses(lg log.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint, t StatusType, op string, msg string, substatuses []SubstatusItem) error {
 	s := NewStatus(t, op, msg)
 	for _, substatus := range substatuses {
 		s.AddSubstatusItem(substatus)

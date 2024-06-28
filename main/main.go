@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
@@ -28,6 +29,8 @@ var (
 	eem *extensionevents.ExtensionEventManager
 
 	sendTelemetry telemetry.LogEventFunc
+
+	seqnoManager seqno.SequenceNumberManager = seqno.New()
 )
 
 func main() {
@@ -61,7 +64,8 @@ func main() {
 		logger.Log("message", "failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := FindSeqNum(hEnv.ConfigFolder)
+
+	seqNum, err := seqnoManager.FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
 		logger.Log("message", "failed to find sequence number", "error", err)
 	}
