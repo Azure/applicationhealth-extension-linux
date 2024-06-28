@@ -26,7 +26,7 @@ var (
 )
 
 func main() {
-	logger := slog.New(logging.NewExtensionLoggerHandler(os.Stdout, nil)).
+	logger := slog.New(logging.NewExtensionSlogHandler(os.Stdout, nil)).
 		With("version", VersionString()).
 		With("pid", os.Getpid())
 	// parse command line arguments
