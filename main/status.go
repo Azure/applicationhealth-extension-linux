@@ -102,7 +102,7 @@ func (r StatusReport) marshal() ([]byte, error) {
 // Save persists the status message to the specified status folder using the
 // sequence number. The operation consists of writing to a temporary file in the
 // same folder and moving it to the final destination for atomicity.
-func (r StatusReport) Save(statusFolder string, seqNum int) error {
+func (r StatusReport) Save(statusFolder string, seqNum uint) error {
 	fn := fmt.Sprintf("%d.status", seqNum)
 	path := filepath.Join(statusFolder, fn)
 	tmpFile, err := ioutil.TempFile(statusFolder, fn)

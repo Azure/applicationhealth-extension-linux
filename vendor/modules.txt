@@ -3,10 +3,12 @@
 github.com/Azure/azure-docker-extension/pkg/vmextension
 # github.com/Azure/azure-extension-platform v0.0.0-20240521173920-6b2acfda81e9
 ## explicit; go 1.21
+github.com/Azure/azure-extension-platform/pkg/constants
 github.com/Azure/azure-extension-platform/pkg/extensionerrors
 github.com/Azure/azure-extension-platform/pkg/extensionevents
 github.com/Azure/azure-extension-platform/pkg/handlerenv
 github.com/Azure/azure-extension-platform/pkg/logging
+github.com/Azure/azure-extension-platform/pkg/seqno
 github.com/Azure/azure-extension-platform/pkg/utils
 # github.com/cilium/ebpf v0.9.1
 ## explicit; go 1.17
@@ -69,11 +71,15 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v0.0.0-20160623135812-c539bca196be
 ## explicit
 github.com/xeipuuv/gojsonschema
+# go.uber.org/mock v0.4.0
+## explicit; go 1.20
+go.uber.org/mock/gomock
 # golang.org/x/sys v0.2.0
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
 # google.golang.org/protobuf v1.33.0
 ## explicit; go 1.17
 google.golang.org/protobuf/encoding/prototext

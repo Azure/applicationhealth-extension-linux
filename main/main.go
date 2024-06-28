@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 )
@@ -23,6 +24,8 @@ var (
 	// We need a reference to the command here so that we can cleanly shutdown VMWatch process
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
+
+	seqnoManager seqno.SequenceNumberManager = seqno.New()
 )
 
 func main() {
@@ -52,7 +55,8 @@ func main() {
 		logger.Info("failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
-	seqNum, err := FindSeqNum(hEnv.ConfigFolder)
+
+	seqNum, err := seqnoManager.FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
 		logger.Info("failed to find sequence number", "error", err)
 	}
