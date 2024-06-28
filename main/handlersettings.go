@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/log"
 	"github.com/pkg/errors"
 )
 
