@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,8 +13,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/go-kit/log"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
@@ -235,19 +234,19 @@ func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bo
 	}
 }
 
-func killVMWatch(lg log.Logger, cmd *exec.Cmd) error {
+func killVMWatch(lg *slog.Logger, cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil || cmd.ProcessState != nil {
-		sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, "VMWatch is not running, killing process is not necessary.")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.KillVMWatchTask, "VMWatch is not running, killing process is not necessary.")
 		return nil
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		sendTelemetry(lg, telemetry.EventLevelError, telemetry.KillVMWatchTask,
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.KillVMWatchTask,
 			fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err))
 		return err
 	}
 
-	sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.KillVMWatchTask, fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
 	return nil
 }
 
