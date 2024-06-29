@@ -77,33 +77,51 @@ func GetTelemetry() (*Telemetry, error) {
 
 // LogEvent sends a telemetry event with the specified level, task name, and message.
 func (t *Telemetry) SendEvent(level EventLevel, taskName EventTask, message string, keyvals ...interface{}) {
-	var (
-		eventDispatcher = map[EventLevel]func(string, string){
-			CriticalEvent: t.eem.LogCriticalEvent,
-			ErrorEvent:    t.eem.LogErrorEvent,
-			WarningEvent:  t.eem.LogWarningEvent,
-			VerboseEvent:  t.eem.LogVerboseEvent,
-			InfoEvent:     t.eem.LogInformationalEvent,
-		}
-		logDispatcher = map[EventLevel]func(string, ...any){
-			CriticalEvent: slog.Error, // Implement Critical log level
-			ErrorEvent:    slog.Error,
-			WarningEvent:  slog.Warn,
-			VerboseEvent:  slog.Debug, // Implement Verbose log level
-			InfoEvent:     slog.Info,
-		}
-	)
-
 	keyvals = append(keyvals, "task", taskName)
 	// Select the appropriate event dispatcher and log dispatcher based on the event level.
 	// then log and send the event.
-	if dispatchFunc, ok := eventDispatcher[level]; ok {
-		if log, ok := logDispatcher[level]; ok {
+	if eventDispatcher, ok := t.getEventDispatcherFunc(level); ok {
+		if log, ok := t.getLogDispatcherFunc(level); ok {
 			log(message, keyvals...)
 		}
-		dispatchFunc(string(taskName), message)
+		eventDispatcher(string(taskName), message)
 	} else {
 		slog.Error("Invalid event level", "level", level)
+	}
+}
+
+// Helper method to dynamically get the dispatch function
+func (t *Telemetry) getEventDispatcherFunc(level EventLevel) (func(string, string), bool) {
+	switch level {
+	case InfoEvent:
+		return t.eem.LogInformationalEvent, true
+	case VerboseEvent:
+		return t.eem.LogVerboseEvent, true
+	case WarningEvent:
+		return t.eem.LogWarningEvent, true
+	case ErrorEvent:
+		return t.eem.LogErrorEvent, true
+	case CriticalEvent:
+		return t.eem.LogCriticalEvent, true
+	default:
+		return nil, false
+	}
+}
+
+func (t *Telemetry) getLogDispatcherFunc(level EventLevel) (func(string, ...any), bool) {
+	switch level {
+	case InfoEvent:
+		return slog.Info, true
+	case VerboseEvent:
+		return slog.Debug, true
+	case WarningEvent:
+		return slog.Warn, true
+	case ErrorEvent:
+		return slog.Error, true
+	case CriticalEvent:
+		return slog.Error, true
+	default:
+		return nil, false
 	}
 }
 
