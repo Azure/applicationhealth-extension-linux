@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -12,8 +13,6 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
-	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
-	"github.com/go-kit/log"
 )
 
 var (
@@ -26,59 +25,56 @@ var (
 	// when a shutdown signal is received
 	vmWatchCommand *exec.Cmd
 
-	eem *extensionevents.ExtensionEventManager
-
-	sendTelemetry telemetry.LogEventFunc
-
 	seqnoManager seqno.SequenceNumberManager = seqno.New()
 )
 
 func main() {
-	logger := log.NewSyncLogger(log.NewLogfmtLogger(
-		os.Stdout))
-
-	logger = log.With(logger, "time", log.DefaultTimestamp)
-	logger = log.With(logger, "version", VersionString())
-	logger = log.With(logger, "pid", os.Getpid())
-
+	logger := slog.New(logging.NewExtensionSlogHandler(os.Stdout, nil)).
+		With("version", VersionString()).
+		With("pid", os.Getpid())
 	// parse command line arguments
 	cmd := parseCmd(os.Args)
-	logger = log.With(logger, "operation", strings.ToLower(cmd.name))
+	logger = logger.With("operation", strings.ToLower(cmd.name))
 
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, "Received shutdown request")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.KillVMWatchTask, "Received shutdown request")
 		shutdown = true
 		err := killVMWatch(logger, vmWatchCommand)
 		if err != nil {
-			sendTelemetry(logger, telemetry.EventLevelError, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()
 
 	// parse extension environment
 	hEnv, err := handlerenv.GetHandlerEnviroment()
 	if err != nil {
-		logger.Log("message", "failed to parse handlerenv", "error", err)
+		logger.Info("failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
 	}
 
 	seqNum, err := seqnoManager.FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
-		logger.Log("message", "failed to find sequence number", "error", err)
+		logger.Info("failed to find sequence number", "error", err)
 	}
-	logger = log.With(logger, "seq", seqNum)
-	eem = extensionevents.New(logging.NewNopLogger(), &hEnv.HandlerEnvironment)
-	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
+	logger = logger.With("seq", seqNum)
+	slog.SetDefault(logger)
+
+	// Initialize telemetry singleton, which can be used with package level function
+	if _, err := telemetry.NewTelemetry(hEnv); err != nil {
+		logger.Error(fmt.Sprintf("failed to initialize telemetry object, error: %s", err.Error()), slog.Any("error", err))
+		os.Exit(cmd.failExitCode)
+	}
 	// check sub-command preconditions, if any, before executing
-	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
-	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("HandlerEnviroment = %s", hEnv))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("HandlerEnviroment = %s", hEnv))
 	if cmd.pre != nil {
-		logger.Log("event", "pre-check")
+		logger.Info("pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
-			sendTelemetry(logger, telemetry.EventLevelError, telemetry.MainTask, "pre-check failed", "error", err.Error())
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.MainTask, "pre-check failed", "error", err.Error())
 			os.Exit(cmd.failExitCode)
 		}
 	}
@@ -86,12 +82,12 @@ func main() {
 	reportStatus(logger, hEnv, seqNum, StatusTransitioning, cmd, "")
 	msg, err := cmd.f(logger, hEnv, seqNum)
 	if err != nil {
-		logger.Log("event", "failed to handle", "error", err)
+		logger.Error("failed to handle", "error", err)
 		reportStatus(logger, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
 	reportStatus(logger, hEnv, seqNum, StatusSuccess, cmd, msg)
-	sendTelemetry(logger, telemetry.EventLevelInfo, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
 }
 
 // parseCmd looks at os.Args and parses the subcommand. If it is invalid,

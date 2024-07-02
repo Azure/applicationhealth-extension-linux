@@ -1,10 +1,11 @@
 package main
 
 import (
+	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
-	"github.com/go-kit/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -36,7 +37,7 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 
 func Test_enablePre(t *testing.T) {
 	var (
-		logger          = log.NewNopLogger()
+		logger          = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 		seqNumToProcess uint
 		ctrl            = gomock.NewController(t)
 	)

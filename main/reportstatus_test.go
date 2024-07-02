@@ -2,23 +2,15 @@ package main
 
 import (
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/go-kit/log"
-
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
-	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
 	"github.com/stretchr/testify/require"
 )
-
-func initTelemetry(he *handlerenv.HandlerEnvironment) {
-	eem = extensionevents.New(logging.NewNopLogger(), &he.HandlerEnvironment)
-	sendTelemetry = telemetry.LogStdOutAndEventWithSender(telemetry.NewTelemetryEventSender(eem))
-}
 
 func Test_statusMsg(t *testing.T) {
 	require.Equal(t, "Enable succeeded", statusMsg(cmdEnable, StatusSuccess, ""))
@@ -33,27 +25,40 @@ func Test_statusMsg(t *testing.T) {
 
 func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := &handlerenv.HandlerEnvironment{}
-	fakeEnv.StatusFolder = "/non-existing/dir/"
+	fakeEnv.StatusFolder = "/non-existing/dir/" // intentionally set to a non-existing directory
+	fakeEnv.EventsFolder = "/non-existing/dir/" // intentionally set to a non-existing directory
 
-	initTelemetry(fakeEnv)
+	_, err := telemetry.NewTelemetry(fakeEnv)
+	require.NoError(t, err, "failed to initialize telemetry")
 
-	err := reportStatus(log.NewNopLogger(), fakeEnv, 1, StatusSuccess, cmdEnable, "")
+	fakeLogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.SetDefault(fakeLogger)
+
+	err = reportStatus(fakeLogger, fakeEnv, 1, StatusSuccess, cmdEnable, "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
 }
 
 func Test_reportStatus_fileExists(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "")
+	statusDir, err := os.MkdirTemp("", "status-")
 	require.Nil(t, err)
-	defer os.RemoveAll(tmpDir)
+	eventsDir, err := os.MkdirTemp("", "events-")
+	require.Nil(t, err)
+	defer os.RemoveAll(statusDir)
+	defer os.RemoveAll(eventsDir)
 
 	fakeEnv := &handlerenv.HandlerEnvironment{}
-	fakeEnv.StatusFolder = tmpDir
-	initTelemetry(fakeEnv)
+	fakeEnv.StatusFolder = statusDir
+	fakeEnv.EventsFolder = eventsDir
 
-	require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
+	_, err = telemetry.NewTelemetry(fakeEnv)
+	require.NoError(t, err, "failed to initialize telemetry")
+	fakeLogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.SetDefault(fakeLogger)
 
-	path := filepath.Join(tmpDir, "1.status")
+	require.Nil(t, reportStatus(fakeLogger, fakeEnv, 1, StatusError, cmdEnable, "FOO ERROR"))
+
+	path := filepath.Join(statusDir, "1.status")
 	b, err := ioutil.ReadFile(path)
 	require.Nil(t, err, ".status file exists")
 	require.NotEqual(t, 0, len(b), ".status file not empty")
@@ -61,17 +66,23 @@ func Test_reportStatus_fileExists(t *testing.T) {
 
 func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 	for _, c := range cmds {
-		tmpDir, err := ioutil.TempDir("", "status-"+c.name)
+		statusDir, err := os.MkdirTemp("", "status-"+c.name)
 		require.Nil(t, err)
-		defer os.RemoveAll(tmpDir)
+		eventsDir, err := os.MkdirTemp("", "events-"+c.name)
+		require.Nil(t, err)
+		defer os.RemoveAll(statusDir)
+		defer os.RemoveAll(eventsDir)
 
 		fakeEnv := &handlerenv.HandlerEnvironment{}
-		fakeEnv.StatusFolder = tmpDir
-		initTelemetry(fakeEnv)
+		fakeEnv.StatusFolder = statusDir
+		fakeEnv.EventsFolder = eventsDir
+		_, err = telemetry.NewTelemetry(fakeEnv)
+		require.NoError(t, err, "failed to initialize telemetry")
+		fakeLogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+		slog.SetDefault(fakeLogger)
+		require.Nil(t, reportStatus(fakeLogger, fakeEnv, 2, StatusSuccess, c, ""))
 
-		require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 2, StatusSuccess, c, ""))
-
-		fp := filepath.Join(tmpDir, "2.status")
+		fp := filepath.Join(statusDir, "2.status")
 		_, err = os.Stat(fp) // check if the .status file is there
 		if c.shouldReportStatus && err != nil {
 			t.Fatalf("cmd=%q should have reported status file=%q err=%v", c.name, fp, err)

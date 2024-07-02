@@ -16,6 +16,18 @@
             ]
         },
         {
+            "name": "devcontainer run - uninstall",
+            "type": "go",
+            "request": "launch",
+            "mode": "exec",
+            "program": "/var/lib/waagent/Extension/bin/applicationhealth-extension",
+            "cwd": "${workspaceFolder}",
+            "args" : [
+                "uninstall"
+            ],
+            "preLaunchTask": "make devcontainer"
+        },
+        {
             "name": "devcontainer run - enable",
             "type": "go",
             "request": "launch",

@@ -1,15 +1,16 @@
 package seqno
 
 import (
+	"log/slog"
+
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/azure-extension-platform/pkg/extensionerrors"
 	"github.com/Azure/azure-extension-platform/pkg/seqno"
-	"github.com/go-kit/log"
 )
 
 type SequenceNumberManager interface {
 	// GetCurrentSequenceNumber returns the current sequence number the extension is using
-	GetCurrentSequenceNumber(el log.Logger, name, version string) (uint, error)
+	GetCurrentSequenceNumber(el *slog.Logger, name, version string) (uint, error)
 
 	// GetSequenceNumber retrieves the sequence number from the MRSEQ file
 	GetSequenceNumber(name, version string) (uint, error)
@@ -47,12 +48,12 @@ func (s *SeqNumManager) FindSeqNum(configFolder string) (uint, error) {
 }
 
 // GetCurrentSequenceNumber returns the current sequence number the extension is using
-func (s *SeqNumManager) GetCurrentSequenceNumber(lg log.Logger, name, version string) (sn uint, _ error) {
+func (s *SeqNumManager) GetCurrentSequenceNumber(el *slog.Logger, name, version string) (sn uint, _ error) {
 	sequenceNumber, err := s.GetSequenceNumber(name, version)
 	if err == extensionerrors.ErrNotFound || err == extensionerrors.ErrNoMrseqFile {
 		// If we can't find the sequence number, then it's possible that the extension
 		// hasn't been installed yet. Go back to 0.
-		lg.Log("event", "Couldn't find current sequence number, likely first execution of the extension, returning sequence number 0")
+		el.Info("Couldn't find current sequence number, likely first execution of the extension, returning sequence number 0")
 		return 0, nil
 	}
 
