@@ -20,7 +20,7 @@ import (
 var extCommands = CommandMap{
 	InstallKey:   cmd{f: install, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},
 	UninstallKey: cmd{f: uninstall, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3},
-	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
+	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: enablePre, failExitCode: 3},
 	UpdateKey:    cmd{f: noop, Name: UpdateName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
 	DisableKey:   cmd{f: noop, Name: DisableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
 }
@@ -48,19 +48,18 @@ func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnviro
 
 	lg.With("operation", strings.ToLower(command.Name.String()))
 	lg.With("seq", strconv.Itoa(seqNum))
-
-	lg.Info("Starting AppHealth Extension")
-	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, command.Name.String()))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("HandlerEnviroment = %s", hEnv))
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		lg.Info("Received shutdown request")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.KillVMWatchTask, "Received shutdown request")
 		global.Shutdown = true
 		err := vmwatch.KillVMWatch(lg, vmwatch.VMWatchCommand)
 		if err != nil {
-			lg.Error("error when killing vmwatch", slog.Any("error", err))
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()
 
@@ -93,18 +92,40 @@ func install(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (s
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
-
-	lg.Info(fmt.Sprintf("created data dir, path: %s", dataDir))
-	lg.Info("installed")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Created data dir", "path", dataDir)
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Handler successfully installed")
 	return "", nil
 }
 
 func uninstall(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
-	lg.Info(fmt.Sprintf("removing data dir, path: %s", dataDir), slog.String("path", dataDir))
+	// lg.Info(fmt.Sprintf("removing data dir, path: %s", dataDir), slog.String("path", dataDir))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Removing data dir", "path", dataDir)
 	if err := os.RemoveAll(dataDir); err != nil {
 		return "", errors.Wrap(err, "failed to delete data dir")
 	}
-	lg.Info("removed data dir", slog.String("path", dataDir))
-	lg.Info("uninstalled", slog.String("path", dataDir))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Successfully removed data dir")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Handler successfully uninstalled")
 	return "", nil
+}
+
+func enablePre(lg *slog.Logger, seqNum uint) error {
+	// exit if this sequence number (a snapshot of the configuration) is already
+	// processed. if not, save this sequence number before proceeding.
+
+	mrSeqNum, err := seqnoManager.GetCurrentSequenceNumber(lg, fullName, "")
+	if err != nil {
+		return errors.Wrap(err, "failed to get current sequence number")
+	}
+	// If the most recent sequence number is greater than or equal to the requested sequence number,
+	// then the script has already been run and we should exit.
+	if mrSeqNum != 0 && seqNum < mrSeqNum {
+		lg.Info("the script configuration has already been processed, will not run again")
+		return errors.Errorf("most recent sequence number %d is greater than the requested sequence number %d", mrSeqNum, seqNum)
+	}
+
+	// save the sequence number
+	if err := seqnoManager.SetSequenceNumber(fullName, "", seqNum); err != nil {
+		return errors.Wrap(err, "failed to save sequence number")
+	}
+	return nil
 }

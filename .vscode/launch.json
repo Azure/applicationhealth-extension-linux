@@ -17,18 +17,6 @@
             "preLaunchTask": "make devcontainer"
         },
         {
-            "name": "devcontainer run - enable",
-            "type": "go",
-            "request": "launch",
-            "mode": "exec",
-            "program": "/var/lib/waagent/Extension/bin/applicationhealth-extension",
-            "cwd": "${workspaceFolder}",
-            "args" : [
-                "enable"
-            ],
-            "preLaunchTask": "make devcontainer"
-        },
-        {
             "name": "devcontainer run - uninstall",
             "type": "go",
             "request": "launch",
@@ -41,12 +29,16 @@
             "preLaunchTask": "make devcontainer"
         },
         {
-            "name": "Run integration tests",
-            "type": "node-terminal",
+            "name": "devcontainer run - enable",
+            "type": "go",
             "request": "launch",
-            "command": "./integration-test/run.sh",
+            "mode": "exec",
+            "program": "/var/lib/waagent/Extension/bin/applicationhealth-extension",
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "make binary - linux"
+            "args" : [
+                "enable"
+            ],
+            "preLaunchTask": "make devcontainer"
         },
         {
             "name": "devcontainer run - enable NOBUILD",
@@ -60,16 +52,12 @@
             ]
         },
         {
-            "name": "devcontainer run - uninstall",
-            "type": "go",
+            "name": "Run integration tests",
+            "type": "node-terminal",
             "request": "launch",
-            "mode": "exec",
-            "program": "/var/lib/waagent/Extension/bin/applicationhealth-extension",
+            "command": "./integration-test/run.sh",
             "cwd": "${workspaceFolder}",
-            "args" : [
-                "uninstall"
-            ],
-            "preLaunchTask": "make devcontainer"
-        }
+            "preLaunchTask": "make binary - linux"
+        },
     ]
 }

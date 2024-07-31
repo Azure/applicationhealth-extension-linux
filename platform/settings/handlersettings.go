@@ -44,35 +44,30 @@ type protectedSettings struct {
 // ParseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
 func ParseAndValidateSettings(lg logging.Logger, configFolder string) (h HandlerSettings, _ error) {
-	lg.Info("reading configuration")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "Reading configuration")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
 	lg.Info("read configuration")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validating json schema")
-	lg.Info("validating json schema")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	lg.Info("json schema valid")
-	lg.Info("parsing configuration json")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "json schema valid")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsing configuration json")s
+
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "json schema valid")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "parsing configuration json")
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
 
-	lg.Info("parsed configuration json")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "parsed configuration json")
-	lg.Info("validating configuration logically")
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.MainTask, "validating configuration logically")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "parsed configuration json")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "validating configuration logically")
 
 	if err := h.Validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	lg.Info("validated configuration")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "validated configuration")
 	return h, nil
 }
 

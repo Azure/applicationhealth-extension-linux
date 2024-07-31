@@ -16,6 +16,8 @@ var (
 	logger, err = logging.NewExtensionLogger(nil)
 	// Exit helper
 	exiter = exithelper.Exiter
+
+	seqnoManager seqno.SequenceNumberManager = seqno.New()
 )
 
 func main() {
@@ -48,6 +50,12 @@ func main() {
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
+	// Initialize telemetry singleton, which can be used with package level function
+	if _, err := telemetry.NewTelemetry(hEnv); err != nil {
+		logger.Error(fmt.Sprintf("failed to initialize telemetry object, error: %s", err.Error()), slog.Any("error", err))
+		os.Exit(cmd.failExitCode)
+	}
+
 	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
 		logger.Error("failed to create command handler", slog.Any("error", err))
@@ -60,10 +68,13 @@ func main() {
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("HandlerEnviroment = %s", hEnv))
+
 	err = handler.Execute(cmdKey, hEnv, seqNum, logger) // execute the command
 	if err != nil {
 		logger.Error("failed to execute command", slog.Any("error", err))
 		exiter.Exit(exithelper.ExecutionError)
 	}
-	logger.Info("end")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("Finished execution of AppHealth Extension %s seqNum=%d operation=%s", GetExtensionVersion(), seqNum, cmd.name))
 }

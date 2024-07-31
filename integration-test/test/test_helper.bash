@@ -14,11 +14,19 @@ build_docker_image_nocache() {
 }
 
 # This function builds a Docker image for testing purposes, if it already doesn't exist.
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
+build_docker_image_nocache() {
+    # Check if the image already exists
+    echo "Building test image $IMAGE..."
+    docker build --no-cache -q -f $DOCKERFILE -t $IMAGE . 1>&2
+}
+
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image() {
     # Check if the image already exists
     if [ -z "$(docker images -q $IMAGE)" ]; then
-        echo "Building test image $IMAGE..."
-        docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
+    echo "Building test image $IMAGE..."
+    docker build -q -f $DOCKERFILE -t $IMAGE . 1>&2
     else
         echo "Test image $IMAGE already exists. Skipping build."
     fi
@@ -205,7 +213,7 @@ verify_state_change_timestamps() {
                 [[ "$diff" -ge "${expectedTimeDifferences[$index-1]}" ]]
             fi
         index=$index+1
-        prevDate=$currentDate
+        prevDate=$currentDate     
         done
     done <<< "$1"
 }

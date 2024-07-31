@@ -21,10 +21,10 @@ func ReportStatus(lg logging.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum
 	}
 	s := status.NewStatus(t, c.Name.String(), statusMsg(c, t, msg))
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask, "failed to save handler status", "error", err.Error())
-		lg.Error("failed to save handler status", slog.Any("error", err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportStatusTask, fmt.Sprintf("failed to save handler status: %s", s), "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportStatusTask, fmt.Sprintf("saved handler status: %s", s))
 	return nil
 }
 
@@ -34,7 +34,7 @@ func ReportStatusWithSubstatuses(lg logging.Logger, hEnv *handlerenv.HandlerEnvi
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		lg.Error("failed to save handler status", slog.Any("error", err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportStatusTask, fmt.Sprintf("failed to save handler status: %s", s), "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil

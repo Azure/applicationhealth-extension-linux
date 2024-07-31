@@ -85,8 +85,8 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 	defer func() {
 		if r := recover(); r != nil {
 			vmWatchErr = fmt.Errorf("%w\n Additonal Details: %+v", vmWatchErr, r)
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StopVMWatchTask, fmt.Sprintf("Recovered %+v", r))
 			lg.Error(fmt.Sprintf("VMWatch failed: %+v", r), slog.Any("error", vmWatchErr))
-			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, fmt.Sprintf("Recovered %+v", r))
 		}
 		vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
 		close(vmWatchResultChannel)
@@ -103,8 +103,7 @@ func ExecuteVMWatch(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.Hand
 		{
 			// scoping the errMsg variable to avoid shadowing
 			errMsg := fmt.Sprintf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts)
-			lg.Error("VMWatch reached max retries", slog.Any("error", errMsg))
-			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, errMsg, "error", errMsg)
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, errMsg, slog.Any("error", errMsg))
 		}
 		// we have exceeded the retries so now we go to sleep before starting again
 		time.Sleep(time.Hour * HoursBetweenRetryAttempts)
@@ -120,12 +119,12 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("error: %w\n Additonal Details: %+v", err, r)
-			lg.Error(fmt.Sprintf("VMWatch failed: Recovered %+v", r), slog.Any("error", err))
-			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, fmt.Sprintf("Recovered %+v", r))
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, fmt.Sprintf("VMWatch failed: Recovered %+v", r))
 		}
 	}()
 
 	// Setup command
+	var resourceGovernanceRequired bool
 	VMWatchCommand, resourceGovernanceRequired, combinedOutput, err = configureVMWatchProcess(lg, attempt, vmWatchSettings, hEnv)
 	if err != nil {
 		err = fmt.Errorf("attempt to Configure VMWatch Process failed. Error: %w", err)
@@ -135,24 +134,23 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	// Start command
 	if err := VMWatchCommand.Start(); err != nil {
 		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch failed to start. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), attempt, err, combinedOutput.String())
-		lg.Error("VMWatch failed to start", slog.Any("error", err))
-		// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StartVMWatchTask, err.Error(), "error", err)
+		// lg.Error("VMWatch failed to start", slog.Any("error", err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, err.Error(), "error", err)
 		return err
 	}
 	pid = VMWatchCommand.Process.Pid // cmd.Process should be populated on success
-	lg.Info(fmt.Sprintf("Attempt %d: Started VMWatch with PID %d", attempt, pid))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, fmt.Sprintf("Attempt %d: Started VMWatch with PID %d", attempt, pid))
 	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Attempt %d: Started VMWatch with PID %d", attempt, pid))
 
 	if !resourceGovernanceRequired {
-		lg.Info((fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid)))
-		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.StartVMWatchTask, fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid))
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, fmt.Sprintf("Resource governance was already applied at process launch of PID %d", pid))
 	} else {
 		err = applyResourceGovernance(lg, vmWatchSettings, VMWatchCommand)
 		if err != nil {
 			// if this has failed we have already killed the process as we failed to assign to cgroup so log the appropriate error
 			err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
-			lg.Error("VMWatch process exited", slog.Any("error", err))
-			// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, err.Error(), "error", err)
+			// lg.Error("VMWatch process exited", slog.Any("error", err))
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StopVMWatchTask, err.Error(), "error", err)
 			return err
 		}
 	}
@@ -177,8 +175,8 @@ func executeVMWatchHelper(lg logging.Logger, attempt int, vmWatchSettings *VMWat
 	}()
 	wg.Wait()
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
-	lg.Error("VMWatch process exited", slog.Any("error", err))
-	// sendTelemetry(lg, telemetry.EventLevelError, telemetry.StopVMWatchTask, err.Error(), "error", err)
+	// lg.Error("VMWatch process exited", slog.Any("error", err))
+	telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StopVMWatchTask, err.Error(), "error", err)
 	return err
 }
 
@@ -196,13 +194,11 @@ func monitorHeartBeat(lg logging.Logger, heartBeatFile string, processDone chan 
 			} else {
 				// heartbeat file was not updated within 60 seconds, process is hung
 				err = fmt.Errorf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
-				lg.Error(fmt.Sprintf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid), slog.Any("error", err))
-				// sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportHeatBeatTask, err.Error(), "error", err)
+				telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportHeatBeatTask, err.Error(), "error", err)
 				err = KillVMWatch(lg, cmd)
 				if err != nil {
 					err = fmt.Errorf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
-					lg.Error(fmt.Sprintf("[%v][PID %d] Failed to kill vmwatch process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid), slog.Any("error", err))
-					// sendTelemetry(lg, telemetry.EventLevelError, telemetry.ReportHeatBeatTask, err.Error(), "error", err)
+					telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportHeatBeatTask, err.Error(), "error", err)
 				}
 			}
 		case <-processDone:
@@ -213,20 +209,17 @@ func monitorHeartBeat(lg logging.Logger, heartBeatFile string, processDone chan 
 
 func KillVMWatch(lg logging.Logger, cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil || cmd.ProcessState != nil {
-		lg.Info("VMWatch is not running, killing process is not necessary.")
-		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, "VMWatch is not running, killing process is not necessary.")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.KillVMWatchTask, "VMWatch is not running, killing process is not necessary.")
 		return nil
 	}
 
 	if err := cmd.Process.Kill(); err != nil {
-		lg.Error(fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err), slog.Any("error", err))
-		// sendTelemetry(lg, telemetry.EventLevelError, telemetry.KillVMWatchTask,
-		// 	fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.KillVMWatchTask,
+			fmt.Sprintf("Failed to kill VMWatch process with PID %d. Error: %v", cmd.Process.Pid, err))
 		return err
 	}
 
-	lg.Info(fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
-	// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.KillVMWatchTask, fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.KillVMWatchTask, fmt.Sprintf("Successfully killed VMWatch process with PID %d", cmd.Process.Pid))
 	return nil
 }
 

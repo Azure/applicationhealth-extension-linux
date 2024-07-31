@@ -30,4 +30,4 @@ cd /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzip
 
 # upload it to the storage account
 echo "Uploading linux.zip to container: $container"
-az storage blob upload --account-name vmwatchtest --subscription $subscription --container-name $container --name linux.zip --file /tmp/vmwatch.zip --overwrite
+az storage blob upload --account-name vmwatchtestpackages --subscription $subscription --container-name $container --name linux.zip --file /tmp/vmwatch.zip --overwrite --auth-mode login
