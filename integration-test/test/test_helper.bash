@@ -14,6 +14,14 @@ build_docker_image_nocache() {
 }
 
 # This function builds a Docker image for testing purposes, if it already doesn't exist.
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
+build_docker_image_nocache() {
+    # Check if the image already exists
+    echo "Building test image $IMAGE..."
+    docker build --no-cache -q -f $DOCKERFILE -t $IMAGE . 1>&2
+}
+
+# This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image() {
     # Check if the image already exists
     if [ -z "$(docker images -q $IMAGE)" ]; then
@@ -215,7 +223,7 @@ verify_state_change_timestamps() {
 # second argument is an array of expected state log strings
 verify_states() {
     expectedStateLogs="$2"
-    regex='event="(.*)"'
+    regex='msg="(.*)"'
     index=0
     while IFS=$'\n' read -ra stateLogs; do
         for i in "${!stateLogs[@]}"; do
@@ -270,13 +278,12 @@ delete_certificate() {
 
 get_extension_version() {
     # extract version from manifest.xml
-    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/manifest.xml)
+    version=$(awk -F'[<>]' '/<Version>/ {print $3}' misc/linux/manifest.xml)
     echo $version
 }
 # Accepted Kill Signals SIGINT SIGTERM
 kill_apphealth_extension_gracefully() {
     # kill the applicationhealth extension gracefully
-    # echo "Printing the process list Before killing the applicationhealth extension"
     ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep
     kill_signal=$1
     [[ $kill_signal == "SIGINT" || $kill_signal == "SIGTERM" ]] || { echo "Invalid signal: $kill_signal"; return 1; }
@@ -285,8 +292,8 @@ kill_apphealth_extension_gracefully() {
         echo "Applicationhealth extension is not running"
         return 0
     fi
-    # echo "Killing applicationhealth extension with signal: $kill_signal"
-    # echo "PID: $app_health_pid"
+    echo "Killing applicationhealth extension with signal: $kill_signal"
+    echo "PID: $app_health_pid"
     kill -s $kill_signal $app_health_pid
     # echo "Printing the process list after killing the applicationhealth extension"
     ps -ef | grep -e "applicationhealth-extension" -e "vmwatch_linux_amd64" | grep -v grep

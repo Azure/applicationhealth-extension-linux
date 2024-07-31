@@ -11,15 +11,19 @@ force_kill_apphealth() {
     fi
     echo "Killing the applicationhealth extension forcefully" >> $logFilePath
     kill -9 $app_health_pid
+    sleep 5
 
     output=$(check_running_processes)
     if [ "$output" == "Applicationhealth and VMWatch are not running" ]; then
         echo "$output" >> /var/log/azure/Extension/force-kill-extension.txt
         echo "Successfully killed the apphealth extension" >> $logFilePath
         echo "Successfully killed the VMWatch extension" >> $logFilePath
-    else
+    elif [ "$output" == "Applicationhealth is running" ]; then
         echo "$output" >> /var/log/azure/Extension/force-kill-extension.txt
         echo "Failed to kill the apphealth extension" >> $logFilePath
+    elif [ "$output" == "VMWatch is running" ]; then
+        echo "$output" >> /var/log/azure/Extension/force-kill-extension.txt
+        echo "Failed to kill the VMWatch" >> $logFilePath
     fi
     
 }

@@ -3,7 +3,10 @@
 // license that can be found in the LICENSE file.
 
 //go:build generate
+<<<<<<< HEAD
 // +build generate
+=======
+>>>>>>> feature/v2/WindowsMigration
 
 package registry
 

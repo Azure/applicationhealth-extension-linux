@@ -2,6 +2,7 @@
 
 setup(){
     load "../test_helper"
+    load "../test_helper"
     build_docker_image
     container_name="handler-command_$BATS_TEST_NUMBER"
 }
@@ -18,7 +19,7 @@ teardown(){
     run start_container
     echo "$output"
     [ "$status" -eq 0 ]
-    [[ "$output" = *'event="Handler successfully installed"'* ]]
+    [[ "$output" = *'msg=installed'* ]]
 
     diff="$(container_diff)"
     echo "$diff"

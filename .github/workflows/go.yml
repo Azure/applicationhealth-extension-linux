@@ -12,7 +12,7 @@ on:
       - feature/**
 
 jobs:
-  build:
+  build_linux:
     strategy:
       fail-fast: false
       matrix:
@@ -24,6 +24,7 @@ jobs:
       repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
 
     steps:
+
     - name: Apt-Get Update
       run: sudo apt-get update
       
@@ -48,7 +49,7 @@ jobs:
       with:
         path: ${{ env.repo_root }}
 
-    - name: Install Bats
+    - name: Install Bats via NPM
       run: |
         sudo apt install npm
         sudo npm install -g bats
@@ -98,7 +99,7 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Build Binaries
-      run: make binary
+      run: make binary-linux
       working-directory: ${{ env.repo_root }}
     
     - name: Generate Webserver Credentials
@@ -131,3 +132,61 @@ jobs:
       run: |
         sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
+
+  build_windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+    
+    runs-on: ${{ matrix.os }}
+
+    env:
+      repo_root : ${{ github.workspace }}/go/src/github.com/applicationhealth-extension-linux
+
+    steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22.2'
+      
+    - name: Setup Go Environment 
+      shell: bash
+      run: |
+        echo "GOPATH=${{ github.workspace }}/go" >> $GITHUB_ENV
+        echo "GO111MODULE=auto" >> $GITHUB_ENV
+        echo "${{ github.workspace }}/go/bin" >> $GITHUB_PATH
+        go env
+
+    - name: Pull Repository
+      uses: actions/checkout@v3
+      with:
+        path: ${{ env.repo_root }}
+
+    - name: Formatting 
+      continue-on-error: true
+      run: test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
+      working-directory: ${{ env.repo_root }}
+
+    - name: Vet
+      continue-on-error: true
+      run: test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
+      working-directory: ${{ env.repo_root }}
+
+    - uses: dominikh/staticcheck-action@v1.3.0
+      continue-on-error: true
+      with:
+        install-go: false
+        min-go-version: 1.22
+        working-directory: ${{ env.repo_root }}
+
+    - name: Build Binaries
+      run: make binary-windows
+      working-directory: ${{ env.repo_root }}
+
+    - name: Unit Tests
+      continue-on-error: false
+      run: go list ./... | grep -v '/vendor/' | xargs go test -cover
+      working-directory: ${{ env.repo_root }}
+
+    

@@ -49,7 +49,11 @@ func (eem *ExtensionEventManager) logEvent(taskName string, eventLevel string, m
 	}
 
 	extensionVersion := os.Getenv("AZURE_GUEST_AGENT_EXTENSION_VERSION")
+<<<<<<< HEAD
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
+=======
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+>>>>>>> feature/v2/WindowsMigration
 	pid := fmt.Sprintf("%v", os.Getpid())
 	tid := getThreadID()
 

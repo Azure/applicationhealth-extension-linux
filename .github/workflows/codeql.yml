@@ -26,7 +26,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: Analyze (${{ matrix.language }}) (${{ matrix.os }})
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources
@@ -54,7 +54,7 @@ jobs:
         include:
         - language: go
           build-mode: manual
-        os : [ubuntu-latest]
+        os : [ubuntu-latest, windows-latest]
         # CodeQL supports the following values keywords for 'language': 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -92,11 +92,16 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - if: matrix.build-mode == 'manual'
+    - if: matrix.build-mode == 'manual' && matrix.os == 'ubuntu-latest'
       run: |
         go env
-        make binary
-
+        make binary-linux
+        
+    - if: matrix.build-mode == 'manual' && matrix.os == 'windows-latest'
+      run: |
+        go env
+        make binary-windows
+        
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:

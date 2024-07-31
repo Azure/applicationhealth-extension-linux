@@ -31,7 +31,7 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 	}
 	// Override the getDir function to return a mock directory
 	getDir = func() (string, error) {
-		return "../../misc", nil
+		return "../../misc/linux", nil
 	}
 
 	currentManifest, err := GetExtensionManifest()
@@ -50,7 +50,7 @@ func Test_ExtensionManifestVersion(t *testing.T) {
 func Test_FindManifestFilePath(t *testing.T) {
 	var (
 		manifestFileName = "manifest.xml"
-		src              = "../../misc/"                                                        // Replace with the actual directory path
+		src              = "../../misc/linux"                                                   // Replace with the actual directory path
 		dst              = "/tmp/lib/waagent/Microsoft.ManagedServices-ApplicationHealthLinux/" // Replace with the actual directory path
 	)
 
