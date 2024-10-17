@@ -3,6 +3,8 @@
 setup(){
     load "../test_helper"
     _load_bats_libs
+    load "../test_helper"
+    _load_bats_libs
     build_docker_image
     container_name="vmwatch_$BATS_TEST_NUMBER"
     extension_version=$(get_extension_version)
@@ -412,7 +414,7 @@ teardown(){
     [[ "$output" == *'Invoking: /var/lib/waagent/Extension/bin/applicationhealth-shim uninstall'* ]]
     [[ "$output" == *'applicationhealth-extension process terminated'* ]]
     any_regex_pattern="[[:digit:]|[:space:]|[:alpha:]|[:punct:]]"
-     assert_line --regexp "msg=uninstalled ${any_regex_pattern}* operation=uninstall seq=0 path=/var/lib/waagent/apphealth"
+    assert_line --regexp "operation=uninstall seq=0 path=/var/lib/waagent/apphealth ${any_regex_pattern}* event=\"Handler successfully uninstalled\""
 }
 
 @test "handler command: enable - Graceful Shutdown - vm watch killed when Apphealth is killed gracefully with SIGTERM" {
@@ -435,7 +437,7 @@ teardown(){
     [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    [[ "$output" == *'msg="Received shutdown request"'* ]]
+    [[ "$output" == *'event="Received shutdown request"'* ]]
     [[ "$output" == *'Successfully killed VMWatch process with PID'* ]]
     [[ "$output" == *'Application health process terminated'* ]]
 }
@@ -460,7 +462,7 @@ teardown(){
     [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    [[ "$output" == *'msg="Received shutdown request"'* ]]
+    [[ "$output" == *'event="Received shutdown request"'* ]]
     [[ "$output" == *'Successfully killed VMWatch process with PID'* ]]
     [[ "$output" == *'Application health process terminated'* ]]
 }

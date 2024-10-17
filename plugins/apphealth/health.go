@@ -82,14 +82,14 @@ func NewHealthProbe(lg logging.Logger, cfg *AppHealthPluginSettings) HealthProbe
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.GetPort()),
 		}
-		lg.Info("creating tcp probe targeting " + p.address())
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
 	case "http":
 		fallthrough
 	case "https":
-		p = NewHttpHealthProbe(cfg.GetProtocol(), cfg.GetRequestPath(), cfg.GetPort())
-		lg.Info("creating " + cfg.GetProtocol() + " probe targeting " + p.address())
+		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
 	default:
-		lg.Info("default settings without probe")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, "Configuration not provided. Using default reporting.")
 	}
 
 	return p
@@ -214,7 +214,7 @@ func (p *HttpHealthProbe) Evaluate(lg logging.Logger) (ProbeResponse, error) {
 	}
 
 	if err := probeResponse.ValidateCustomMetrics(); err != nil {
-		lg.Error("Error validating custom metrics", slog.Any("error", err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.AppHealthProbeTask, err.Error(), "error", err)
 	}
 
 	if err := probeResponse.validateApplicationHealthState(); err != nil {

@@ -16,6 +16,8 @@ var (
 	logger, err = logging.NewExtensionLogger(nil)
 	// Exit helper
 	exiter = exithelper.Exiter
+
+	seqnoManager seqno.SequenceNumberManager = seqno.New()
 )
 
 func main() {
@@ -41,10 +43,9 @@ func main() {
 		logger.Error("failed to parse command", slog.Any("error", err))
 		exiter.Exit(exithelper.ArgumentError)
 	}
-
-	seqNum, err := seqnum.FindSeqNum(hEnv.ConfigFolder) // find sequence number
+	seqNum, err := seqnoManager.FindSeqNum(hEnv.ConfigFolder)
 	if err != nil {
-		logger.Error("failed to find sequence number", slog.Any("error", err))
+		logger.Info("failed to find sequence number", "error", err)
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 

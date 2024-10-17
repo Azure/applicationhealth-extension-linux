@@ -32,3 +32,4 @@ _testmain.go
 
 # Dont ignore VMWATCH Binary
 !vmwatch_windows_*.exe
+mrseq

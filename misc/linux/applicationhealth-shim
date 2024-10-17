@@ -59,7 +59,7 @@ kill_existing_apphealth_processes() {
     out="$(ps aux)"
     if [[ "$out" == **"$HANDLER_BIN enable"** ]]; then
         echo "Terminating existing $HANDLER_BIN process"
-        pkill -f $HANDLER_BIN >&2
+        pkill -f $HANDLER_BIN >&2 || echo "pkill -f $HANDLER_BIN failed with error $?"
         echo "Tried terminating existing $HANDLER_BIN process"
         for i in {1..33};
         do
@@ -83,7 +83,7 @@ kill_existing_vmwatch_processes() {
     out="$(ps aux)"
     if [[ "$out" == **"$VMWATCH_BIN"** ]]; then
         echo "Terminating existing $VMWATCH_BIN process"
-        pkill -f $VMWATCH_BIN >&2
+        pkill -f $VMWATCH_BIN >&2 || echo "pkill -f $VMWATCH_BIN failed with error $?"
         echo "Tried terminating existing $VMWATCH_BIN process"
         for i in {1..33};
         do
@@ -110,6 +110,8 @@ if [ "$#" -ne 1 ]; then
 fi
 
 kill_existing_apphealth_processes
+# give vmwatch sub process time to die after on killing app health process
+sleep 1
 kill_existing_vmwatch_processes
 
 # Redirect logs of the handler process
