@@ -38,7 +38,7 @@ func Test_reportStatus_fails(t *testing.T) {
 	_, err := telemetry.NewTelemetry(fakeEnv)
 	require.NoError(t, err, "failed to initialize telemetry")
 
-	lg, err := logging.NewSlogLogger(fakeEnv)
+	lg, err := logging.NewSlogLogger(fakeEnv, "")
 	require.NoError(t, err, "failed to create logger")
 	slog.SetDefault(lg)
 
@@ -67,7 +67,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	_, err = telemetry.NewTelemetry(fakeEnv)
 	require.NoError(t, err, "failed to initialize telemetry")
 
-	lg, err := logging.NewSlogLogger(fakeEnv)
+	lg, err := logging.NewSlogLogger(fakeEnv, "")
 	require.NoError(t, err, "failed to create logger")
 	slog.SetDefault(lg)
 
@@ -103,7 +103,7 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 		fakeEnv := &handlerenv.HandlerEnvironment{}
 		fakeEnv.StatusFolder = statusDir
 		fakeEnv.EventsFolder = eventsDir
-		lg, err := logging.NewSlogLogger(fakeEnv)
+		lg, err := logging.NewSlogLogger(fakeEnv, "")
 		require.NoError(t, err, "failed to create logger")
 		slog.SetDefault(lg)
 
