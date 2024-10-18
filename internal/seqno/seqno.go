@@ -1,8 +1,9 @@
 package seqno
 
 import (
-	"log/slog"
+	"sync"
 
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/azure-extension-platform/pkg/extensionerrors"
 	"github.com/Azure/azure-extension-platform/pkg/seqno"
@@ -10,7 +11,7 @@ import (
 
 type SequenceNumberManager interface {
 	// GetCurrentSequenceNumber returns the current sequence number the extension is using
-	GetCurrentSequenceNumber(el *slog.Logger, name, version string) (uint, error)
+	GetCurrentSequenceNumber(name, version string) (uint, error)
 
 	// GetSequenceNumber retrieves the sequence number from the MRSEQ file
 	GetSequenceNumber(name, version string) (uint, error)
@@ -24,7 +25,26 @@ type SequenceNumberManager interface {
 	FindSeqNum(configFolder string) (uint, error)
 }
 
-type SeqNumManager struct {
+type SeqNumManager struct{}
+
+var (
+	instance SequenceNumberManager
+	once     sync.Once
+)
+
+// GetInstance returns the singleton instance of SequenceNumberManager
+func GetInstance() SequenceNumberManager {
+	once.Do(func() {
+		if instance == nil {
+			instance = &SeqNumManager{}
+		}
+	})
+	return instance
+}
+
+// SetInstance allows setting a custom instance for testing purposes
+func SetInstance(customInstance SequenceNumberManager) {
+	instance = customInstance
 }
 
 func (s *SeqNumManager) GetSequenceNumber(name string, version string) (uint, error) {
@@ -48,18 +68,19 @@ func (s *SeqNumManager) FindSeqNum(configFolder string) (uint, error) {
 }
 
 // GetCurrentSequenceNumber returns the current sequence number the extension is using
-func (s *SeqNumManager) GetCurrentSequenceNumber(el *slog.Logger, name, version string) (sn uint, _ error) {
+func (s *SeqNumManager) GetCurrentSequenceNumber(name, version string) (sn uint, _ error) {
 	sequenceNumber, err := s.GetSequenceNumber(name, version)
 	if err == extensionerrors.ErrNotFound || err == extensionerrors.ErrNoMrseqFile {
 		// If we can't find the sequence number, then it's possible that the extension
 		// hasn't been installed yet. Go back to 0.
-		el.Info("Couldn't find current sequence number, likely first execution of the extension, returning sequence number 0")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Couldn't find current sequence number, likely first execution of the extension, returning sequence number 0")
 		return 0, nil
 	}
 
 	return sequenceNumber, err
 }
 
+// New returns the singleton instance of SequenceNumberManager
 func New() SequenceNumberManager {
-	return &SeqNumManager{}
+	return GetInstance()
 }
