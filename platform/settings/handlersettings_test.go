@@ -12,8 +12,14 @@ import (
 )
 
 var (
-	mockLogger, _ = logging.NewSlogLogger(nil)
+	logFileDir    = "/tmp/logs"
+	logFileName   = "log_test"
+	mockLogger, _ = logging.NewRotatingSlogLogger(logFileDir, logFileName)
 )
+
+var tearDownFunc = func() {
+	os.RemoveAll(logFileDir)
+}
 
 func Test_handlerSettingsValidate(t *testing.T) {
 	// tcp includes request path
@@ -60,12 +66,14 @@ func Test_handlerSettingsValidate(t *testing.T) {
 		publicSettings{AppHealthPluginSettings: AppHealthPluginSettings{Protocol: "https", IntervalInSeconds: 30, NumberOfProbes: 3}},
 		protectedSettings{},
 	}.Validate())
+	tearDownFunc()
 }
 
 func Test_toJSON_empty(t *testing.T) {
 	s, err := toJSON(nil)
 	require.Nil(t, err)
 	require.Equal(t, "{}", s)
+	tearDownFunc()
 }
 
 func Test_toJSON(t *testing.T) {
@@ -73,6 +81,7 @@ func Test_toJSON(t *testing.T) {
 		"a": 3})
 	require.Nil(t, err)
 	require.Equal(t, `{"a":3}`, s)
+	tearDownFunc()
 }
 
 func Test_unMarshalPublicSetting(t *testing.T) {
@@ -92,6 +101,7 @@ func Test_unMarshalPublicSetting(t *testing.T) {
 	require.NotNil(t, h.publicSettings)
 	require.Equal(t, true, h.publicSettings.VMWatchSettings.Enabled)
 	require.Equal(t, "https://testxyz.azurefd.net/config/disable-switch-config.json", h.publicSettings.VMWatchSettings.GlobalConfigUrl)
+	tearDownFunc()
 }
 
 func Test_ParseAndValidateSettings(t *testing.T) {
@@ -162,6 +172,7 @@ func Test_ParseAndValidateSettings(t *testing.T) {
 	// Verify the results
 	require.NoError(t, err)
 	require.Equal(t, expectedSettings, settings)
+	tearDownFunc()
 }
 
 func TestValidateAndUnmarshallSettings_EmptySettings(t *testing.T) {
@@ -198,4 +209,5 @@ func TestValidateAndUnmarshallSettings_EmptySettings(t *testing.T) {
 	require.NoError(t, h.Validate(), "Settings validation failed")
 
 	require.Equal(t, expectedHandlerSettings, h)
+	tearDownFunc()
 }
