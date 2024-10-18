@@ -34,6 +34,8 @@ func (h *router) Handler() slog.Handler {
 	return Fanout(h.handlers...)
 }
 
+var _ slog.Handler = (*RoutableHandler)(nil)
+
 // @TODO: implement round robin strategy ?
 type RoutableHandler struct {
 	matchers []func(ctx context.Context, r slog.Record) bool
@@ -42,7 +44,7 @@ type RoutableHandler struct {
 
 // Implements slog.Handler
 func (h *RoutableHandler) Enabled(ctx context.Context, l slog.Level) bool {
-	return true
+	return h.handler.Enabled(ctx, l)
 }
 
 // Implements slog.Handler
@@ -53,7 +55,7 @@ func (h *RoutableHandler) Handle(ctx context.Context, r slog.Record) error {
 		}
 	}
 
-	return h.Handle(ctx, r)
+	return h.handler.Handle(ctx, r)
 }
 
 // Implements slog.Handler

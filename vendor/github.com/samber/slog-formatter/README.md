@@ -12,6 +12,21 @@
 
 Common formatters for [slog](https://pkg.go.dev/log/slog) library + helpers for building your own.
 
+<div align="center">
+  <hr>
+  <sup><b>Sponsored by:</b></sup>
+  <br>
+  <a href="https://quickwit.io?utm_campaign=github_sponsorship&utm_medium=referral&utm_content=samber-slog-formatter&utm_source=github">
+    <div>
+      <img src="https://github.com/samber/oops/assets/2951285/49aaaa2b-b8c6-4f21-909f-c12577bb6a2e" width="240" alt="Quickwit">
+    </div>
+    <div>
+      Cloud-native search engine for observability - An OSS alternative to Splunk, Elasticsearch, Loki, and Tempo.
+    </div>
+  </a>
+  <hr>
+</div>
+
 **Handlers:**
 - [NewFormatterHandler](#NewFormatterHandler): main handler
 - [NewFormatterMiddleware](#NewFormatterMiddleware): compatible with `slog-multi` middlewares
@@ -25,7 +40,7 @@ Common formatters for [slog](https://pkg.go.dev/log/slog) library + helpers for 
 - [HTTPResponseFormatter](#HTTPRequestFormatter-and-HTTPResponseFormatter): transforms a *http.Response into a readable object
 - [PIIFormatter](#PIIFormatter): hide private Personal Identifiable Information (PII)
 - [IPAddressFormatter](#IPAddressFormatter): hide ip address from logs
-- [FlattenFormatterMiddlewareOptions](#FlattenFormatterMiddlewareOptions): returns a formatter middleware that flatten attributes recursively
+- [FlattenFormatterMiddleware](#FlattenFormatterMiddleware): returns a formatter middleware that flatten attributes recursively
 
 **Custom formatter:**
 - [Format](#Format): pass any attribute into a formatter
@@ -42,23 +57,42 @@ Common formatters for [slog](https://pkg.go.dev/log/slog) library + helpers for 
 - [slog-multi](https://github.com/samber/slog-multi): `slog.Handler` chaining, fanout, routing, failover, load balancing...
 - [slog-formatter](https://github.com/samber/slog-formatter): `slog` attribute formatting
 - [slog-sampling](https://github.com/samber/slog-sampling): `slog` sampling policy
+
+**HTTP middlewares:**
+
 - [slog-gin](https://github.com/samber/slog-gin): Gin middleware for `slog` logger
 - [slog-echo](https://github.com/samber/slog-echo): Echo middleware for `slog` logger
 - [slog-fiber](https://github.com/samber/slog-fiber): Fiber middleware for `slog` logger
+- [slog-chi](https://github.com/samber/slog-chi): Chi middleware for `slog` logger
+- [slog-http](https://github.com/samber/slog-http): `net/http` middleware for `slog` logger
+
+**Loggers:**
+
+- [slog-zap](https://github.com/samber/slog-zap): A `slog` handler for `Zap`
+- [slog-zerolog](https://github.com/samber/slog-zerolog): A `slog` handler for `Zerolog`
+- [slog-logrus](https://github.com/samber/slog-logrus): A `slog` handler for `Logrus`
+
+**Log sinks:**
+
 - [slog-datadog](https://github.com/samber/slog-datadog): A `slog` handler for `Datadog`
+- [slog-betterstack](https://github.com/samber/slog-betterstack): A `slog` handler for `Betterstack`
 - [slog-rollbar](https://github.com/samber/slog-rollbar): A `slog` handler for `Rollbar`
+- [slog-loki](https://github.com/samber/slog-loki): A `slog` handler for `Loki`
 - [slog-sentry](https://github.com/samber/slog-sentry): A `slog` handler for `Sentry`
 - [slog-syslog](https://github.com/samber/slog-syslog): A `slog` handler for `Syslog`
 - [slog-logstash](https://github.com/samber/slog-logstash): A `slog` handler for `Logstash`
 - [slog-fluentd](https://github.com/samber/slog-fluentd): A `slog` handler for `Fluentd`
 - [slog-graylog](https://github.com/samber/slog-graylog): A `slog` handler for `Graylog`
-- [slog-loki](https://github.com/samber/slog-loki): A `slog` handler for `Loki`
+- [slog-quickwit](https://github.com/samber/slog-quickwit): A `slog` handler for `Quickwit`
 - [slog-slack](https://github.com/samber/slog-slack): A `slog` handler for `Slack`
 - [slog-telegram](https://github.com/samber/slog-telegram): A `slog` handler for `Telegram`
 - [slog-mattermost](https://github.com/samber/slog-mattermost): A `slog` handler for `Mattermost`
 - [slog-microsoft-teams](https://github.com/samber/slog-microsoft-teams): A `slog` handler for `Microsoft Teams`
 - [slog-webhook](https://github.com/samber/slog-webhook): A `slog` handler for `Webhook`
 - [slog-kafka](https://github.com/samber/slog-kafka): A `slog` handler for `Kafka`
+- [slog-nats](https://github.com/samber/slog-nats): A `slog` handler for `NATS`
+- [slog-parquet](https://github.com/samber/slog-parquet): A `slog` handler for `Parquet` + `Object Storage`
+- [slog-channel](https://github.com/samber/slog-channel): A `slog` handler for Go channels
 
 ## 🚀 Install
 
@@ -94,7 +128,7 @@ formatter3 := slogformatter.FormatByType(func(u User) slog.Value {
 
 logger := slog.New(
     slogformatter.NewFormatterHandler(formatter1, formatter2, formatter3)(
-        slog.NewTextHandler(os.Stdout),
+        slog.NewTextHandler(os.Stdout, nil),
     ),
 )
 
@@ -138,7 +172,7 @@ formatter3 := slogformatter.FormatByType(func(u User) slog.Value {
 
 logger := slog.New(
     slogformatter.NewFormatterHandler(formatter1, formatter2, formatter3)(
-        slog.NewTextHandler(os.StdErr),
+        slog.NewTextHandler(os.StdErr, nil),
     ),
 )
 
@@ -234,7 +268,7 @@ logger := slog.New(
     slogformatter.NewFormatterHandler(
         slogformatter.ErrorFormatter("error"),
     )(
-        slog.NewTextHandler(os.Stdout),
+        slog.NewTextHandler(os.Stdout, nil),
     ),
 )
 
@@ -269,7 +303,7 @@ logger := slog.New(
         slogformatter.HTTPRequestFormatter(false),
         slogformatter.HTTPResponseFormatter(false),
     )(
-        slog.NewJSONHandler(os.Stdout),
+        slog.NewJSONHandler(os.Stdout, nil),
     ),
 )
 
@@ -300,7 +334,7 @@ logger := slog.New(
     slogformatter.NewFormatterHandler(
         slogformatter.PIIFormatter("user"),
     )(
-        slog.NewTextHandler(os.Stdout),
+        slog.NewTextHandler(os.Stdout, nil),
     ),
 )
 
@@ -353,7 +387,7 @@ logger := slog.New(
     slogformatter.NewFormatterHandler(
         slogformatter.IPAddressFormatter("ip_address"),
     )(
-        slog.NewTextHandler(os.Stdout),
+        slog.NewTextHandler(os.Stdout, nil),
     ),
 )
 
@@ -384,7 +418,7 @@ import (
 logger := slog.New(
     slogmulti.
         Pipe(slogformatter.FlattenFormatterMiddlewareOptions{Separator: ".", Prefix: "attrs", IgnorePath: false}.NewFlattenFormatterMiddlewareOptions()).
-        Handler(slog.NewJSONHandler(os.Stdout)),
+        Handler(slog.NewJSONHandler(os.Stdout, nil)),
 )
 
 logger.
