@@ -1,11 +1,13 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
@@ -28,9 +30,8 @@ func TestNew(t *testing.T) {
 	defer os.RemoveAll(logFolder)
 	fakeEnv.LogFolder = logFolder
 
-	logger, err := NewExtensionLogger(fakeEnv)
+	logger, err := NewSlogLogger(fakeEnv)
 	require.NoError(t, err, "Failed to create logger")
-	defer logger.Close()
 
 	assert.NotNil(t, logger)
 }
@@ -38,7 +39,8 @@ func TestNew(t *testing.T) {
 func TestNewWithName_Success(t *testing.T) {
 	logFolder, err := os.MkdirTemp("", "logs")
 	require.NoError(t, err)
-	logger, err := NewExtensionLoggerWithName(logFolder, "log_%v_test")
+	defer os.RemoveAll(logFolder)
+	logger, err := NewSlogLoggerWithName(logFolder, "log_%v_test")
 	require.NoError(t, err, "Failed to create logger")
 	require.NotNil(t, logger, "Logger should not be nil")
 }
@@ -47,7 +49,7 @@ func TestNewWithName_NoDirExist(t *testing.T) {
 	// Test creating a logger with a handler environment and custom log file name format
 	var (
 		logDir      = "/tmp/logs"
-		logger, err = NewExtensionLoggerWithName(logDir, "log_%v_test")
+		logger, err = NewSlogLoggerWithName(logDir, "log_%v_test")
 	)
 	require.NoDirExists(t, logDir, "Log directory should not have been created")
 	require.Error(t, err, "Failed to create logger")
@@ -137,29 +139,28 @@ func TestRotateLogFolder_DirectorySizeBelowThreshold(t *testing.T) {
 	assert.FileExistsf(t, logFile3, "Log File: %s should exist", logFile3)
 }
 func TestExtensionLogger_Error(t *testing.T) {
+	resetGlobals()
 	// Define the log directory
 	var (
-		logDir  = "/tmp/logs"
 		fakeEnv = &handlerenv.HandlerEnvironment{}
 	)
-
-	err := createDirectories(logDir)
+	logDir, err := os.MkdirTemp("", "logs")
 	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDir)
 
 	fakeEnv.LogFolder = logDir
 
 	// Create an ExtensionLogger with the fake logger
-	logger, err := NewExtensionLogger(fakeEnv)
+	logger, err := NewSlogLogger(fakeEnv)
 	require.NoError(t, err, "Failed to create logger")
-	defer logger.Close()
 
 	// Log an error message
 	logger.Error("Found an error", slog.Any("error", fmt.Errorf("test error")))
 
 	// Verify that the log file was created
-	logFile := logger.(*ExtensionLogger).file
+	logFile := ExtensionLogFile
 	assert.FileExists(t, logFile.Name(), "log file should have been created")
+	logger.Info("Log file created", slog.String("path", logFile.Name()))
 
 	// Read the log file
 	logData, err := os.ReadFile(logFile.Name())
@@ -175,18 +176,15 @@ func TestExtensionLogger_Error(t *testing.T) {
 
 func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 	// Define the log directory
-	var (
-		logDir = "/tmp/logs"
-	)
+	resetGlobals()
+	logDir, err := os.MkdirTemp("", "logs")
+	assert.NoError(t, err)
 
-	// Create the log directory
-	createDirectories(logDir)
 	defer removeDirectories(logDir)
 
 	// Create a logger
-	logger, err := NewExtensionLoggerWithName(logDir, "log_%v_test")
+	logger, err := NewSlogLoggerWithName(logDir, "log_%v_test")
 	require.NoError(t, err, "Failed to create logger")
-	defer logger.Close()
 
 	// Log some messages with different levels and properties
 	logs := []struct {
@@ -221,18 +219,20 @@ func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 			logger.Warn(log.Msg, log.Props...)
 		case "Error":
 			attrs := getLogAttrs(log)
-			logger.Error(log.Msg, attrs...)
+			logger.LogAttrs(context.Background(), slog.LevelError, log.Msg, attrs...)
 		case "Critical":
 			attrs := getLogAttrs(log)
-			logger.Critical(log.Msg, attrs...)
+			logger.LogAttrs(context.Background(), LevelCritical, log.Msg, attrs...)
 		}
 	}
 
-	// Get the log file name
-	logFileName := logger.(*ExtensionLogger).file.Name()
+	// Verify that the log file was created
+	logFile := ExtensionLogFile
+	assert.FileExists(t, logFile.Name(), "log file should have been created")
+	logger.Info("Log file created", slog.String("path", logFile.Name()))
 
 	// Read the log file
-	logData, err := os.ReadFile(logFileName)
+	logData, err := os.ReadFile(logFile.Name())
 	require.NoError(t, err, "Failed to read log file: %v")
 
 	// Split the log output into lines
@@ -274,4 +274,9 @@ func removeDirectories(dirs ...string) error {
 		}
 	}
 	return nil
+}
+
+func resetGlobals() {
+	ExtensionLogFile = nil
+	logFileOnce = sync.Once{}
 }
