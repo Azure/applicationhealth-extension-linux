@@ -14,7 +14,6 @@ import (
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/Azure/applicationhealth-extension-linux/plugins/vmwatch"
 	"github.com/pkg/errors"
@@ -55,7 +54,11 @@ func newOSCommandHandler() (CommandHandler, error) {
 	}, nil
 }
 
-func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error {
+func (ch *WindowsCommandHandler) CommandMap() CommandMap {
+	return ch.commands
+}
+
+func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum uint, lg *slog.Logger) error {
 	// TODO: Implement command execution
 	lg.Info(fmt.Sprintf("WindowsCommandHandler was Created, with command: %s and sequenceNumber: %d", c, seqNum))
 
@@ -66,7 +69,7 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 	}
 
 	lg.With("operation", strings.ToLower(cmd.Name.String()))
-	lg.With("seq", strconv.Itoa(seqNum))
+	lg.With("seq", strconv.Itoa(int(seqNum)))
 
 	lg.Info("Starting AppHealth Extension")
 	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
@@ -123,11 +126,7 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 	return nil
 }
 
-func (ch *WindowsCommandHandler) CommandMap() CommandMap {
-	return ch.commands
-}
-
-func installHandler(lg logging.Logger, seqNum int) error {
+func installHandler(lg *slog.Logger, seqNum uint) error {
 	lg.Info("Installing Handler")
 	lg.Info(fmt.Sprintf(`Creating Windows Registry Key 'HKLM\%s'`, regKeyPath))
 	// Create a new registry key with all access permissions.
@@ -140,7 +139,7 @@ func installHandler(lg logging.Logger, seqNum int) error {
 	return nil
 }
 
-func enableHandler(lg logging.Logger, seqNum int) error {
+func enableHandler(lg *slog.Logger, seqNum uint) error {
 	lg.Info("Enabling Handler")
 	// Create or open registry key with all access permissions.
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
@@ -161,7 +160,7 @@ func enableHandler(lg logging.Logger, seqNum int) error {
 	return nil
 }
 
-func disableHandler(lg logging.Logger, seqNum int) error {
+func disableHandler(lg *slog.Logger, seqNum uint) error {
 	lg.Info("Disabling Handler")
 
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
@@ -186,7 +185,7 @@ func disableHandler(lg logging.Logger, seqNum int) error {
 	return nil
 }
 
-func updateHandler(lg logging.Logger, seqNum int) error {
+func updateHandler(lg *slog.Logger, seqNum uint) error {
 	lg.Info("Updating Handler")
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
 	if err != nil {
@@ -204,7 +203,7 @@ func updateHandler(lg logging.Logger, seqNum int) error {
 	return nil
 }
 
-func uninstallHandler(lg logging.Logger, seqNum int) error {
+func uninstallHandler(lg *slog.Logger, seqNum uint) error {
 	lg.Info("Uninstalling Handler")
 
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
@@ -235,7 +234,7 @@ func uninstallHandler(lg logging.Logger, seqNum int) error {
 	return nil
 }
 
-func resetStateHandler(lg logging.Logger, seqNum int) error {
+func resetStateHandler(lg *slog.Logger, seqNum uint) error {
 	lg.Info("Reset State Handler")
 
 	err := registry.DeleteKey(registry.LOCAL_MACHINE, regKeyPath)
