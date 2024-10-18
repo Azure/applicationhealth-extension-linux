@@ -10,7 +10,6 @@
 package seqno
 
 import (
-	slog "log/slog"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -55,18 +54,18 @@ func (mr *MockSequenceNumberManagerMockRecorder) FindSeqNum(configFolder any) *g
 }
 
 // GetCurrentSequenceNumber mocks base method.
-func (m *MockSequenceNumberManager) GetCurrentSequenceNumber(el *slog.Logger, name, version string) (uint, error) {
+func (m *MockSequenceNumberManager) GetCurrentSequenceNumber(name, version string) (uint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCurrentSequenceNumber", el, name, version)
+	ret := m.ctrl.Call(m, "GetCurrentSequenceNumber", name, version)
 	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetCurrentSequenceNumber indicates an expected call of GetCurrentSequenceNumber.
-func (mr *MockSequenceNumberManagerMockRecorder) GetCurrentSequenceNumber(el, name, version any) *gomock.Call {
+func (mr *MockSequenceNumberManagerMockRecorder) GetCurrentSequenceNumber(name, version any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrentSequenceNumber", reflect.TypeOf((*MockSequenceNumberManager)(nil).GetCurrentSequenceNumber), el, name, version)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCurrentSequenceNumber", reflect.TypeOf((*MockSequenceNumberManager)(nil).GetCurrentSequenceNumber), name, version)
 }
 
 // GetSequenceNumber mocks base method.
