@@ -1,6 +1,7 @@
 package apphealth
 
 import (
+	"os"
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
@@ -9,8 +10,14 @@ import (
 )
 
 var (
-	mockLogger, _ = logging.NewSlogLogger(nil)
+	logFileDir    = "/tmp/logs"
+	logFileName   = "log_test"
+	mockLogger, _ = logging.NewRotatingSlogLogger(logFileDir, logFileName)
 )
+
+var tearDownFunc = func() {
+	os.RemoveAll(logFileDir)
+}
 
 func TestDefaultHealthProbe(t *testing.T) {
 	// Test default health probe and validating response
@@ -20,4 +27,5 @@ func TestDefaultHealthProbe(t *testing.T) {
 	probeResponse, err := probe.Evaluate(mockLogger)
 	require.NoErrorf(t, err, "No Error expected, but got %v", err)
 	assert.Equal(t, expectedResponse, probeResponse)
+	tearDownFunc()
 }
