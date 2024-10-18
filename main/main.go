@@ -1,19 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/internal/version"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/seqnum"
 	"github.com/Azure/applicationhealth-extension-linux/platform/cmdhandler"
 	"github.com/Azure/azure-extension-platform/pkg/exithelper"
 )
 
 var (
 	// the logger that will be used throughout
-	logger, err = logging.NewExtensionLogger(nil)
+	logger, err = logging.NewSlogLogger(nil)
 	// Exit helper
 	exiter = exithelper.Exiter
 
@@ -48,6 +50,12 @@ func main() {
 		logger.Info("failed to find sequence number", "error", err)
 		exiter.Exit(exithelper.EnvironmentError)
 	}
+	slog.SetDefault(logger)
+	// Initialize telemetry singleton, which can be used with package level function
+	if _, err := telemetry.NewTelemetry(hEnv); err != nil {
+		logger.Error(fmt.Sprintf("failed to initialize telemetry object, error: %s", err.Error()), slog.Any("error", err))
+		exiter.Exit(exithelper.EnvironmentError)
+	}
 
 	handler, err := cmdhandler.NewCommandHandler() // get the command handler
 	if err != nil {
@@ -55,7 +63,7 @@ func main() {
 		exiter.Exit(exithelper.EnvironmentError)
 	}
 
-	logger, err = logging.NewExtensionLogger(hEnv) // create a new logger
+	logger, err = logging.NewSlogLogger(hEnv) // create a new logger
 	if err != nil {
 		logger.Error("failed to create logger", slog.Any("error", err))
 		exiter.Exit(exithelper.EnvironmentError)
