@@ -14,14 +14,6 @@ build_docker_image_nocache() {
 }
 
 # This function builds a Docker image for testing purposes, if it already doesn't exist.
-# This function builds a Docker image for testing purposes, if it already doesn't exist.
-build_docker_image_nocache() {
-    # Check if the image already exists
-    echo "Building test image $IMAGE..."
-    docker build --no-cache -q -f $DOCKERFILE -t $IMAGE . 1>&2
-}
-
-# This function builds a Docker image for testing purposes, if it already doesn't exist.
 build_docker_image() {
     # Check if the image already exists
     if [ -z "$(docker images -q $IMAGE)" ]; then
@@ -116,7 +108,6 @@ container_read_handler_log() {
 
 mk_certs() { # creates certs/{THUMBPRINT}.(crt|key) files under ./certs/ and prints THUMBPRINT
     set -eo pipefail
-    mkdir -p "$certs_dir" && rm -f "$certs_dir/*" && cd "$certs_dir"
     mkdir -p "$certs_dir" && rm -f "$certs_dir/*" && cd "$certs_dir"
     openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -batch &>/dev/null
     thumbprint=$(openssl x509 -in cert.pem -fingerprint -noout| sed 's/.*=//g' | sed 's/://g')

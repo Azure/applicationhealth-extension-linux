@@ -167,7 +167,7 @@ func TestExtensionLogger_Error(t *testing.T) {
 
 	// Verify that the log message contains the error
 	logOutput := string(logData)
-	assert.Contains(t, logOutput, `msg="Found an error`, "log message should contain the error message")
+	assert.Contains(t, logOutput, `event="Found an error`, "log message should contain the error message")
 	assert.Contains(t, logOutput, `error.message="test error"`, "log message should contain the error message")
 	assert.Contains(t, logOutput, "error.type=*errors.errorString", "log message should contain the error type")
 	assert.Contains(t, logOutput, "error.stacktrace=", "log message should contain the error stack trace")
@@ -245,7 +245,7 @@ func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 		l := logLines[i]
 		// Check that the log entry contains the expected fields
 		require.Contains(t, l, fmt.Sprintf("level=%s", log.Level), "Log entry does not contain the logged level")
-		require.Contains(t, l, fmt.Sprintf("msg=\"%s\"", log.Msg), "Log entry does not contain the logged message")
+		require.Contains(t, l, fmt.Sprintf("event=\"%s\"", log.Msg), "Log entry does not contain the logged message")
 
 		// Check that the log entry contains the properties added with With()
 		for _, prop := range log.Props {
