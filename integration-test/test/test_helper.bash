@@ -215,7 +215,7 @@ verify_state_change_timestamps() {
 # second argument is an array of expected state log strings
 verify_states() {
     expectedStateLogs="$2"
-    regex='msg="(.*)"'
+    regex='event="(.*)"'
     index=0
     while IFS=$'\n' read -ra stateLogs; do
         for i in "${!stateLogs[@]}"; do
