@@ -4,13 +4,6 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"os"
-	"sync"
-)
-
-var (
-	ExtensionLogFile *os.File = nil
-	logFileOnce      sync.Once
 )
 
 type ExtensionHandlerOptions struct {

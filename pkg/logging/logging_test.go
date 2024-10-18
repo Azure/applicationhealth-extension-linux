@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
@@ -23,147 +23,128 @@ const (
 func TestNew(t *testing.T) {
 	// Test creating a logger with a handler environment
 	var (
-		fakeEnv        = &handlerenv.HandlerEnvironment{}
-		logFolder, err = os.MkdirTemp("", "logs")
+		logDirPath = "/tmp/logs"
+		fileName   = "log_test"
+		fakeEnv    = &handlerenv.HandlerEnvironment{}
 	)
+	err := createDirectories(logDirPath)
 	require.NoError(t, err)
-	defer os.RemoveAll(logFolder)
-	fakeEnv.LogFolder = logFolder
+	defer removeDirectories(logDirPath)
 
-	logger, err := NewSlogLogger(fakeEnv)
+	fakeEnv.LogFolder = logDirPath
+
+	logger, err := NewSlogLogger(fakeEnv, fileName)
 	require.NoError(t, err, "Failed to create logger")
 
 	assert.NotNil(t, logger)
 }
 
 func TestNewWithName_Success(t *testing.T) {
-	logFolder, err := os.MkdirTemp("", "logs")
+	var (
+		logDirPath = "/tmp/logs"
+		fileName   = "log_test"
+	)
+	err := createDirectories(logDirPath)
 	require.NoError(t, err)
-	defer os.RemoveAll(logFolder)
-	logger, err := NewSlogLoggerWithName(logFolder, "log_%v_test")
+	defer removeDirectories(logDirPath)
+
+	logger, err := NewRotatingSlogLogger(logDirPath, fileName)
 	require.NoError(t, err, "Failed to create logger")
 	require.NotNil(t, logger, "Logger should not be nil")
 }
 
-func TestNewWithName_NoDirExist(t *testing.T) {
+func TestRotatingSlogLogger_NoDirExist(t *testing.T) {
 	// Test creating a logger with a handler environment and custom log file name format
 	var (
-		logDir      = "/tmp/logs"
-		logger, err = NewSlogLoggerWithName(logDir, "log_%v_test")
+		logDirPath = "/tmp/logs"
+		fileName   = "log_test"
+		logger, _  = NewRotatingSlogLogger(logDirPath, fileName)
 	)
-	require.NoDirExists(t, logDir, "Log directory should not have been created")
-	require.Error(t, err, "Failed to create logger")
-	assert.Nil(t, logger, "Logger should be nil")
+	defer removeDirectories(logDirPath)
+	require.NoDirExists(t, logDirPath, "Log directory should not have been created")
+	logger.Info("Test log")
+	require.FileExistsf(t, path.Join(logDirPath, fileName), "Log file should not have been created")
+	require.DirExists(t, logDirPath, "Log directory should have been created")
 }
 
 func TestRotateLogFolder(t *testing.T) {
-	// Create a temporary log folder for testing
-	logFolder, err := os.MkdirTemp("", "logs")
-	assert.NoError(t, err)
-	defer os.RemoveAll(logFolder)
+	var (
+		logDirPath = "/tmp/logs"
+		fileName   = "log_test"
+		logger, _  = NewRotatingSlogLogger(logDirPath, fileName)
+	)
+	err := createDirectories(logDirPath)
+	require.NoError(t, err, "Failed to create log directory: %v")
+	defer removeDirectories(logDirPath)
 
 	// Create some log files in the log folder
-	logFile1 := filepath.Join(logFolder, "log_1")
-	logFile2 := filepath.Join(logFolder, "log_2")
-	logFile3 := filepath.Join(logFolder, "log_3")
+	logFile := filepath.Join(logDirPath, fileName)
+	logger.Info("First log message")
 
 	// Generate a large amount of data to write to the log files
-	largeData := make([]byte, 14*mb) // 14 MB
+	largeData := make([]byte, 2*mb) // 2 MB
 	for i := range largeData {
 		largeData[i] = 'A'
 	}
 
-	err = os.WriteFile(logFile1, largeData, 0644)
-	assert.NoError(t, err)
-	err = os.WriteFile(logFile2, largeData, 0644)
-	assert.NoError(t, err)
-	err = os.WriteFile(logFile3, largeData, 0644)
-	assert.NoError(t, err)
+	logger.Info("Adding large data to log file", slog.String("data", string(largeData)))
+	logger.Info("Adding large data to log file", slog.String("data", string(largeData)))
+	logger.Info("Adding large data to log file", slog.String("data", string(largeData)))
 
-	// Created 3 files with 14MB data each, total 42MB,
-	// which is greater than the threshold of 40MB. Only one file should remain after rotation.
-	// because the threshold lowbound is 30MB, and after deleting the oldest file, the total size will be 28MB.
-	// Rotate the log folder
-	err = rotateLogFolder(logFolder, "log_%v")
-	assert.NoError(t, err)
+	// err = os.WriteFile(logFile1, largeData, 0644)
+	// assert.NoError(t, err)
 
+	// Verify that the current log file size is smaller than 5MB
+	fileInfo, err := os.Stat(logFile)
 	// Verify that only the newest log file remains
-	_, err = os.Stat(logFile1)
-	assert.Error(t, err, "log_1 should have been deleted")
-	assert.NoFileExistsf(t, logFile1, "Log File: %s should have been deleted by file rotation", logFile1)
-	_, err = os.Stat(logFile2)
-	assert.NoError(t, err, "log_2 should not have been deleted")
-	assert.FileExistsf(t, logFile2, "Log File: %s should exist", logFile2)
-	_, err = os.Stat(logFile3)
-	assert.NoError(t, err, "log_3 should not have been deleted")
-	assert.FileExistsf(t, logFile3, "Log File: %s should exist", logFile3)
-}
+	assert.NoError(t, err, "Original log file should still exist")
+	assert.FileExistsf(t, logFile, "Log File: %s should have been deleted by file rotation", logFile)
+	// Verify that the current log file size is smaller than 5MB
+	assert.Less(t, fileInfo.Size(), int64(5*mb), "Current log file size should be smaller than 5MB")
 
-func TestRotateLogFolder_DirectorySizeBelowThreshold(t *testing.T) {
-	// Create a temporary log folder for testing
-	logFolder, err := os.MkdirTemp("", "logs")
-	assert.NoError(t, err)
-	defer os.RemoveAll(logFolder)
-
-	// Create some log files in the log folder
-	logFile1 := filepath.Join(logFolder, "log_1")
-	logFile2 := filepath.Join(logFolder, "log_2")
-	logFile3 := filepath.Join(logFolder, "log_3")
-
-	// Generate a large amount of data to write to the log files
-	largeData := make([]byte, 15*mb) // 15 MB
-	for i := range largeData {
-		largeData[i] = 'A'
+	// Verify that a .gz file was created
+	files, err := os.ReadDir(logDirPath)
+	require.NoError(t, err, "Failed to read log directory")
+	var gzFileFound, timestampedFileFound bool
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".gz") {
+			gzFileFound = true
+		}
+		if strings.HasPrefix(file.Name(), fileName) && file.Name() != fileName {
+			timestampedFileFound = true
+		}
 	}
 
-	err = os.WriteFile(logFile1, []byte("log file 1"), 0644)
-	assert.NoError(t, err)
-	err = os.WriteFile(logFile2, largeData, 0644)
-	assert.NoError(t, err)
-	err = os.WriteFile(logFile3, largeData, 0644)
-	assert.NoError(t, err)
+	assert.True(t, gzFileFound, "A .gz file should have been created")
+	assert.True(t, timestampedFileFound, "A timestamped log file should have been created")
 
-	// Rotate the log folder when the directory size is below the threshold
-	err = rotateLogFolder(logFolder, "log_%v")
-	assert.NoError(t, err)
-
-	// Verify that no log files were deleted
-	_, err = os.Stat(logFile1)
-	assert.NoError(t, err, "log_1 should not have been deleted")
-	assert.FileExistsf(t, logFile1, "Log File: %s should exist", logFile1)
-	_, err = os.Stat(logFile2)
-	assert.NoError(t, err, "log_2 should not have been deleted")
-	assert.FileExistsf(t, logFile2, "Log File: %s should exist", logFile2)
-	_, err = os.Stat(logFile3)
-	assert.NoError(t, err, "log_3 should not have been deleted")
-	assert.FileExistsf(t, logFile3, "Log File: %s should exist", logFile3)
 }
 func TestExtensionLogger_Error(t *testing.T) {
-	resetGlobals()
-	// Define the log directory
 	var (
-		fakeEnv = &handlerenv.HandlerEnvironment{}
+		logDirPath = "/tmp/logs"
+		fileName   = "log_test"
+		fakeEnv    = &handlerenv.HandlerEnvironment{}
 	)
-	logDir, err := os.MkdirTemp("", "logs")
+	err := createDirectories(logDirPath)
 	require.NoError(t, err, "Failed to create log directory: %v")
-	defer removeDirectories(logDir)
+	defer removeDirectories(logDirPath)
 
-	fakeEnv.LogFolder = logDir
+	fakeEnv.LogFolder = logDirPath
 
 	// Create an ExtensionLogger with the fake logger
-	logger, err := NewSlogLogger(fakeEnv)
+	logger, err := NewSlogLogger(fakeEnv, fileName)
 	require.NoError(t, err, "Failed to create logger")
 
 	// Log an error message
 	logger.Error("Found an error", slog.Any("error", fmt.Errorf("test error")))
 
 	// Verify that the log file was created
-	logFile := ExtensionLogFile
-	assert.FileExists(t, logFile.Name(), "log file should have been created")
-	logger.Info("Log file created", slog.String("path", logFile.Name()))
+	logFile := path.Join(logDirPath, fileName)
+	assert.FileExists(t, logFile, "log file should have been created")
+	logger.Info("Log file created", slog.String("path", logFile))
 
 	// Read the log file
-	logData, err := os.ReadFile(logFile.Name())
+	logData, err := os.ReadFile(logFile)
 	assert.NoError(t, err)
 
 	// Verify that the log message contains the error
@@ -175,15 +156,16 @@ func TestExtensionLogger_Error(t *testing.T) {
 }
 
 func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
-	// Define the log directory
-	resetGlobals()
-	logDir, err := os.MkdirTemp("", "logs")
-	assert.NoError(t, err)
-
-	defer removeDirectories(logDir)
+	var (
+		logDirPath = "/tmp/logs"
+		fileName   = "log_test"
+	)
+	err := createDirectories(logDirPath)
+	require.NoError(t, err, "Failed to create log directory: %v")
+	defer removeDirectories(logDirPath)
 
 	// Create a logger
-	logger, err := NewSlogLoggerWithName(logDir, "log_%v_test")
+	logger, err := NewRotatingSlogLogger(logDirPath, fileName)
 	require.NoError(t, err, "Failed to create logger")
 
 	// Log some messages with different levels and properties
@@ -227,12 +209,12 @@ func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 	}
 
 	// Verify that the log file was created
-	logFile := ExtensionLogFile
-	assert.FileExists(t, logFile.Name(), "log file should have been created")
-	logger.Info("Log file created", slog.String("path", logFile.Name()))
+	logFile := path.Join(logDirPath, fileName)
+	assert.FileExists(t, logFile, "log file should have been created")
+	logger.Info("Log file created", slog.String("path", logFile))
 
 	// Read the log file
-	logData, err := os.ReadFile(logFile.Name())
+	logData, err := os.ReadFile(logFile)
 	require.NoError(t, err, "Failed to read log file: %v")
 
 	// Split the log output into lines
@@ -274,9 +256,4 @@ func removeDirectories(dirs ...string) error {
 		}
 	}
 	return nil
-}
-
-func resetGlobals() {
-	ExtensionLogFile = nil
-	logFileOnce = sync.Once{}
 }

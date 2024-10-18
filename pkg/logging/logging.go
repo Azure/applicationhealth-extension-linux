@@ -9,12 +9,12 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	slogformatter "github.com/samber/slog-formatter"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
@@ -44,53 +44,44 @@ var (
 // If the HandlerEnvironment is nil or the LogFolder within the HandlerEnvironment is empty,
 // a standard output logger will be used.
 // It returns a slog.Logger instance.
-func NewSlogLogger(he *handlerenv.HandlerEnvironment) (*slog.Logger, error) {
+func NewSlogLogger(he *handlerenv.HandlerEnvironment, logFileName string) (*slog.Logger, error) {
 	if he == nil || he.LogFolder == "" {
-		return NewSlogLoggerWithName("", "")
+		// If log folder is not provided, use standard output
+		return NewRotatingSlogLogger("", "")
 	}
 
-	return NewSlogLoggerWithName(he.LogFolder, "")
+	return NewRotatingSlogLogger(he.LogFolder, logFileName)
 }
 
-// NewSlogLoggerWithName creates a new slog.Logger with the given log folder and log file format.
+// NewRotatingSlogLogger creates a new slog.Logger with the given log folder and log file format.
 // If the log folder is not provided, it uses standard output as the logger.
 // Supports custom log file format, with default format "log_%v".
 // Supports cycling of logs to prevent filling up the disk.
 // If valid LogFolder is provided, it will create and write logs to the specified folder.
-func NewSlogLoggerWithName(logFolder string, logFileFormat string) (*slog.Logger, error) {
+func NewRotatingSlogLogger(logFolder string, logFileName string) (*slog.Logger, error) {
 	if logFolder == "" {
-		return createSlogLogger(os.Stdout, nil), nil
+		return createSlogLogger(nil), nil
 	}
 
-	if logFileFormat == "" {
-		logFileFormat = "log_%v"
+	if logFileName == "" {
+		logFileName = "ApplicationHealthExtension.log"
 	}
 
-	err := rotateLogFolder(logFolder, logFileFormat)
-	if err != nil {
-		return nil, err
+	rotatingWriter := lumberjack.Logger{
+		Filename:   path.Join(logFolder, logFileName),
+		MaxSize:    5, // megabytes
+		MaxBackups: 3,
+		MaxAge:     28, // days
+		Compress:   true,
 	}
 
-	fileName := fmt.Sprintf(logFileFormat, strconv.FormatInt(time.Now().UTC().UnixNano(), 10))
-	filePath := path.Join(logFolder, fileName)
-	logFileOnce.Do(func() {
-		ExtensionLogFile, err = os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-		if err != nil {
-			panic("Failed to open log file: " + err.Error())
-		}
-	})
-	if ExtensionLogFile == nil {
-		return nil, fmt.Errorf("failed to create or open log file")
-	}
-	return createSlogLogger(os.Stdout, ExtensionLogFile), nil
+	output := io.MultiWriter(os.Stdout, &rotatingWriter)
+	return createSlogLogger(output), nil
 }
 
-func createSlogLogger(writer io.Writer, logFile *os.File) *slog.Logger {
-	var output io.Writer
-	if logFile != nil {
-		output = io.MultiWriter(writer, logFile)
-	} else {
-		output = writer
+func createSlogLogger(output io.Writer) *slog.Logger {
+	if output == nil {
+		output = os.Stdout
 	}
 
 	timeFormatter := slogformatter.TimeFormatter(time.RFC3339Nano, time.UTC)
