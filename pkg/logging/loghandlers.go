@@ -4,23 +4,42 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
+	"sync"
 )
+
+var (
+	ExtensionLogFile *os.File = nil
+	logFileOnce      sync.Once
+)
+
+type ExtensionHandlerOptions struct {
+	SlogOpts slog.HandlerOptions
+}
 
 type ExtensionSlogHandler struct {
 	slog.Handler
 }
 
-func NewExtensionSlogHandler(w io.Writer, opts *slog.HandlerOptions) *ExtensionSlogHandler {
-	// ignore opts for now
+func NewExtensionSlogHandler(w io.Writer, opts *ExtensionHandlerOptions) *ExtensionSlogHandler {
+	if opts == nil {
+		opts = &ExtensionHandlerOptions{}
+	}
+
+	// Preserve the existing ReplaceAttr function if it exists
+	existingReplaceAttr := opts.SlogOpts.ReplaceAttr
+	opts.SlogOpts.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
+		if a.Key == slog.MessageKey && a.Value.String() == "" {
+			return slog.Attr{}
+		}
+		if existingReplaceAttr != nil {
+			return existingReplaceAttr(groups, a)
+		}
+		return a
+	}
+
 	return &ExtensionSlogHandler{
-		Handler: slog.NewTextHandler(w, &slog.HandlerOptions{
-			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-				if a.Key == slog.MessageKey && a.Value.String() == "" {
-					return slog.Attr{}
-				}
-				return a
-			},
-		}),
+		Handler: slog.NewTextHandler(w, &opts.SlogOpts),
 	}
 }
 
