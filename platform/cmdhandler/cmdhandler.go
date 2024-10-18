@@ -192,7 +192,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		state := probeResponse.ApplicationHealthState
 		customMetrics := probeResponse.CustomMetrics
 		if err != nil {
-			telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("Error evaluating health probe: %v", err), "error", err)
+			telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("Error evaluating health probe: %v", err))
 		}
 
 		if global.Shutdown {
