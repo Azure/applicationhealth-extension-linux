@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	mockLogger, _ = logging.NewExtensionLogger(nil)
+	mockLogger, _ = logging.NewSlogLogger(nil)
 )
 
 func Test_handlerSettingsValidate(t *testing.T) {
