@@ -10,10 +10,9 @@ import (
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 )
 
-func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, *bytes.Buffer, error) {
+func configureVMWatchProcess(lg *slog.Logger, attempt int, vmWatchSettings *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment) (*exec.Cmd, bool, *bytes.Buffer, error) {
 	// Setup command
 	cmd, resourceGovernanceRequired, err := setupVMWatchCommand(lg, vmWatchSettings, hEnv)
 	if err != nil {
@@ -38,7 +37,7 @@ func configureVMWatchProcess(lg logging.Logger, attempt int, vmWatchSettings *VM
 // The function returns the created exec.Cmd instance and a boolean value indicating whether further resource governance is required.
 // For Windows, the resourceGovernanceRequired flag is currently set to false by default.
 // TODO: Implement resource governance for Windows.
-func createVMWatchCommand(lg logging.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
+func createVMWatchCommand(lg *slog.Logger, s *VMWatchSettings, hEnv *handlerenv.HandlerEnvironment, cmdPath string, args []string) (*exec.Cmd, bool) {
 	var (
 		cmd *exec.Cmd
 		// flag to tell the caller that further resource governance is required.
@@ -53,7 +52,7 @@ func createVMWatchCommand(lg logging.Logger, s *VMWatchSettings, hEnv *handleren
 }
 
 // TODO: Implement resource governance for Windows
-func applyResourceGovernance(lg logging.Logger, vmWatchSettings *VMWatchSettings, vmWatchCommand *exec.Cmd) error {
+func applyResourceGovernance(lg *slog.Logger, vmWatchSettings *VMWatchSettings, vmWatchCommand *exec.Cmd) error {
 	return nil
 }
 
