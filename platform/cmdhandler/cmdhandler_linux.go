@@ -92,13 +92,13 @@ const (
 	dataDir  = "/var/lib/waagent/apphealth" // TODO: This doesn't seem to be used anywhere since new Logger uses LogFolder
 )
 
-func install(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func install(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
 
-	lg.Info(fmt.Sprintf("created data dir, path: %s", dataDir))
-	lg.Info("installed")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Created data dir", "path", dataDir)
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Handler successfully installed")
 	return "", nil
 }
 
