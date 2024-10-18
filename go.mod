@@ -14,7 +14,6 @@ require (
 )
 
 require (
-	github.com/golang/mock v1.6.0
 	github.com/samber/slog-formatter v1.1.0
 	go.uber.org/mock v0.4.0
 )
@@ -34,5 +33,6 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20150808065054-e02fc20de94c // indirect
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
