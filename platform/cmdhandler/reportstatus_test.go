@@ -2,11 +2,13 @@ package cmdhandler
 
 import (
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/stretchr/testify/require"
@@ -30,9 +32,15 @@ func Test_statusMsg(t *testing.T) {
 
 func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := &handlerenv.HandlerEnvironment{}
-	fakeEnv.StatusFolder = "/non-existing/dir/"
-	lg, err := logging.NewExtensionLogger(fakeEnv)
+	fakeEnv.StatusFolder = "/non-existing/dir/" // intentionally set to a non-existing directory
+	fakeEnv.EventsFolder = "/non-existing/dir/" // intentionally set to a non-existing directory
+
+	_, err := telemetry.NewTelemetry(fakeEnv)
+	require.NoError(t, err, "failed to initialize telemetry")
+
+	lg, err := logging.NewSlogLogger(fakeEnv)
 	require.NoError(t, err, "failed to create logger")
+	slog.SetDefault(lg)
 
 	h, err := NewCommandHandler()
 	require.Nil(t, err)
@@ -45,14 +53,23 @@ func Test_reportStatus_fails(t *testing.T) {
 }
 
 func Test_reportStatus_fileExists(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "")
+	statusDir, err := os.MkdirTemp("", "status-")
 	require.Nil(t, err)
-	defer os.RemoveAll(tmpDir)
+	eventsDir, err := os.MkdirTemp("", "events-")
+	require.Nil(t, err)
+	defer os.RemoveAll(statusDir)
+	defer os.RemoveAll(eventsDir)
 
 	fakeEnv := &handlerenv.HandlerEnvironment{}
-	fakeEnv.StatusFolder = tmpDir
-	lg, err := logging.NewExtensionLogger(fakeEnv)
+	fakeEnv.StatusFolder = statusDir
+	fakeEnv.EventsFolder = eventsDir
+
+	_, err = telemetry.NewTelemetry(fakeEnv)
+	require.NoError(t, err, "failed to initialize telemetry")
+
+	lg, err := logging.NewSlogLogger(fakeEnv)
 	require.NoError(t, err, "failed to create logger")
+	slog.SetDefault(lg)
 
 	// Setting Up CommandHandler
 	h, err := NewCommandHandler()
@@ -62,7 +79,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 
 	require.Nil(t, ReportStatus(lg, fakeEnv, 1, status.StatusError, cmds["enable"], "FOO ERROR"))
 
-	path := filepath.Join(tmpDir, "1.status")
+	path := filepath.Join(statusDir, "1.status")
 	b, err := ioutil.ReadFile(path)
 	require.Nil(t, err, ".status file exists")
 	require.NotEqual(t, 0, len(b), ".status file not empty")
@@ -76,18 +93,23 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 	require.NotNil(t, cmds)
 
 	for _, c := range cmds.Values() {
-		tmpDir, err := ioutil.TempDir("", "status-"+c.Name.String())
+		statusDir, err := os.MkdirTemp("", "status-"+c.Name.String())
 		require.Nil(t, err)
-		defer os.RemoveAll(tmpDir)
+		eventsDir, err := os.MkdirTemp("", "events-"+c.Name.String())
+		require.Nil(t, err)
+		defer os.RemoveAll(statusDir)
+		defer os.RemoveAll(eventsDir)
 
 		fakeEnv := &handlerenv.HandlerEnvironment{}
-		fakeEnv.StatusFolder = tmpDir
-		lg, err := logging.NewExtensionLogger(fakeEnv)
+		fakeEnv.StatusFolder = statusDir
+		fakeEnv.EventsFolder = eventsDir
+		lg, err := logging.NewSlogLogger(fakeEnv)
 		require.NoError(t, err, "failed to create logger")
+		slog.SetDefault(lg)
 
 		require.Nil(t, ReportStatus(lg, fakeEnv, 2, status.StatusSuccess, c, ""))
 
-		fp := filepath.Join(tmpDir, "2.status")
+		fp := filepath.Join(statusDir, "2.status")
 		_, err = os.Stat(fp) // check if the .status file is there
 		if c.ShouldReportStatus && err != nil {
 			t.Fatalf("cmd=%q should have reported status file=%q err=%v", c.Name, fp, err)

@@ -1,10 +1,11 @@
 package cmdhandler
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/pkg/errors"
 )
@@ -14,27 +15,27 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func ReportStatus(lg logging.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, c cmd, msg string) error {
+func ReportStatus(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint, t status.StatusType, c cmd, msg string) error {
 	if !c.ShouldReportStatus {
 		lg.Info("status not reported for operation (by design)")
 		return nil
 	}
 	s := status.NewStatus(t, c.Name.String(), statusMsg(c, t, msg))
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		// sendTelemetry(lg, telemetry.EventLevelInfo, telemetry.ReportStatusTask, "failed to save handler status", "error", err.Error())
-		lg.Error("failed to save handler status", slog.Any("error", err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportStatusTask, fmt.Sprintf("failed to save handler status: %s", s), "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportStatusTask, fmt.Sprintf("saved handler status: %s", s))
 	return nil
 }
 
-func ReportStatusWithSubstatuses(lg logging.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
+func ReportStatusWithSubstatuses(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
 	s := status.NewStatus(t, op, msg)
 	for _, substatus := range substatuses {
 		s.AddSubstatusItem(substatus)
 	}
 	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
-		lg.Error("failed to save handler status", slog.Any("error", err))
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportStatusTask, fmt.Sprintf("failed to save handler status: %s", s), "error", err.Error())
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil
