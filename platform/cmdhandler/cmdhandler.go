@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
 	"github.com/Azure/applicationhealth-extension-linux/internal/version"
-	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/Azure/applicationhealth-extension-linux/platform/settings"
 	"github.com/Azure/applicationhealth-extension-linux/plugins/apphealth"
@@ -45,8 +45,8 @@ const (
 	DisableName   CommandName = "Disable"
 )
 
-type cmdFunc func(lg logging.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum int) (msg string, err error)
-type preFunc func(lg logging.Logger, seqNum int) error
+type cmdFunc func(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint) (msg string, err error)
+type preFunc func(lg *slog.Logger, seqNum uint) error
 
 type cmd struct {
 	f                  cmdFunc     // associated function
@@ -77,7 +77,7 @@ func (cm CommandMap) Values() []cmd {
 }
 
 type CommandHandler interface {
-	Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum int, lg logging.Logger) error
+	Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum uint, lg *slog.Logger) error
 	CommandMap() CommandMap
 }
 
@@ -90,7 +90,7 @@ func NewCommandHandler() (CommandHandler, error) {
 	return handler, nil
 }
 
-func noop(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func noop(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	lg.Info("noop")
 	return "", nil
 }
@@ -134,7 +134,7 @@ var (
 	statusMessage = "Successfully polling for application health"
 )
 
-func enable(lg logging.Logger, h *handlerenv.HandlerEnvironment, seqNum int) (string, error) {
+func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (string, error) {
 	// parse the extension handler settings (not available prior to 'enable')
 	cfg, err := settings.ParseAndValidateSettings(lg, h.ConfigFolder)
 	if err != nil {
