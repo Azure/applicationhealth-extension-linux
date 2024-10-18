@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	mockLogger, _ = logging.NewExtensionLogger(nil)
+	mockLogger, _ = logging.NewSlogLogger(nil)
 )
 
 func TestDefaultHealthProbe(t *testing.T) {

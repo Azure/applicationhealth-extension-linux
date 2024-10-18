@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/pkg/errors"
 )
@@ -60,7 +60,7 @@ func (p HealthStatus) GetMessageForAppHealthStatus() string {
 }
 
 type HealthProbe interface {
-	Evaluate(lg logging.Logger) (ProbeResponse, error)
+	Evaluate(lg *slog.Logger) (ProbeResponse, error)
 	address() string
 	HealthStatusAfterGracePeriodExpires() HealthStatus
 }
@@ -74,7 +74,7 @@ type HttpHealthProbe struct {
 	Address    string
 }
 
-func NewHealthProbe(lg logging.Logger, cfg *AppHealthPluginSettings) HealthProbe {
+func NewHealthProbe(lg *slog.Logger, cfg *AppHealthPluginSettings) HealthProbe {
 	var p HealthProbe
 	p = new(DefaultHealthProbe)
 	switch cfg.GetProtocol() {
@@ -82,12 +82,12 @@ func NewHealthProbe(lg logging.Logger, cfg *AppHealthPluginSettings) HealthProbe
 		p = &TcpHealthProbe{
 			Address: "localhost:" + strconv.Itoa(cfg.GetPort()),
 		}
-		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.GetProtocol(), p.address()))
 	case "http":
 		fallthrough
 	case "https":
-		p = NewHttpHealthProbe(cfg.protocol(), cfg.requestPath(), cfg.port())
-		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.protocol(), p.address()))
+		p = NewHttpHealthProbe(cfg.GetProtocol(), cfg.GetRequestPath(), cfg.GetPort())
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, fmt.Sprintf("Creating %s probe targeting %s", cfg.GetProtocol(), p.address()))
 	default:
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthProbeTask, "Configuration not provided. Using default reporting.")
 	}
@@ -95,7 +95,7 @@ func NewHealthProbe(lg logging.Logger, cfg *AppHealthPluginSettings) HealthProbe
 	return p
 }
 
-func (p *TcpHealthProbe) Evaluate(lg logging.Logger) (ProbeResponse, error) {
+func (p *TcpHealthProbe) Evaluate(lg *slog.Logger) (ProbeResponse, error) {
 	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -178,7 +178,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 	return p
 }
 
-func (p *HttpHealthProbe) Evaluate(lg logging.Logger) (ProbeResponse, error) {
+func (p *HttpHealthProbe) Evaluate(lg *slog.Logger) (ProbeResponse, error) {
 	req, err := http.NewRequest("GET", p.address(), nil)
 	var probeResponse ProbeResponse
 	if err != nil {
@@ -245,7 +245,7 @@ func noRedirect(req *http.Request, via []*http.Request) error {
 type DefaultHealthProbe struct {
 }
 
-func (p DefaultHealthProbe) Evaluate(lg logging.Logger) (ProbeResponse, error) {
+func (p DefaultHealthProbe) Evaluate(lg *slog.Logger) (ProbeResponse, error) {
 	var probeResponse ProbeResponse
 	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
