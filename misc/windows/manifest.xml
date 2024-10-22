@@ -2,7 +2,7 @@
 <ExtensionImage xmlns="http://schemas.microsoft.com/windowsazure">
   <ProviderNameSpace>Microsoft.ManagedServices</ProviderNameSpace>
   <Type>ApplicationHealthWindows</Type>
-  <Version>2.0.10</Version>
+  <Version>2.0.14</Version>
   <Label>Microsoft Azure Application Health Extension for Windows Virtual Machines</Label>
   <HostingResources>VmRole</HostingResources>
   <MediaLink></MediaLink>
