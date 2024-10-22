@@ -29,6 +29,29 @@ func ReportStatus(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum u
 	return nil
 }
 
+func ReportCustomStatus(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint, t status.StatusType, c cmd, msg string, operation string) error {
+	if !c.ShouldReportStatus {
+		lg.Info("status not reported for operation (by design)")
+		return nil
+	}
+
+	if operation == "" {
+		operation = c.Name.String()
+	}
+
+	if msg == "" {
+		msg = statusMsg(c, t, msg)
+	}
+
+	s := status.NewStatus(t, operation, msg)
+	if err := s.Save(hEnv.StatusFolder, seqNum); err != nil {
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportStatusTask, fmt.Sprintf("failed to save handler status: %s", s), "error", err.Error())
+		return errors.Wrap(err, "failed to save handler status")
+	}
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportStatusTask, fmt.Sprintf("saved handler status: %s", s))
+	return nil
+}
+
 func ReportStatusWithSubstatuses(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint, t status.StatusType, op string, msg string, substatuses []status.SubstatusItem) error {
 	s := status.NewStatus(t, op, msg)
 	for _, substatus := range substatuses {
