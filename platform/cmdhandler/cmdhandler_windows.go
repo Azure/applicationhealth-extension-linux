@@ -229,7 +229,7 @@ func updateHandler(lg *slog.Logger, seqNum uint) error {
 }
 
 func uninstallHandler(lg *slog.Logger, seqNum uint) error {
-	lg.Info("Uninstalling Handler")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Uninstalling Handler")
 
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
 	if err != nil {
@@ -239,18 +239,18 @@ func uninstallHandler(lg *slog.Logger, seqNum uint) error {
 
 	isUpdating, _, err := k.GetStringValue(updatingRegKeyValueName)
 	if err != nil {
-		lg.Info(fmt.Sprintf(`Registry Value "%s" was not found under the %s key beneath the LOCAL_MACHINE root. Deleting subkey tree anyways.`, updatingRegKeyValueName, regKeyPath))
+		telemetry.SendEvent(telemetry.WarningEvent, telemetry.MainTask, fmt.Sprintf(`Registry Value "%s" was not found under the %s key beneath the LOCAL_MACHINE root. Deleting subkey tree anyways.`, updatingRegKeyValueName, regKeyPath))
 	}
 
 	if isUpdating == "True" {
-		lg.Info(fmt.Sprintf(`Resetting registry value "HKLM\%s\%s" to "False"`, regKeyPath, updatingRegKeyValueName))
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf(`Resetting registry value "HKLM\%s\%s" to "False"`, regKeyPath, updatingRegKeyValueName))
 		err = k.SetStringValue(updatingRegKeyValueName, "False")
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "False"`, regKeyPath, updatingRegKeyValueName))
 		}
 	}
 
-	lg.Info("Deleting Subkey Tree beneath the LOCAL_MACHINE root with the path %s", regKeyPath)
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf(`Deleting registry subkey tree rooted at "HKLM\%s"`, regKeyPath))
 	err = registry.DeleteKey(registry.LOCAL_MACHINE, regKeyPath)
 	if err != nil {
 		return fmt.Errorf(`Unable to delete registry subkey tree rooted at "HKLM\%s". Exception is: %v`, regKeyPath, err)
