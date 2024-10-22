@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -151,15 +152,15 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 }
 
 func installHandler(lg *slog.Logger, seqNum uint) error {
-	lg.Info("Installing Handler")
-	lg.Info(fmt.Sprintf(`Creating Windows Registry Key 'HKLM\%s'`, regKeyPath))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Installing Handler")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf(`Creating Windows Registry Key 'HKLM\%s'`, regKeyPath))
 	// Create a new registry key with all access permissions.
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrFailedToCreateRegKey, err) // Wrap the original error with your predefined error
 	}
 	defer k.Close()
-	lg.Info("Handler successfully installed")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Handler successfully installed")
 	return nil
 }
 
