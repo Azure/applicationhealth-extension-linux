@@ -211,20 +211,20 @@ func disableHandler(lg *slog.Logger, seqNum uint) error {
 }
 
 func updateHandler(lg *slog.Logger, seqNum uint) error {
-	lg.Info("Updating Handler")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Updating Handler")
 	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, regKeyPath, registry.ALL_ACCESS)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrFailedToCreateRegKey, err)
 	}
 	defer k.Close()
 
-	lg.Info(fmt.Sprintf(`Setting the value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, updatingRegKeyValueName))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf(`Setting the value of Windows Registry SubKey "HKLM\%s\%s"`, regKeyPath, updatingRegKeyValueName))
 	err = k.SetStringValue(updatingRegKeyValueName, "True")
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf(`Failed to set registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName))
 	}
 
-	lg.Info(fmt.Sprintf(`Successfully set the registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf(`Successfully set the registry subkey value "HKLM\%s\%s" to "True"`, regKeyPath, updatingRegKeyValueName))
 	return nil
 }
 
