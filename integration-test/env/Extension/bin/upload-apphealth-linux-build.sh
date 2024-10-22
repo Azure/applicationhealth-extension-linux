@@ -29,6 +29,12 @@ cp /tmp/local_zip/bin/applicationhealth-extension /tmp/linux_artifact/caps/Appli
 cp /tmp/local_zip/bin/applicationhealth-extension-arm64 /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped/bin/
 cp /tmp/local_zip/bin/applicationhealth-shim /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped/bin/
 
+# Set the permissions for the copied files
+chmod 775 /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped/bin/applicationhealth-extension
+chmod 775 /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped/bin/applicationhealth-extension-arm64
+chmod 775 /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped/bin/applicationhealth-shim
+chmod -R 775 /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped/bin/VMWatch
+
 # # zip it up
 
 cd /tmp/linux_artifact/caps/ApplicationHealthLinuxTest/v2/ServiceGroupRoot/unzipped && zip -r /tmp/linux.zip . && cd -
