@@ -64,27 +64,44 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 	// TODO: Implement command execution
 	lg.Info(fmt.Sprintf("WindowsCommandHandler was Created, with command: %s and sequenceNumber: %d", c, seqNum))
 
+	v, err := version.GetExtensionVersion()
+	if err != nil {
+		lg.Error("failed to get extension version", slog.Any("error", err))
+	}
+
 	// Getting command to execute
-	cmd, ok := ch.commands[c]
+	command, ok := ch.commands[c]
 	if !ok {
 		return errors.Errorf("unknown command: %s", c)
 	}
 
-	lg.With("operation", strings.ToLower(cmd.Name.String()))
-	lg.With("seq", strconv.Itoa(int(seqNum)))
+	lg, err = logging.NewSlogLogger(h, "AppHealthExtension.log")
+	if err != nil {
+		return errors.Wrap(err, "failed to create logger")
+	}
 
-	lg.Info("Starting AppHealth Extension")
-	lg.Info(fmt.Sprintf("HandlerEnvironment: %v", h))
+	lg = lg.With(
+		"version", v,
+		"pid", os.Getpid(),
+		"operation", strings.ToLower(command.Name.String()),
+		"seq", strconv.Itoa(int(seqNum)),
+	)
+
+	slog.SetDefault(lg)
+
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("Starting AppHealth Extension %s", v))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, fmt.Sprintf("HandlerEnvironment: %v", h))
+
 	// subscribe to cleanly shutdown
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		lg.Info("Received shutdown request")
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Received shutdown request")
 		global.Shutdown = true
 		err := vmwatch.KillVMWatch(lg, vmwatch.VMWatchCommand)
 		if err != nil {
-			lg.Error("error when killing vmwatch", slog.Any("error", err))
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()
 
@@ -95,11 +112,16 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 			case <-ticker.C:
 				isEnabled, err := isExtensionEnabled()
 				if err != nil {
-					lg.Error("error when checking if extension is enabled", slog.Any("error", err))
+					telemetry.SendEvent(telemetry.ErrorEvent, telemetry.MainTask, fmt.Sprintf("Error when checking if extension is enabled, error: %s", err.Error()))
 				}
 				if !isEnabled {
-					lg.Info("Windows Registry Key was set to disabled, shutting down extension")
-					lg.Info("Sending shutdown signal")
+					telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Sending shutdown signal")
+					telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Windows Registry Key was set to disabled, shutting down extension")
+					err = ReportCustomStatus(lg, h, seqNum, status.StatusSuccess, command, "Handler is disabled or reset. Exiting...", "Exiting")
+					if err != nil {
+						telemetry.SendEvent(telemetry.ErrorEvent, telemetry.MainTask, fmt.Sprintf("Failed to report 'Exiting' status: %v", err))
+					}
+
 					sigs <- syscall.SIGTERM
 					ticker.Stop()
 				}
@@ -107,23 +129,23 @@ func (ch *WindowsCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvi
 		}
 	}()
 
-	if cmd.pre != nil {
-		lg.Info("pre-check")
-		if err := cmd.pre(lg, seqNum); err != nil {
-			lg.Error("pre-check failed", slog.Any("error", err))
-			os.Exit(cmd.failExitCode)
+	if command.pre != nil {
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Running Pre-check")
+		if err := command.pre(lg, seqNum); err != nil {
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.MainTask, fmt.Sprintf("Pre-check failed: %v", err))
+			os.Exit(command.failExitCode)
 		}
 	}
 
 	// execute the subcommand
-	ReportStatus(lg, h, seqNum, status.StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, h, seqNum)
+	ReportStatus(lg, h, seqNum, status.StatusTransitioning, command, "")
+	msg, err := command.f(lg, h, seqNum)
 	if err != nil {
 		lg.Error("failed to handle", slog.Any("error", err))
-		ReportStatus(lg, h, seqNum, status.StatusError, cmd, err.Error()+msg)
-		os.Exit(cmd.failExitCode)
+		ReportStatus(lg, h, seqNum, status.StatusError, command, err.Error()+msg)
+		os.Exit(command.failExitCode)
 	}
-	ReportStatus(lg, h, seqNum, status.StatusSuccess, cmd, msg)
+	ReportStatus(lg, h, seqNum, status.StatusSuccess, command, msg)
 
 	return nil
 }
