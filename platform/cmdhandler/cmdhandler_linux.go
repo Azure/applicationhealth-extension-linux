@@ -128,3 +128,34 @@ func uninstall(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Handler successfully uninstalled")
 	return "", nil
 }
+
+func enableHandler(lg *slog.Logger, seqNum uint) error {
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Enabling Handler")
+	if err := validateSequenceNumber(seqNum); err != nil {
+		return errors.Wrap(err, "failed to validate sequence number")
+	}
+	return nil
+}
+
+func validateSequenceNumber(seqNum uint) error {
+	// exit if this sequence number (a snapshot of the configuration) is already
+	// processed. if not, save this sequence number before proceeding.
+	var seqnoManager = seqno.GetInstance()
+
+	mrSeqNum, err := seqnoManager.GetCurrentSequenceNumber(fullName, "")
+	if err != nil {
+		return errors.Wrap(err, "failed to get current sequence number")
+	}
+	// If the most recent sequence number is greater than or equal to the requested sequence number,
+	// then the script has already been run and we should exit.
+	if mrSeqNum != 0 && seqNum < mrSeqNum {
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "the script configuration has already been processed, will not run again")
+		return errors.Errorf("most recent sequence number %d is greater than the requested sequence number %d", mrSeqNum, seqNum)
+	}
+
+	// save the sequence number
+	if err := seqnoManager.SetSequenceNumber(fullName, "", seqNum); err != nil {
+		return errors.Wrap(err, "failed to save sequence number")
+	}
+	return nil
+}
