@@ -13,6 +13,8 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
+	"github.com/Azure/applicationhealth-extension-linux/internal/version"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/Azure/applicationhealth-extension-linux/plugins/vmwatch"
 	"github.com/pkg/errors"
@@ -21,7 +23,7 @@ import (
 var extCommands = CommandMap{
 	InstallKey:   cmd{f: install, Name: InstallName, ShouldReportStatus: false, pre: nil, failExitCode: 52},
 	UninstallKey: cmd{f: uninstall, Name: UninstallName, ShouldReportStatus: false, pre: nil, failExitCode: 3},
-	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: enablePre, failExitCode: 3},
+	EnableKey:    cmd{f: enable, Name: EnableName, ShouldReportStatus: true, pre: enableHandler, failExitCode: 3},
 	UpdateKey:    cmd{f: noop, Name: UpdateName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
 	DisableKey:   cmd{f: noop, Name: DisableName, ShouldReportStatus: true, pre: nil, failExitCode: 3},
 }
@@ -42,13 +44,26 @@ func (ch *LinuxCommandHandler) CommandMap() CommandMap {
 
 func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnvironment, seqNum uint, lg *slog.Logger) error {
 	// Getting command to execute
+	v, err := version.GetExtensionVersion()
+	if err != nil {
+		lg.Error("failed to get extension version", slog.Any("error", err))
+	}
+
 	command, ok := ch.commands[c]
 	if !ok {
 		return errors.Errorf("unknown command: %s", c)
 	}
 
-	lg = lg.With("operation", strings.ToLower(command.Name.String()))
-	lg = lg.With("seq", strconv.Itoa(int(seqNum)))
+	lg, err = logging.NewSlogLogger(h, "ApplicationHealth.log")
+	if err != nil {
+		return errors.Wrap(err, "failed to create logger")
+	}
+	lg = lg.With(
+		"version", v,
+		"pid", os.Getpid(),
+		"operation", strings.ToLower(command.Name.String()),
+		"seq", strconv.Itoa(int(seqNum)),
+	)
 	slog.SetDefault(lg)
 
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Starting AppHealth Extension")
@@ -62,7 +77,6 @@ func (ch *LinuxCommandHandler) Execute(c CommandKey, h *handlerenv.HandlerEnviro
 		global.Shutdown = true
 		err := vmwatch.KillVMWatch(lg, vmwatch.VMWatchCommand)
 		if err != nil {
-			lg.Error("error when killing vmwatch", slog.Any("error", err))
 			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.KillVMWatchTask, fmt.Sprintf("Error when killing vmwatch process, error: %s", err.Error()))
 		}
 	}()

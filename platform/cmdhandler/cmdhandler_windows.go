@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -13,7 +12,10 @@ import (
 	"golang.org/x/sys/windows/registry"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 	global "github.com/Azure/applicationhealth-extension-linux/internal/utils"
+	"github.com/Azure/applicationhealth-extension-linux/internal/version"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/status"
 	"github.com/Azure/applicationhealth-extension-linux/plugins/vmwatch"
 	"github.com/pkg/errors"
