@@ -260,7 +260,7 @@ func uninstallHandler(lg *slog.Logger, seqNum uint) error {
 }
 
 func resetStateHandler(lg *slog.Logger, seqNum uint) error {
-	lg.Info("Reset State Handler")
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Resetting State Handler")
 
 	err := registry.DeleteKey(registry.LOCAL_MACHINE, regKeyPath)
 	if err != nil {
