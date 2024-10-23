@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,11 +72,19 @@ func TestRotateLogFolder(t *testing.T) {
 	var (
 		logDirPath = "/tmp/logs"
 		fileName   = "log_test"
-		logger, _  = NewRotatingSlogLogger(logDirPath, fileName)
 	)
 	err := createDirectories(logDirPath)
 	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDirPath)
+
+	rotatingWriter := lumberjack.Logger{
+		Filename:   path.Join(logDirPath, fileName),
+		MaxSize:    5, // megabytes
+		MaxBackups: 3,
+		MaxAge:     28, // days
+		Compress:   true,
+	}
+	logger := createSlogLogger(&rotatingWriter)
 
 	// Create some log files in the log folder
 	logFile := filepath.Join(logDirPath, fileName)
