@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
@@ -24,12 +25,11 @@ const (
 func TestNew(t *testing.T) {
 	// Test creating a logger with a handler environment
 	var (
-		logDirPath = "/tmp/logs"
-		fileName   = "log_test"
-		fakeEnv    = &handlerenv.HandlerEnvironment{}
+		fileName = "log_test"
+		fakeEnv  = &handlerenv.HandlerEnvironment{}
 	)
-	err := createDirectories(logDirPath)
-	require.NoError(t, err)
+	logDirPath, err := os.MkdirTemp(os.TempDir(), "logs")
+	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDirPath)
 
 	fakeEnv.LogFolder = logDirPath
@@ -42,11 +42,10 @@ func TestNew(t *testing.T) {
 
 func TestNewWithName_Success(t *testing.T) {
 	var (
-		logDirPath = "/tmp/logs"
-		fileName   = "log_test"
+		fileName = "log_test"
 	)
-	err := createDirectories(logDirPath)
-	require.NoError(t, err)
+	logDirPath, err := os.MkdirTemp(os.TempDir(), "logs")
+	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDirPath)
 
 	logger, err := NewRotatingSlogLogger(logDirPath, fileName)
@@ -57,11 +56,13 @@ func TestNewWithName_Success(t *testing.T) {
 func TestRotatingSlogLogger_NoDirExist(t *testing.T) {
 	// Test creating a logger with a handler environment and custom log file name format
 	var (
-		logDirPath = "/tmp/logs"
-		fileName   = "log_test"
-		logger, _  = NewRotatingSlogLogger(logDirPath, fileName)
+		fileName = "log_test"
 	)
+	logDirPath := filepath.Join(os.TempDir(), "logs")
+	removeDirectories(logDirPath)
 	defer removeDirectories(logDirPath)
+
+	logger, _ := NewRotatingSlogLogger(logDirPath, fileName)
 	require.NoDirExists(t, logDirPath, "Log directory should not have been created")
 	logger.Info("Test log")
 	require.FileExistsf(t, path.Join(logDirPath, fileName), "Log file should not have been created")
@@ -70,10 +71,9 @@ func TestRotatingSlogLogger_NoDirExist(t *testing.T) {
 
 func TestRotateLogFolder(t *testing.T) {
 	var (
-		logDirPath = "/tmp/logs"
-		fileName   = "log_test"
+		fileName = "log_test"
 	)
-	err := createDirectories(logDirPath)
+	logDirPath, err := os.MkdirTemp(os.TempDir(), "logs*")
 	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDirPath)
 
@@ -112,29 +112,50 @@ func TestRotateLogFolder(t *testing.T) {
 	assert.Less(t, fileInfo.Size(), int64(5*mb), "Current log file size should be smaller than 5MB")
 
 	// Verify that a .gz file was created
-	files, err := os.ReadDir(logDirPath)
-	require.NoError(t, err, "Failed to read log directory")
-	var gzFileFound, timestampedFileFound bool
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".gz") {
-			gzFileFound = true
-		}
-		if strings.HasPrefix(file.Name(), fileName) && file.Name() != fileName {
-			timestampedFileFound = true
-		}
-	}
 
-	assert.True(t, gzFileFound, "A .gz file should have been created")
-	assert.True(t, timestampedFileFound, "A timestamped log file should have been created")
+	done := make(chan bool)
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(1 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				return
+			default:
+				files, err := os.ReadDir(logDirPath)
+				require.NoError(t, err, "Failed to read log directory")
+				var gzFileFound, timestampedFileFound bool = false, false
+				for _, file := range files {
+					if strings.HasSuffix(file.Name(), ".gz") {
+						gzFileFound = true
+					}
+					if strings.HasPrefix(file.Name(), fileName) && file.Name() != fileName {
+						timestampedFileFound = true
+					}
+				}
+				if gzFileFound && timestampedFileFound {
+					done <- true
+					return
+				}
+			}
+		}
+	}()
+
+	select {
+	case <-done:
+		assert.True(t, true, "A .gz file and a timestamped log file were found")
+	case <-time.After(15 * time.Second):
+		assert.Fail(t, "Timeout: .gz file or timestamped log file not found within 15 seconds")
+	}
 
 }
 func TestExtensionLogger_Error(t *testing.T) {
 	var (
-		logDirPath = "/tmp/logs"
-		fileName   = "log_test"
-		fakeEnv    = &handlerenv.HandlerEnvironment{}
+		fileName = "log_test"
+		fakeEnv  = &handlerenv.HandlerEnvironment{}
 	)
-	err := createDirectories(logDirPath)
+	logDirPath, err := os.MkdirTemp(os.TempDir(), "logs")
 	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDirPath)
 
@@ -166,10 +187,9 @@ func TestExtensionLogger_Error(t *testing.T) {
 
 func TestLogger_LogsAppearInCorrectOrder(t *testing.T) {
 	var (
-		logDirPath = "/tmp/logs"
-		fileName   = "log_test"
+		fileName = "log_test"
 	)
-	err := createDirectories(logDirPath)
+	logDirPath, err := os.MkdirTemp(os.TempDir(), "logs")
 	require.NoError(t, err, "Failed to create log directory: %v")
 	defer removeDirectories(logDirPath)
 
