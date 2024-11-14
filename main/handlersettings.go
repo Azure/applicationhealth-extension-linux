@@ -117,6 +117,8 @@ func (v *vmWatchSettings) String() string {
 	return string(setting)
 }
 
+// Case insensitive retrieval of VMWatchCohortId from EnvironmentAttributes
+// We serialize and deserialize EnvironmentAttributes to ensure case insensitive get for VMWatchCohortId
 func (v *vmWatchSettings) TryGetVMWatchCohortId() (vmWatchCohortId string, err error) {
 	if v.EnvironmentAttributes == nil {
 		return "", nil

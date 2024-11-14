@@ -161,7 +161,8 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	//	1. Grace period expires, then application will either be Unknown/Unhealthy depending on probe type
 	//	2. A valid health state is observed numberOfProbes consecutive times
 	for {
-		// Record AppHealth heart beat
+		// Since we only log health state changes, it is possible there will be no recent logs for app health extension.
+		// As an indication that the extension is running, we log app health extension heart beat at a set interval.
 		if time.Since(timeOfLastAppHealthLog) >= RecordAppHealthHeartBeatIntervalInMinutes*time.Minute {
 			timeOfLastAppHealthLog = time.Now()
 			telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportHeatBeatTask, "AppHealthExtension is running")
