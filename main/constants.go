@@ -12,6 +12,8 @@ const (
 	AppHealthBinaryNameAmd64 = "applicationhealth-extension"
 	AppHealthBinaryNameArm64 = "applicationhealth-extension-arm64"
 
+	RecordAppHealthHeartBeatIntervalInMinutes = 5
+
 	// TODO: The github package responsible for HandlerEnvironment settings is no longer being maintained
 	// and it also doesn't have the latest properties like EventsFolder. Importing a separate package
 	// is possible, but may result in lots of code churn. We will temporarily keep this as a constant since the

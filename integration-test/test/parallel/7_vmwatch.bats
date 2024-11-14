@@ -645,3 +645,35 @@ teardown(){
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
+
+@test "handler command: enable - vm watch enabled - Override OperationId with VMWatchCohortId " {
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
+    push_settings '
+    {
+        "protocol": "http",
+        "requestPath": "health",
+        "port": 8080,
+        "vmWatchSettings": {
+            "enabled": true,
+            "environmentAttributes" : {
+                "SomeOtherKey" : "SomeOtherValue",
+                "VMWatchCohortId" : "450affae-1b71-474d-885f-1598051038a0"
+            }
+        }
+    }' ''
+    run start_container
+
+    echo "$output"
+    enableLog="$(echo "$output" | grep 'operation=enable' | grep state)"
+    
+    [[ "$output" == *'Overriding OperationId with 450affae-1b71-474d-885f-1598051038a0'* ]]
+    [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
+    [[ "$output" == *'Started VMWatch'* ]]
+    [[ "$output" == *'--env-attributes SomeOtherKey=SomeOtherValue:VMWatchCohortId=450affae-1b71-474d-885f-1598051038a0'* ]]
+    [[ "$output" == *'VMWatch is running'* ]]
+
+    status_file="$(container_read_extension_status)"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+    verify_substatus_item "$status_file" VMWatch success "VMWatch is running"
+}
