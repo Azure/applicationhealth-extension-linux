@@ -124,7 +124,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		vmWatchResult              = VMWatchResult{Status: Disabled, Error: nil}
 		vmWatchResultChannel       = make(chan VMWatchResult)
 		timeOfLastVMWatchLog       = time.Time{}
-		timeOfLastAppHealthLog     = time.Time{}
+		appHealthHeartbeatTicker   = time.NewTicker(RecordAppHealthHeartBeatIntervalInMinutes * time.Minute)
 	)
 
 	if !honorGracePeriod {
@@ -136,7 +136,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	// Try to set VMWatchCohortId as extension event operationId
 	if vmWatchSettings != nil {
 		if vmWatchCohortId, err := vmWatchSettings.TryGetVMWatchCohortId(); err != nil {
-			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.AppHealthTask, "Error while getting VMWatchCohortId", "error", err)
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.SetupVMWatchTask, "Error while getting VMWatchCohortId", "error", err)
 		} else if vmWatchCohortId != "" {
 			telemetry.SetOperationID(vmWatchCohortId)
 		}
@@ -163,9 +163,11 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	for {
 		// Since we only log health state changes, it is possible there will be no recent logs for app health extension.
 		// As an indication that the extension is running, we log app health extension heart beat at a set interval.
-		if time.Since(timeOfLastAppHealthLog) >= RecordAppHealthHeartBeatIntervalInMinutes*time.Minute {
-			timeOfLastAppHealthLog = time.Now()
+		select {
+		case <-appHealthHeartbeatTicker.C:
 			telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportHeatBeatTask, "AppHealthExtension is running")
+		default:
+			// When logging interval not met, do not wait for channel, just continue
 		}
 
 		startTime := time.Now()
