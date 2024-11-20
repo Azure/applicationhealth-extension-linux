@@ -117,6 +117,32 @@ func (v *vmWatchSettings) String() string {
 	return string(setting)
 }
 
+// Case insensitive retrieval of VMWatchCohortId from EnvironmentAttributes
+// We serialize and deserialize EnvironmentAttributes to ensure case insensitive get for VMWatchCohortId
+func (v *vmWatchSettings) TryGetVMWatchCohortId() (vmWatchCohortId string, err error) {
+	if v.EnvironmentAttributes == nil {
+		return "", nil
+	}
+
+	var bytes []byte
+	if bytes, err = json.Marshal(v.EnvironmentAttributes); err != nil {
+		return "", errors.Wrap(err, "failed to marshal environment attributes")
+	}
+
+	var envAttributes environmentAttributes
+	if err := json.Unmarshal(bytes, &envAttributes); err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal environment attributes")
+	}
+
+	return envAttributes.VMWatchCohortId, nil
+}
+
+// This struct is only for retrieving VMWatchCohortId in a case insensitive way.
+// The full EnvironmentAttribute dictionary is passed to VMWatch through VMWatchSettings.
+type environmentAttributes struct {
+	VMWatchCohortId string `json:"vmWatchCohortId"`
+}
+
 // publicSettings is the type deserialized from public configuration section of
 // the extension handler. This should be in sync with publicSettingsSchema.
 type publicSettings struct {

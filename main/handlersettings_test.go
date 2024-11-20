@@ -70,3 +70,60 @@ func Test_unMarshalPublicSetting(t *testing.T) {
 	require.Equal(t, true, h.publicSettings.VMWatchSettings.Enabled)
 	require.Equal(t, "https://testxyz.azurefd.net/config/disable-switch-config.json", h.publicSettings.VMWatchSettings.GlobalConfigUrl)
 }
+
+func Test_tryGetVMWatchCohortId(t *testing.T) {
+	// Test case-insensitive lookup of VMWatchCohortId
+	vmWatchCohortId := "b1abbfae-ede1-4688-9499-1724268bb2b3"
+	h := handlerSettings{
+		publicSettings: publicSettings{
+			Protocol: "tcp",
+			Port:     80,
+			VMWatchSettings: &vmWatchSettings{
+				Enabled: true,
+				EnvironmentAttributes: map[string]interface{}{
+					"vmwatchcohortid": vmWatchCohortId,
+				},
+			},
+		},
+		protectedSettings: protectedSettings{},
+	}
+	require.Nil(t, h.validate())
+	require.NotNil(t, h.vmWatchSettings())
+
+	actualCohortId, err := h.vmWatchSettings().TryGetVMWatchCohortId()
+	require.Nil(t, err)
+	require.Equal(t, vmWatchCohortId, actualCohortId)
+
+	// Test missing VMWatchCohortId
+	h = handlerSettings{
+		publicSettings: publicSettings{
+			Protocol: "tcp",
+			Port:     80,
+			VMWatchSettings: &vmWatchSettings{
+				Enabled: true,
+				EnvironmentAttributes: map[string]interface{}{
+					"key": "value",
+				},
+			},
+		},
+		protectedSettings: protectedSettings{},
+	}
+	actualCohortId, err = h.vmWatchSettings().TryGetVMWatchCohortId()
+	require.Nil(t, err)
+	require.Equal(t, "", actualCohortId)
+
+	// Test missing EnvironmentAttributes
+	h = handlerSettings{
+		publicSettings: publicSettings{
+			Protocol: "tcp",
+			Port:     80,
+			VMWatchSettings: &vmWatchSettings{
+				Enabled: true,
+			},
+		},
+		protectedSettings: protectedSettings{},
+	}
+	actualCohortId, err = h.vmWatchSettings().TryGetVMWatchCohortId()
+	require.Nil(t, err)
+	require.Equal(t, "", actualCohortId)
+}

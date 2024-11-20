@@ -132,6 +132,15 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("Grace period set to %v", gracePeriodInSeconds))
 	}
 
+	// Try to set VMWatchCohortId as extension event operationId
+	if vmWatchSettings != nil {
+		if vmWatchCohortId, err := vmWatchSettings.TryGetVMWatchCohortId(); err != nil {
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.SetupVMWatchTask, "Error while getting VMWatchCohortId", "error", err)
+		} else if vmWatchCohortId != "" {
+			telemetry.SetOperationID(vmWatchCohortId)
+		}
+	}
+
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, "VMWatch is disabled, not starting process.")
@@ -151,6 +160,10 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	//	1. Grace period expires, then application will either be Unknown/Unhealthy depending on probe type
 	//	2. A valid health state is observed numberOfProbes consecutive times
 	for {
+		// Since we only log health state changes, it is possible there will be no recent logs for app health extension.
+		// As an indication that the extension is running, we log app health extension heart beat at a set interval.
+		LogHeartBeat()
+
 		startTime := time.Now()
 		probeResponse, err := probe.evaluate(lg)
 		state := probeResponse.ApplicationHealthState

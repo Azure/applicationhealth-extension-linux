@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/pkg/logging"
 	"github.com/Azure/azure-extension-platform/pkg/extensionevents"
+	"github.com/google/uuid"
 )
 
 type EventLevel string
@@ -60,6 +61,9 @@ func NewTelemetry(h *handlerenv.HandlerEnvironment) (*Telemetry, error) {
 		instance = &Telemetry{
 			eem: extensionevents.New(logging.NewNopLogger(), &h.HandlerEnvironment),
 		}
+		// OperationId is initialized here but currently AppHealth telemetry does not depend on it.
+		// There are other scenarios for VMWatch where it is overridden
+		instance.eem.SetOperationID(uuid.New().String())
 	})
 	return instance, nil
 }
@@ -125,8 +129,14 @@ func (t *Telemetry) getLogDispatcherFunc(level EventLevel) (func(string, ...any)
 	}
 }
 
-func (t *Telemetry) SetOperationID(operationID string) {
-	t.eem.SetOperationID(operationID)
+func SetOperationID(operationID string) {
+	if instance == nil {
+		return
+	}
+
+	// ExtensionEvent package does not expose current operation ID.
+	instance.SendEvent(InfoEvent, MainTask, fmt.Sprintf("Overriding OperationId with %s", operationID))
+	instance.eem.SetOperationID(operationID)
 }
 
 // SendEvent sends an event with the specified level, task name, message, and key-value pairs.
