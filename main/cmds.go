@@ -124,7 +124,6 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		vmWatchResult              = VMWatchResult{Status: Disabled, Error: nil}
 		vmWatchResultChannel       = make(chan VMWatchResult)
 		timeOfLastVMWatchLog       = time.Time{}
-		timeOfLastAppHealthLog     = time.Time{}
 	)
 
 	if !honorGracePeriod {
@@ -163,10 +162,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	for {
 		// Since we only log health state changes, it is possible there will be no recent logs for app health extension.
 		// As an indication that the extension is running, we log app health extension heart beat at a set interval.
-		if time.Since(timeOfLastAppHealthLog) >= RecordAppHealthHeartBeatIntervalInMinutes*time.Minute {
-			timeOfLastAppHealthLog = time.Now()
-			telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportHeatBeatTask, "AppHealthExtension is running")
-		}
+		LogHeartBeat()
 
 		startTime := time.Now()
 		probeResponse, err := probe.evaluate(lg)

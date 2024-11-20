@@ -31,6 +31,10 @@ const (
 	Empty string = ""
 )
 
+var (
+	timeOfLastAppHealthLog = time.Time{}
+)
+
 func (p HealthStatus) GetStatusType() StatusType {
 	switch p {
 	case Initializing:
@@ -257,4 +261,11 @@ func (p DefaultHealthProbe) address() string {
 
 func (p DefaultHealthProbe) healthStatusAfterGracePeriodExpires() HealthStatus {
 	return Unhealthy
+}
+
+func LogHeartBeat() {
+	if time.Since(timeOfLastAppHealthLog) >= RecordAppHealthHeartBeatIntervalInMinutes*time.Minute {
+		timeOfLastAppHealthLog = time.Now()
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.ReportHeatBeatTask, "AppHealthExtension is running")
+	}
 }
