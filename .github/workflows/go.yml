@@ -41,7 +41,7 @@ jobs:
   
     - name: Install Go Packages
       run: |
-        sudo apt install golint
+        go install golang.org/x/lint/golint@latest
 
     - name: Pull Repository
       uses: actions/checkout@v3
