@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
