@@ -172,4 +172,3 @@ func TestValidatePublicSettings_vmwatch(t *testing.T) {
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "vmWatchSettings.maxCpuPercentage: Must be less than or equal to 100")
 }
-

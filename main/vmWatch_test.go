@@ -45,4 +45,3 @@ some other line`)
 	v = extractVersion("junk")
 	require.Equal(t, 0, v)
 }
-
