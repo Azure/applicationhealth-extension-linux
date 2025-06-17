@@ -161,7 +161,7 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 			// from tls1.0 to tls1.2 and we want to support customers who are using tls1.0.
 			// tls MaxVersion is set to tls1.3 by default.
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, // CodeQL [SM03511] Ignore TLS certificate validation, since the endpoint will be on localhost.
 				MinVersion:         tls.VersionTLS10,
 			},
 		}
