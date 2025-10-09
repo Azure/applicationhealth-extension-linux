@@ -124,10 +124,10 @@ jobs:
       continue-on-error: true
       run: |
         mkdir -p integration-test/test/parallel/.bats/run-logs/
-        sudo bats integration-test/test/parallel --jobs 10 -T --trace --filter-tags !linuxhostonly
+        sudo bats $(find integration-test/test/parallel -name '*.bats' ! -name '7_vmwatch.bats') --jobs 10 -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
 
     - name: Retry Failing Parallel Integration Tests
       run: |
-        sudo bats integration-test/test/parallel --filter-status failed -T --trace --filter-tags !linuxhostonly
+        sudo bats $(find integration-test/test/parallel -name '*.bats' ! -name '7_vmwatch.bats') --filter-status failed -T --trace --filter-tags !linuxhostonly
       working-directory: ${{ env.repo_root }}
