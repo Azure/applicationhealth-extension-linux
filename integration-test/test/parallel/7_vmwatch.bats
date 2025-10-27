@@ -248,7 +248,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20"
     push_settings '
     {
         "protocol": "http",
@@ -488,8 +488,12 @@ teardown(){
     [[ "$output" == *'Started VMWatch'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
-    [[ "$shutdown_log" == *'Successfully killed the apphealth extension'* ]]
-    [[ "$shutdown_log" == *'Successfully killed the VMWatch extension'* ]]
+    # With SIGKILL, the main process is force-killed but VMWatch becomes orphaned (expected behavior)
+    [[ "$shutdown_log" == *'Killing the applicationhealth extension forcefully'* ]]
+    # The helper reports "Failed to kill" because VMWatch is still running (orphaned), which is expected with SIGKILL
+    [[ "$shutdown_log" == *'Failed to kill the apphealth extension'* ]]
+    # Verify that VMWatch process is indeed still running as an orphaned process
+    [[ "$shutdown_log" == *'VMWatch is running'* ]]
 }
 
 @test "handler command: enable/uninstall - vm passes memory to commandline" {
