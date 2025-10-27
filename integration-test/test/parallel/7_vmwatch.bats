@@ -279,7 +279,7 @@ teardown(){
     [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus error "Application found to be unhealthy"
-    verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
+    verify_substatus_item "$status_file" ApplicationHealthState error "Unknown"
     verify_substatus_item "$status_file" VMWatch error "VMWatch failed: .* Attempt 3: .* Error: .*"
 }
 
