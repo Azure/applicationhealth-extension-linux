@@ -248,7 +248,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container $container_name sh -c "fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10 && pkill -f vmwatch_linux_amd64 && sleep 10"
+    mk_container $container_name sh -c "fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20"
     push_settings '
     {
         "protocol": "http",
@@ -465,7 +465,7 @@ teardown(){
     [[ "$output" == *'Application health process terminated'* ]]
 }
 
-@test "handler command: enable - Forced Shutdown - vm watch killed when Apphealth is killed gracefully with SIGKILL" {
+@test "handler command: enable - Forced Shutdown - vm watch killed when Apphealth is killed forcefully with SIGKILL" {
     mk_container $container_name bash -c "nc -l localhost 22 -k & export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && source /var/lib/waagent/extension-test-helpers.sh;force_kill_apphealth"
     push_settings '
     {

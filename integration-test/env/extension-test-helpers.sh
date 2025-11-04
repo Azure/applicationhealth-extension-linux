@@ -12,6 +12,8 @@ force_kill_apphealth() {
     echo "Killing the applicationhealth extension forcefully" >> $logFilePath
     kill -9 $app_health_pid
 
+    sleep 10
+
     output=$(check_running_processes)
     if [ "$output" == "Applicationhealth and VMWatch are not running" ]; then
         echo "$output" >> /var/log/azure/Extension/force-kill-extension.txt
