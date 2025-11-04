@@ -248,7 +248,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container $container_name sh -c "fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20 && pkill -f vmwatch_linux_amd64 && sleep 20"
+    mk_container $container_name sh -c "fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15"
     push_settings '
     {
         "protocol": "http",

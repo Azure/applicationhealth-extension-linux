@@ -12,6 +12,9 @@ force_kill_apphealth() {
     echo "Killing the applicationhealth extension forcefully" >> $logFilePath
     kill -9 $app_health_pid
 
+    # Wait 10 seconds for VMWatch to receive Pdeathsig (SIGTERM) from kernel and exit
+    # Note: VMWatch is configured with SysProcAttr{Pdeathsig: syscall.SIGTERM}
+    # so the kernel will send SIGTERM to VMWatch when parent dies
     sleep 10
 
     output=$(check_running_processes)
