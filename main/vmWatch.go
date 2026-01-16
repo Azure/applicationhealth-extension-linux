@@ -208,7 +208,7 @@ func applyResourceGovernance(lg *slog.Logger, vmWatchSettings *vmWatchSettings, 
 }
 
 func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bool, cmd *exec.Cmd) {
-	maxTimeBetweenHeartBeatsInSeconds := 60
+	maxTimeBetweenHeartBeatsInSeconds := 180
 
 	timer := time.NewTimer(time.Second * time.Duration(maxTimeBetweenHeartBeatsInSeconds))
 
@@ -219,7 +219,7 @@ func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bo
 			if err == nil && time.Since(info.ModTime()).Seconds() < float64(maxTimeBetweenHeartBeatsInSeconds) {
 				// heartbeat was updated
 			} else {
-				// heartbeat file was not updated within 60 seconds, process is hung
+				// heartbeat file was not updated within 180 seconds, process is hung
 				err = fmt.Errorf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
 				telemetry.SendEvent(telemetry.ErrorEvent, telemetry.ReportHeatBeatTask, err.Error(), "error", err)
 				err = killVMWatch(lg, cmd)
