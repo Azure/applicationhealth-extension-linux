@@ -217,6 +217,7 @@ func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bo
 		case <-timer.C:
 			info, err := os.Stat(heartBeatFile)
 			if err == nil && time.Since(info.ModTime()).Seconds() < float64(maxTimeBetweenHeartBeatsInSeconds) {
+				telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, fmt.Sprintf("VMWatch process heartbeat updated."))
 				// heartbeat was updated
 			} else {
 				// heartbeat file was not updated within 60 seconds, process is hung
