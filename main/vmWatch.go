@@ -25,8 +25,8 @@ import (
 type VMWatchStatus string
 
 const (
-	DefaultMaxCpuPercentage   = 1        // 1% cpu
-	DefaultMaxMemoryInBytes   = 80000000 // 80MB
+	DefaultMaxCpuPercentage   = 1         // 1% cpu
+	DefaultMaxMemoryInBytes   = 200000000 // 200MB
 	HoursBetweenRetryAttempts = 3
 	CGroupV2PeriodMs          = 1000000 // 1 second
 )

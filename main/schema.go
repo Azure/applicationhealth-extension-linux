@@ -62,7 +62,7 @@ const (
         "memoryLimitInBytes": {
           "description": "Optional - specifies the max memory that vmwatch can use",
           "type": "integer",
-          "default": 80000000,
+          "default": 200000000,
           "minimum": 30000000
         },
         "maxCpuPercentage": {
