@@ -210,11 +210,12 @@ func applyResourceGovernance(lg *slog.Logger, vmWatchSettings *vmWatchSettings, 
 func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bool, cmd *exec.Cmd) {
 	maxTimeBetweenHeartBeatsInSeconds := 180
 
-	timer := time.NewTimer(time.Second * time.Duration(maxTimeBetweenHeartBeatsInSeconds))
+	ticker := time.NewTicker(time.Second * time.Duration(maxTimeBetweenHeartBeatsInSeconds))
+	defer ticker.Stop()
 
 	for {
 		select {
-		case <-timer.C:
+		case <-ticker.C:
 			info, err := os.Stat(heartBeatFile)
 			if err == nil && time.Since(info.ModTime()).Seconds() < float64(maxTimeBetweenHeartBeatsInSeconds) {
 				// heartbeat was updated
