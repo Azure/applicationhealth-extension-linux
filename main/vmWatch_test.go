@@ -3,6 +3,9 @@ package main
 import (
 	"errors"
 	"log/slog"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -48,6 +51,212 @@ some other line`)
 	require.Equal(t, 0, v)
 	v = extractVersion("junk")
 	require.Equal(t, 0, v)
+}
+
+func TestMonitorHeartBeat_ResetsCountersAfterOneHour(t *testing.T) {
+	// Reset retry counters to ensure clean test state
+	resetVMWatchRetryCounters()
+
+	// Setup
+	tempDir, err := os.MkdirTemp("", "vmwatch_test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	heartbeatFile := filepath.Join(tempDir, "heartbeat.txt")
+
+	// Create a fresh heartbeat file
+	err = os.WriteFile(heartbeatFile, []byte("heartbeat"), 0644)
+	require.NoError(t, err)
+
+	// Set initial retry counters to simulate we're in cycle 3 with some attempts
+	updateVMWatchRetryCounters(3, 10)
+	initialCycle, initialAttempts := getVMWatchRetryCounters()
+	require.Equal(t, 3, initialCycle)
+	require.Equal(t, 10, initialAttempts)
+
+	// Create a mock command with a fake PID
+	cmd := &exec.Cmd{
+		Process: &os.Process{Pid: 12345},
+	}
+
+	// Create channels
+	processDone := make(chan bool)
+
+	// Mock time - start at a time that will be 1.5 hours ago
+	startTime := time.Date(2024, 1, 1, 8, 30, 0, 0, time.UTC) // 1.5 hours before 10:00
+
+	// Start monitor heartbeat in a goroutine
+	lg := slog.Default()
+	done := make(chan bool)
+
+	go func() {
+		defer close(done)
+
+		// Start monitoring with controlled start time (1.5 hours ago)
+		monitorHeartBeat(lg, heartbeatFile, processDone, cmd, startTime)
+	}()
+
+	// Let the monitor start
+	time.Sleep(10 * time.Millisecond)
+
+	// Update heartbeat file (process has been running for 1.5 hours)
+	err = os.WriteFile(heartbeatFile, []byte("heartbeat"), 0644)
+	require.NoError(t, err)
+
+	// Give a bit more time for the monitor to process
+	time.Sleep(10 * time.Millisecond)
+
+	// Signal process done
+	processDone <- true
+
+	// Wait for completion
+	<-done
+
+	// Verify counters were reset due to 1+ hour runtime
+	finalCycle, finalAttempts := getVMWatchRetryCounters()
+	assert.Equal(t, 1, finalCycle, "Cycle should be reset to 1 after 1+ hour runtime")
+	assert.Equal(t, 0, finalAttempts, "Attempts should be reset to 0 after 1+ hour runtime")
+}
+
+func TestMonitorHeartBeat_DoesNotResetCountersBeforeOneHour(t *testing.T) {
+	// Reset retry counters to ensure clean test state
+	resetVMWatchRetryCounters()
+
+	// Setup
+	tempDir, err := os.MkdirTemp("", "vmwatch_test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	heartbeatFile := filepath.Join(tempDir, "heartbeat.txt")
+
+	// Create a fresh heartbeat file
+	err = os.WriteFile(heartbeatFile, []byte("heartbeat"), 0644)
+	require.NoError(t, err)
+
+	// Set initial retry counters to simulate we're in cycle 3 with some attempts
+	updateVMWatchRetryCounters(3, 10)
+	initialCycle, initialAttempts := getVMWatchRetryCounters()
+	require.Equal(t, 3, initialCycle)
+	require.Equal(t, 10, initialAttempts)
+
+	// Create a mock command with a fake PID
+	cmd := &exec.Cmd{
+		Process: &os.Process{Pid: 12345},
+	}
+
+	// Create channels
+	processDone := make(chan bool)
+
+	// Mock time - start at a recent time (30 minutes ago)
+	startTime := time.Now().Add(-30 * time.Minute) // Only 30 minutes ago
+
+	// Start monitor heartbeat in a goroutine
+	lg := slog.Default()
+	done := make(chan bool)
+
+	go func() {
+		defer close(done)
+
+		// Start monitoring with recent start time
+		monitorHeartBeat(lg, heartbeatFile, processDone, cmd, startTime)
+	}()
+
+	// Let the monitor start
+	time.Sleep(10 * time.Millisecond)
+
+	// Update heartbeat file (process has only been running for 30 minutes)
+	err = os.WriteFile(heartbeatFile, []byte("heartbeat"), 0644)
+	require.NoError(t, err)
+
+	// Give a bit more time for the monitor to process
+	time.Sleep(10 * time.Millisecond)
+
+	// Signal process done
+	processDone <- true
+
+	// Wait for completion
+	<-done
+
+	// Verify counters were NOT reset (should remain at original values)
+	finalCycle, finalAttempts := getVMWatchRetryCounters()
+	assert.Equal(t, 3, finalCycle, "Cycle should remain unchanged at 3 when runtime < 1 hour")
+	assert.Equal(t, 10, finalAttempts, "Attempts should remain unchanged at 10 when runtime < 1 hour")
+}
+
+func TestMonitorHeartBeat_ResetsOnProcessExit(t *testing.T) {
+	// Reset retry counters to ensure clean test state
+	resetVMWatchRetryCounters()
+
+	// Setup
+	tempDir, err := os.MkdirTemp("", "vmwatch_test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	heartbeatFile := filepath.Join(tempDir, "heartbeat.txt")
+
+	// Create a fresh heartbeat file
+	err = os.WriteFile(heartbeatFile, []byte("heartbeat"), 0644)
+	require.NoError(t, err)
+
+	// Set initial retry counters
+	updateVMWatchRetryCounters(2, 5)
+
+	// Create a mock command with a fake PID
+	cmd := &exec.Cmd{
+		Process: &os.Process{Pid: 12345},
+	}
+
+	// Create channels
+	processDone := make(chan bool)
+
+	// Mock time - process started 1.5 hours ago
+	startTime := time.Date(2024, 1, 1, 8, 30, 0, 0, time.UTC) // 1.5 hours before 10:00
+
+	// Start monitor heartbeat in a goroutine
+	lg := slog.Default()
+	done := make(chan bool)
+
+	go func() {
+		defer close(done)
+
+		// Start monitoring with controlled start time
+		monitorHeartBeat(lg, heartbeatFile, processDone, cmd, startTime)
+	}()
+
+	// Let the monitor start
+	time.Sleep(10 * time.Millisecond)
+
+	// Signal process exit after 1.5 hours of runtime
+	processDone <- true
+
+	// Wait for completion
+	<-done
+
+	// Verify counters were reset on process exit after 1+ hour runtime
+	finalCycle, finalAttempts := getVMWatchRetryCounters()
+	assert.Equal(t, 1, finalCycle, "Cycle should be reset to 1 on process exit after 1+ hour")
+	assert.Equal(t, 0, finalAttempts, "Attempts should be reset to 0 on process exit after 1+ hour")
+}
+
+func TestResetVMWatchRetryCounters(t *testing.T) {
+	// Reset retry counters to ensure clean test state
+	resetVMWatchRetryCounters()
+
+	// Set some initial values
+	updateVMWatchRetryCounters(4, 15)
+
+	// Verify initial state
+	cycle, attempts := getVMWatchRetryCounters()
+	assert.Equal(t, 4, cycle)
+	assert.Equal(t, 15, attempts)
+
+	// Reset counters
+	resetVMWatchRetryCounters()
+
+	// Verify reset worked
+	cycle, attempts = getVMWatchRetryCounters()
+	assert.Equal(t, 1, cycle, "Cycle should be reset to 1")
+	assert.Equal(t, 0, attempts, "Attempts should be reset to 0")
 }
 
 func TestProgressiveBackoffConstants(t *testing.T) {
@@ -123,6 +332,9 @@ func TestExecuteRetryLogic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Reset retry counters to ensure clean test state
+			resetVMWatchRetryCounters()
+
 			// Setup mocks
 			callCount := 0
 			sleepCallCount := 0

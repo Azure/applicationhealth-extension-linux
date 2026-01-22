@@ -112,9 +112,9 @@ func executeRetryLogic(
 	resultChannel chan<- VMWatchResult,
 ) RetryResult {
 	var lastErr error
-	totalAttempts := 0
+	startCycle, totalAttempts := getVMWatchRetryCounters()
 
-	for retryCycle := 1; retryCycle <= config.MaxCycles && !shutdownFunc(); retryCycle++ {
+	for retryCycle := startCycle; retryCycle <= config.MaxCycles && !shutdownFunc(); retryCycle++ {
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, fmt.Sprintf("Starting VMWatch retry cycle %d of %d", retryCycle, config.MaxCycles))
 
 		// Attempt to start VMWatch process up to AttemptsPerCycle times within this cycle
@@ -138,6 +138,9 @@ func executeRetryLogic(
 				}
 			}
 		}
+
+		// Update retry state for this cycle
+		updateVMWatchRetryCounters(retryCycle, totalAttempts)
 
 		// If this is not the last retry cycle, wait with progressive backoff
 		if retryCycle < config.MaxCycles && !shutdownFunc() {
@@ -253,11 +256,11 @@ func executeVMWatchHelper(lg *slog.Logger, attempt int, vmWatchSettings *vmWatch
 		processDone <- true
 		close(processDone)
 	}()
-	// add a task to monitor heartbeat
+	// add a task to monitor heartbeat (includes retry reset logic)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		monitorHeartBeat(lg, GetVMWatchHeartbeatFilePath(hEnv), processDone, vmWatchCommand)
+		monitorHeartBeat(lg, GetVMWatchHeartbeatFilePath(hEnv), processDone, vmWatchCommand, time.Now())
 	}()
 	wg.Wait()
 	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
@@ -292,8 +295,10 @@ func applyResourceGovernance(lg *slog.Logger, vmWatchSettings *vmWatchSettings, 
 	return nil
 }
 
-func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bool, cmd *exec.Cmd) {
+func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bool, cmd *exec.Cmd, startTime time.Time) {
 	maxTimeBetweenHeartBeatsInSeconds := 180
+	successThreshold := time.Hour // Same as Windows: 1 hour successful execution
+	retryResetDone := false       // Track if we've already reset for this process
 
 	ticker := time.NewTicker(time.Second * time.Duration(maxTimeBetweenHeartBeatsInSeconds))
 	defer ticker.Stop()
@@ -303,7 +308,17 @@ func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bo
 		case <-ticker.C:
 			info, err := os.Stat(heartBeatFile)
 			if err == nil && time.Since(info.ModTime()).Seconds() < float64(maxTimeBetweenHeartBeatsInSeconds) {
-				// heartbeat was updated
+				// heartbeat was updated - VMWatch is running successfully
+
+				// Check if VMWatch has been running successfully for over an hour (same logic as Windows)
+				if !retryResetDone && time.Since(startTime) >= successThreshold {
+					// Reset retry counters (similar to Windows implementation)
+					resetVMWatchRetryCounters()
+					retryResetDone = true
+					telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask,
+						fmt.Sprintf("VMWatch PID %d has been running successfully for %v, retry counters reset",
+							cmd.Process.Pid, time.Since(startTime).Round(time.Minute)))
+				}
 			} else {
 				// heartbeat file was not updated within 180 seconds, process is hung
 				err = fmt.Errorf("[%v][PID %d] VMWatch process did not update heartbeat file within the time limit, killing the process", time.Now().UTC().Format(time.RFC3339), cmd.Process.Pid)
@@ -315,6 +330,13 @@ func monitorHeartBeat(lg *slog.Logger, heartBeatFile string, processDone chan bo
 				}
 			}
 		case <-processDone:
+			// Process ended - check if it ran long enough to reset retry counters
+			if !retryResetDone && time.Since(startTime) >= successThreshold {
+				resetVMWatchRetryCounters()
+				telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask,
+					fmt.Sprintf("VMWatch PID %d ran successfully for %v before exit, retry counters reset",
+						cmd.Process.Pid, time.Since(startTime).Round(time.Minute)))
+			}
 			return
 		}
 	}
@@ -624,4 +646,34 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 	arr = append(arr, fmt.Sprintf("VERBOSE_LOG_FILE_FULL_PATH=%s", filepath.Join(hEnv.LogFolder, VMWatchVerboseLogFileName)))
 
 	return arr
+}
+
+// Global state for VMWatch retry reset functionality
+var (
+	vmWatchRetryMutex    sync.RWMutex // Mutex to protect access to retry counters
+	vmWatchCurrentCycle  int          = 1
+	vmWatchTotalAttempts int          = 0
+)
+
+// resetVMWatchRetryCounters resets the retry counters
+func resetVMWatchRetryCounters() {
+	vmWatchRetryMutex.Lock()
+	defer vmWatchRetryMutex.Unlock()
+	vmWatchCurrentCycle = 1  // Reset to first cycle
+	vmWatchTotalAttempts = 0 // Reset attempt counter
+}
+
+// updateVMWatchRetryCounters updates the current retry state
+func updateVMWatchRetryCounters(cycle int, totalAttempts int) {
+	vmWatchRetryMutex.Lock()
+	defer vmWatchRetryMutex.Unlock()
+	vmWatchCurrentCycle = cycle
+	vmWatchTotalAttempts = totalAttempts
+}
+
+// getVMWatchRetryCounters gets the current retry state
+func getVMWatchRetryCounters() (int, int) {
+	vmWatchRetryMutex.RLock()
+	defer vmWatchRetryMutex.RUnlock()
+	return vmWatchCurrentCycle, vmWatchTotalAttempts
 }
