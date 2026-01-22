@@ -25,10 +25,9 @@ import (
 type VMWatchStatus string
 
 const (
-	DefaultMaxCpuPercentage   = 1         // 1% cpu
-	DefaultMaxMemoryInBytes   = 200000000 // 200MB
-	HoursBetweenRetryAttempts = 3
-	CGroupV2PeriodMs          = 1000000 // 1 second
+	DefaultMaxCpuPercentage = 1         // 1% cpu
+	DefaultMaxMemoryInBytes = 200000000 // 200MB
+	CGroupV2PeriodMs        = 1000000   // 1 second
 )
 
 const (
@@ -76,7 +75,88 @@ func (r *VMWatchResult) GetMessage() string {
 }
 
 // We will setup and execute VMWatch as a separate process. Ideally VMWatch should run indefinitely,
-// but as a best effort we will attempt at most 3 times to run the process
+// but we will attempt retries with progressive backoff: 1st cycle (3 attempts) → wait 3h → 2nd cycle → wait 6h → 3rd cycle → wait 9h → 4th cycle → stop
+// RetryConfig holds configuration for retry behavior
+type RetryConfig struct {
+	MaxCycles        int
+	AttemptsPerCycle int
+	BaseWaitHours    int
+}
+
+// RetryResult holds the result of a retry operation
+type RetryResult struct {
+	TotalAttempts int
+	CyclesRun     int
+	LastError     error
+	Success       bool
+}
+
+// HelperFunc defines the signature for the function that performs each attempt
+type HelperFunc func(lg *slog.Logger, attempt int, s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment) error
+
+// SleepFunc defines the signature for sleep function (for testing)
+type SleepFunc func(time.Duration)
+
+// ShutdownFunc defines the signature for checking shutdown status
+type ShutdownFunc func() bool
+
+// executeRetryLogic contains the core retry logic extracted for testability
+func executeRetryLogic(
+	lg *slog.Logger,
+	s *vmWatchSettings,
+	hEnv *handlerenv.HandlerEnvironment,
+	config RetryConfig,
+	helperFunc HelperFunc,
+	sleepFunc SleepFunc,
+	shutdownFunc ShutdownFunc,
+	resultChannel chan<- VMWatchResult,
+) RetryResult {
+	var lastErr error
+	totalAttempts := 0
+
+	for retryCycle := 1; retryCycle <= config.MaxCycles && !shutdownFunc(); retryCycle++ {
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, fmt.Sprintf("Starting VMWatch retry cycle %d of %d", retryCycle, config.MaxCycles))
+
+		// Attempt to start VMWatch process up to AttemptsPerCycle times within this cycle
+		for attempt := 1; attempt <= config.AttemptsPerCycle && !shutdownFunc(); attempt++ {
+			if resultChannel != nil {
+				resultChannel <- VMWatchResult{Status: Running}
+			}
+			totalAttempts++
+			lastErr = helperFunc(lg, attempt, s, hEnv)
+			if resultChannel != nil {
+				resultChannel <- VMWatchResult{Status: Failed, Error: lastErr}
+			}
+
+			// If success, return early
+			if lastErr == nil {
+				return RetryResult{
+					TotalAttempts: totalAttempts,
+					CyclesRun:     retryCycle,
+					LastError:     nil,
+					Success:       true,
+				}
+			}
+		}
+
+		// If this is not the last retry cycle, wait with progressive backoff
+		if retryCycle < config.MaxCycles && !shutdownFunc() {
+			waitHours := config.BaseWaitHours * retryCycle
+			errMsg := fmt.Sprintf("VMWatch cycle %d reached max %d attempts, sleeping for %d hours before cycle %d",
+				retryCycle, config.AttemptsPerCycle, waitHours, retryCycle+1)
+			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, errMsg)
+			sleepFunc(time.Hour * time.Duration(waitHours))
+		}
+	}
+
+	return RetryResult{
+		TotalAttempts: totalAttempts,
+		CyclesRun:     config.MaxCycles,
+		LastError:     lastErr,
+		Success:       false,
+	}
+}
+
 func executeVMWatch(lg *slog.Logger, s *vmWatchSettings, hEnv *handlerenv.HandlerEnvironment, vmWatchResultChannel chan VMWatchResult) {
 	var vmWatchErr error
 	defer func() {
@@ -88,21 +168,26 @@ func executeVMWatch(lg *slog.Logger, s *vmWatchSettings, hEnv *handlerenv.Handle
 		close(vmWatchResultChannel)
 	}()
 
-	// Best effort to start VMWatch process each time it fails start immediately up to VMWatchMaxProcessAttempts before waiting for
-	// a longer time before trying again
-	for !shutdown {
-		for i := 1; i <= VMWatchMaxProcessAttempts && !shutdown; i++ {
-			vmWatchResultChannel <- VMWatchResult{Status: Running}
-			vmWatchErr = executeVMWatchHelper(lg, i, s, hEnv)
-			vmWatchResultChannel <- VMWatchResult{Status: Failed, Error: vmWatchErr}
-		}
-		{
-			// scoping the errMsg variable to avoid shadowing
-			errMsg := fmt.Sprintf("VMWatch reached max %d retries, sleeping for %v hours before trying again", VMWatchMaxProcessAttempts, HoursBetweenRetryAttempts)
-			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, errMsg, slog.Any("error", errMsg))
-		}
-		// we have exceeded the retries so now we go to sleep before starting again
-		time.Sleep(time.Hour * HoursBetweenRetryAttempts)
+	config := RetryConfig{
+		MaxCycles:        VMWatchMaxRetryCycles,
+		AttemptsPerCycle: VMWatchMaxProcessAttempts,
+		BaseWaitHours:    VMWatchBaseWaitHours,
+	}
+
+	result := executeRetryLogic(
+		lg, s, hEnv, config,
+		executeVMWatchHelper,            // HelperFunc
+		time.Sleep,                      // SleepFunc
+		func() bool { return shutdown }, // ShutdownFunc
+		vmWatchResultChannel,
+	)
+
+	vmWatchErr = result.LastError
+	if !result.Success && !shutdown {
+		finalErrMsg := fmt.Sprintf("VMWatch exhausted all %d retry cycles with %d attempts each. No more retries until machine reboot or AppHealth restart.",
+			VMWatchMaxRetryCycles, VMWatchMaxProcessAttempts)
+		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, finalErrMsg)
+		vmWatchErr = fmt.Errorf("%s Last error: %w", finalErrMsg, vmWatchErr)
 	}
 }
 

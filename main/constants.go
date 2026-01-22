@@ -25,6 +25,8 @@ const (
 	VMWatchVerboseLogFileName = "vmwatch.log"
 	VMWatchDefaultTests       = "disk_io:outbound_connectivity:clockskew:az_storage_blob"
 	VMWatchMaxProcessAttempts = 3
+	VMWatchMaxRetryCycles     = 4
+	VMWatchBaseWaitHours      = 3
 
 	ExtensionManifestFileName = "manifest.xml"
 )
