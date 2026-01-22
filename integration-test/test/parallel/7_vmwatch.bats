@@ -276,7 +276,7 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
-    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch cycle 1 reached max 3 attempts, sleeping for 3 hours before cycle 2'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
@@ -319,7 +319,7 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
-    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch cycle 1 reached max 3 attempts, sleeping for 3 hours before cycle 2'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
