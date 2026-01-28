@@ -181,7 +181,7 @@ teardown(){
     [[ "$output" == *'--config /var/lib/waagent/Extension/bin/VMWatch/vmwatch.conf'* ]]
     [[ "$output" == *'--disabled-signals clockskew:az_storage_blob:process:dns'* ]]
     [[ "$output" == *"--apphealth-version $extension_version"* ]]
-    [[ "$output" == *'--memory-limit-bytes 80000000'* ]]
+    [[ "$output" == *'--memory-limit-bytes 200000000'* ]]
     [[ "$output" == *'Env: [SIGNAL_FOLDER=/var/log/azure/Extension/events VERBOSE_LOG_FILE_FULL_PATH=/var/log/azure/Extension/VE.RS.ION/vmwatch.log]'* ]]
     [[ "$output" == *'VMWatch is running'* ]]
 
@@ -276,7 +276,7 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
-    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch cycle 1 reached max 3 attempts, sleeping for 3 hours before cycle 2'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState transitioning Initializing
@@ -319,7 +319,7 @@ teardown(){
     [[ "$output" == *'VMWatch is running'* ]]
     [[ "$output" == *'Attempt 1: VMWatch process exited'* ]]
     [[ "$output" == *'Attempt 3: VMWatch process exited'* ]]
-    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch cycle 1 reached max 3 attempts, sleeping for 3 hours before cycle 2'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
@@ -353,7 +353,7 @@ teardown(){
     echo "$status_file"
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'Killing VMWatch process as cgroup assignment failed'* ]]
-    [[ "$output" == *'VMWatch reached max 3 retries, sleeping for 3 hours before trying again'* ]]
+    [[ "$output" == *'VMWatch cycle 1 reached max 3 attempts, sleeping for 3 hours before cycle 2'* ]]
 
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
