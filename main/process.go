@@ -63,24 +63,11 @@ func findExistingProcessesImpl() ([]int, error) {
 	return pids, nil
 }
 
-// getHandlerLogDir returns the handler log directory.
-// This must match LOG_DIR in misc/applicationhealth-shim.
-func getHandlerLogDir() string {
-	return DefaultHandlerLogDir
-}
-
-// getHandlerLogFile returns the handler log file name.
-// This must match LOG_FILE in misc/applicationhealth-shim.
-func getHandlerLogFile() string {
-	return DefaultHandlerLogFile
-}
-
 // getLogFileLastWriteTimeImpl returns the last write time of the handler log file.
-// Uses getHandlerLogDir() and getHandlerLogFile() to locate the file.
 // This is used to determine if an existing AHE process is still responsive
 // (writing heartbeat logs).
 func getLogFileLastWriteTimeImpl() (time.Time, error) {
-	logFilePath := filepath.Join(getHandlerLogDir(), getHandlerLogFile())
+	logFilePath := filepath.Join(HandlerLogDir, HandlerLogFile)
 	info, err := os.Stat(logFilePath)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("failed to stat handler log file %s: %w", logFilePath, err)

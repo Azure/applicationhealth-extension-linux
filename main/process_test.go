@@ -66,14 +66,6 @@ func Test_killProcess_AlreadyExited(t *testing.T) {
 	assert.Error(t, err, "killProcess should return error for already-exited process")
 }
 
-func Test_getHandlerLogDir(t *testing.T) {
-	assert.Equal(t, DefaultHandlerLogDir, getHandlerLogDir())
-}
-
-func Test_getHandlerLogFile(t *testing.T) {
-	assert.Equal(t, DefaultHandlerLogFile, getHandlerLogFile())
-}
-
 // Test_shimAndConstantsInSync reads the shim script and verifies that the
 // LOG_DIR and LOG_FILE values match the Go constants. This test will fail
 // if someone changes one side without updating the other.
@@ -86,14 +78,14 @@ func Test_shimAndConstantsInSync(t *testing.T) {
 	// Extract LOG_DIR value from: readonly LOG_DIR="..."
 	logDirMatch := extractShimVariable(shimContent, "LOG_DIR")
 	require.NotEmpty(t, logDirMatch, "could not find LOG_DIR in shim")
-	assert.Equal(t, DefaultHandlerLogDir, logDirMatch,
-		"DefaultHandlerLogDir constant does not match LOG_DIR in misc/applicationhealth-shim")
+	assert.Equal(t, HandlerLogDir, logDirMatch,
+		"HandlerLogDir constant does not match LOG_DIR in misc/applicationhealth-shim")
 
 	// Extract LOG_FILE value from: readonly LOG_FILE=...
 	logFileMatch := extractShimVariable(shimContent, "LOG_FILE")
 	require.NotEmpty(t, logFileMatch, "could not find LOG_FILE in shim")
-	assert.Equal(t, DefaultHandlerLogFile, logFileMatch,
-		"DefaultHandlerLogFile constant does not match LOG_FILE in misc/applicationhealth-shim")
+	assert.Equal(t, HandlerLogFile, logFileMatch,
+		"HandlerLogFile constant does not match LOG_FILE in misc/applicationhealth-shim")
 }
 
 // extractShimVariable parses a bash variable assignment from the shim content.

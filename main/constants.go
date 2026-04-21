@@ -20,11 +20,11 @@ const (
 	// for timing variations such as GC pauses, high CPU load, and cgroup throttling.
 	AppHealthLogFileStaleThresholdInMinutes = 6
 
-	// DefaultHandlerLogDir is the directory where the shim writes handler.log.
-	DefaultHandlerLogDir = "/var/log/azure/applicationhealth-extension"
+	// HandlerLogDir is the directory where the shim writes handler.log.
+	HandlerLogDir = "/var/log/azure/applicationhealth-extension"
 
-	// DefaultHandlerLogFile is the log file name written by the shim.
-	DefaultHandlerLogFile = "handler.log"
+	// HandlerLogFile is the log file name written by the shim.
+	HandlerLogFile = "handler.log"
 
 	// TODO: The github package responsible for HandlerEnvironment settings is no longer being maintained
 	// and it also doesn't have the latest properties like EventsFolder. Importing a separate package
