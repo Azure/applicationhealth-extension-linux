@@ -148,8 +148,12 @@ func Test_enablePre_Idempotency(t *testing.T) {
 			return []int{5678}, nil // existing process found
 		}
 
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
 		err := enablePre(logger, 21) // same sequence number
 		assert.NoError(t, err, "should take over unhealthy process")
+		assert.Equal(t, []int{5678}, killedPids, "should have killed the existing process")
 	})
 
 	// Test Case 3: Higher seq than existing → new process should continue and kill old
@@ -165,8 +169,12 @@ func Test_enablePre_Idempotency(t *testing.T) {
 			return []int{5492}, nil
 		}
 
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
 		err := enablePre(logger, 37)
 		assert.NoError(t, err, "new process with higher seq should continue")
+		assert.Equal(t, []int{5492}, killedPids, "should have killed the old process")
 	})
 
 	// Test Case 4: New seq + existing running process → should kill old and continue
@@ -183,9 +191,13 @@ func Test_enablePre_Idempotency(t *testing.T) {
 			return []int{4321}, nil // existing process from old seq
 		}
 
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
 		err := enablePre(logger, 11) // new seq > mrSeq
 		assert.NoError(t, err, "should succeed with new sequence number")
 		assert.True(t, findProcessCalled, "should have checked for existing process to kill")
+		assert.Equal(t, []int{4321}, killedPids, "should have killed the old process")
 	})
 
 	// Test Case 5: Lower seq (existing) + healthy process → new process exits with error
@@ -258,7 +270,11 @@ func Test_enablePre_Idempotency(t *testing.T) {
 			return []int{9999}, nil // process exists
 		}
 
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
 		err := enablePre(logger, 10)
 		assert.NoError(t, err, "should take over when log file is missing")
+		assert.Equal(t, []int{9999}, killedPids, "should have killed the existing process")
 	})
 }
