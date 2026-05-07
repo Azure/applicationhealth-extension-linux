@@ -72,7 +72,7 @@ teardown(){
         wait-for-enable && \
         cp /var/lib/waagent/Extension/config/0.settings /var/lib/waagent/Extension/config/1.settings && \
         fake-waagent enable && \
-        sleep 5"
+        until grep -q success /var/lib/waagent/Extension/status/1.status 2>/dev/null; do sleep 0.5; done"
     push_settings '' ''
 
     run start_container

@@ -13,12 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// spawnDetachedProcess starts a process via bash double-fork so it's not a direct
-// child of the test process. This avoids zombie issues with Signal(0) checks.
+// spawnDetachedProcess starts a process in a background subshell so it's not a
+// direct child of the test process. The parent shell exits immediately, causing
+// the backgrounded process to be reparented to init. This avoids zombie issues
+// with Signal(0) checks in killProcess tests.
 // Returns the PID of the spawned process.
 func spawnDetachedProcess(t *testing.T, shellCmd string) int {
 	t.Helper()
-	// Use bash to double-fork: the inner process writes its PID to a temp file
 	pidFile := t.TempDir() + "/pid"
 	cmd := exec.Command("bash", "-c",
 		"("+shellCmd+" & echo $! > "+pidFile+")")

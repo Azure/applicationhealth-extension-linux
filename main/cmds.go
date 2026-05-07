@@ -174,7 +174,7 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 	// process's last write time, not the current shim invocation's writes.
 	lastUpdate, logFileErr := getLogFileLastWriteTimeFromEnv()
 
-	// Could not determine log file timestamp after retries (e.g., file does not exist, I/O errors).
+	// Could not determine log file timestamp (env var not set or invalid).
 	// Treat as not responsive — if no log file exists, no previous process was writing heartbeats.
 	if logFileErr != nil {
 		telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
@@ -290,7 +290,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 				fmt.Sprintf("Failed to read current sequence number: %v. Continuing with current configuration.", err), "error", err)
 		} else if seqNum < mostRecentSequenceNumberStarted {
 			telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
-				fmt.Sprintf("Current sequence number %d is not greater than the most recently started sequence number %d. PID %d initiating graceful shutdown.",
+				fmt.Sprintf("Current sequence number %d is less than the most recently started sequence number %d. PID %d initiating graceful shutdown.",
 					seqNum, mostRecentSequenceNumberStarted, os.Getpid()),
 				"sequenceNumber", seqNum, "mostRecentSequenceNumberStarted", mostRecentSequenceNumberStarted, "currentPid", os.Getpid())
 			return "", errSuperseded
