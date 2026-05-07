@@ -16,7 +16,6 @@ import (
 // Package-level function variables to allow mocking in tests
 var (
 	findExistingProcesses   = findExistingProcessesImpl
-	getLogFileLastWriteTime = getLogFileLastWriteTimeImpl
 	getHandlerEnvironment   = handlerenv.GetHandlerEnviroment
 	killProcesses           = killProcessesImpl
 )
@@ -63,18 +62,6 @@ func findExistingProcessesImpl() ([]int, error) {
 	return pids, nil
 }
 
-// getLogFileLastWriteTimeImpl returns the last write time of the handler log file.
-// This is used to determine if an existing AHE process is still responsive
-// (writing heartbeat logs).
-func getLogFileLastWriteTimeImpl() (time.Time, error) {
-	logFilePath := filepath.Join(HandlerLogDir, HandlerLogFile)
-	info, err := os.Stat(logFilePath)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to stat handler log file %s: %w", logFilePath, err)
-	}
-	return info.ModTime(), nil
-}
-
 // getLogFileLastWriteTimeFromEnv reads the handler log file's last write time from the
 // HANDLER_LOG_LAST_WRITE_TIME environment variable. The shim captures this value
 // before redirecting output to handler.log, so it reflects the previous process's
@@ -91,19 +78,6 @@ func getLogFileLastWriteTimeFromEnv() (time.Time, error) {
 		return time.Time{}, fmt.Errorf("failed to parse HANDLER_LOG_LAST_WRITE_TIME=%q: %w", envTime, err)
 	}
 	return time.Unix(epochSec, 0), nil
-}
-
-// isLogFileFresh checks whether the log file was updated within the stale
-// threshold (AppHealthLogFileStaleThresholdInMinutes). Returns true if fresh,
-// along with the last modification time and any error from reading the file.
-func isLogFileFresh() (bool, time.Time, error) {
-	lastWriteTime, err := getLogFileLastWriteTime()
-	if err != nil {
-		return false, time.Time{}, err
-	}
-
-	threshold := time.Duration(AppHealthLogFileStaleThresholdInMinutes) * time.Minute
-	return time.Since(lastWriteTime) < threshold, lastWriteTime, nil
 }
 
 // killProcessesImpl sends SIGTERM to all specified processes and waits for each to exit.

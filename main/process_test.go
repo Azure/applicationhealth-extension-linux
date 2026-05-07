@@ -137,31 +137,3 @@ func extractShimVariable(content, varName string) string {
 	}
 	return ""
 }
-
-func Test_getLogFileLastWriteTime(t *testing.T) {
-	t.Run("ReturnsModTimeForExistingFile", func(t *testing.T) {
-		origGetLogFileLastWriteTime := getLogFileLastWriteTime
-		defer func() { getLogFileLastWriteTime = origGetLogFileLastWriteTime }()
-
-		expectedTime := time.Now().Add(-2 * time.Minute)
-		getLogFileLastWriteTime = func() (time.Time, error) {
-			return expectedTime, nil
-		}
-
-		modTime, err := getLogFileLastWriteTime()
-		assert.NoError(t, err)
-		assert.Equal(t, expectedTime, modTime)
-	})
-
-	t.Run("ReturnsErrorForMissingFile", func(t *testing.T) {
-		origGetLogFileLastWriteTime := getLogFileLastWriteTime
-		defer func() { getLogFileLastWriteTime = origGetLogFileLastWriteTime }()
-
-		getLogFileLastWriteTime = func() (time.Time, error) {
-			return time.Time{}, fmt.Errorf("failed to stat handler log file: no such file or directory")
-		}
-
-		_, err := getLogFileLastWriteTime()
-		assert.Error(t, err)
-	})
-}
