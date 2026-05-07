@@ -8,15 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
 )
 
 // Package-level function variables to allow mocking in tests
 var (
-	findExistingProcesses   = findExistingProcessesImpl
-	getHandlerEnvironment   = handlerenv.GetHandlerEnviroment
-	killProcesses           = killProcessesImpl
+	findExistingProcesses = findExistingProcessesImpl
+	killProcesses         = killProcessesImpl
 )
 
 // procExePath returns the path to the /proc/<pid>/exe symlink for the given PID.
