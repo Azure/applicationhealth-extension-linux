@@ -121,8 +121,8 @@ func enablePre(lg *slog.Logger, seqNum uint) error {
 		return errIdempotentExit
 	}
 
-	// If the most recent sequence number is greater than or equal to the requested sequence number,
-	// then the script has already been run and we should exit.
+	// If the most recent sequence number is greater than the requested sequence number,
+	// then a newer configuration has already been processed and we should exit.
 	if mrSeqNum != 0 && seqNum < mrSeqNum {
 		lg.Info("the script configuration has already been processed, will not run again")
 		return errors.Errorf("most recent sequence number %d is greater than the requested sequence number %d", mrSeqNum, seqNum)
