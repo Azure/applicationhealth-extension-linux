@@ -67,6 +67,7 @@ func Test_enablePre(t *testing.T) {
 	t.Run("SaveSequenceNumberError_ShouldFail", func(t *testing.T) {
 		// seqNumToProcess = 0, mrSeqNum = 1
 		seqNumToProcess = 0
+		mockNoExistingProcess(t)
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(1), nil)
 		seqnoManager = mockSeqNumManager
 		err := enablePre(logger, seqNumToProcess)
@@ -76,6 +77,7 @@ func Test_enablePre(t *testing.T) {
 	t.Run("GetSequenceNumberIsGreaterThanRequestedSequenceNumber_ShouldFail", func(t *testing.T) {
 		// seqNumToProcess = 4, mrSeqNum = 8
 		seqNumToProcess = 4
+		mockNoExistingProcess(t)
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(8), nil)
 		seqnoManager = mockSeqNumManager
 		err := enablePre(logger, seqNumToProcess)
