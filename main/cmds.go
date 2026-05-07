@@ -12,6 +12,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+// appHealthBinaryName returns the AHE binary name for the current process,
+// determined by checking os.Args[0] for the arm64 binary name suffix.
+func appHealthBinaryName() string {
+	if strings.Contains(os.Args[0], AppHealthBinaryNameArm64) {
+		return AppHealthBinaryNameArm64
+	}
+	return AppHealthBinaryNameAmd64
+}
+
 type cmdFunc func(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint) (msg string, err error)
 type preFunc func(lg *slog.Logger, seqNum uint) error
 
@@ -152,12 +161,12 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 	// to avoid unnecessary I/O and misleading telemetry when nothing is running.
 	if len(existingPids) == 0 {
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
-			fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', result=False", AppHealthBinaryNameAmd64))
+			fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', result=False", appHealthBinaryName()))
 		return false
 	}
 
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
-		fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', PIDs=%v, result=True", AppHealthBinaryNameAmd64, existingPids),
+		fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', PIDs=%v, result=True", appHealthBinaryName(), existingPids),
 		"pids", existingPids)
 
 	// Read the handler log file's last write time, captured by the shim BEFORE

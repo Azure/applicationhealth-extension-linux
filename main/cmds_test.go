@@ -278,3 +278,23 @@ func Test_enablePre_Idempotency(t *testing.T) {
 		assert.Equal(t, []int{9999}, killedPids, "should have killed the existing process")
 	})
 }
+
+func Test_appHealthBinaryName(t *testing.T) {
+	origArgs := os.Args
+	defer func() { os.Args = origArgs }()
+
+	t.Run("ReturnsAmd64WhenBinaryIsAmd64", func(t *testing.T) {
+		os.Args = []string{"/var/lib/waagent/Extension/bin/applicationhealth-extension", "enable"}
+		assert.Equal(t, AppHealthBinaryNameAmd64, appHealthBinaryName())
+	})
+
+	t.Run("ReturnsArm64WhenBinaryIsArm64", func(t *testing.T) {
+		os.Args = []string{"/var/lib/waagent/Extension/bin/applicationhealth-extension-arm64", "enable"}
+		assert.Equal(t, AppHealthBinaryNameArm64, appHealthBinaryName())
+	})
+
+	t.Run("ReturnsAmd64ByDefault", func(t *testing.T) {
+		os.Args = []string{"some-other-binary", "enable"}
+		assert.Equal(t, AppHealthBinaryNameAmd64, appHealthBinaryName())
+	})
+}
