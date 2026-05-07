@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
@@ -28,14 +27,6 @@ var (
 	vmWatchCommand *exec.Cmd
 
 	seqnoManager seqno.SequenceNumberManager = seqno.New()
-
-	// logFileLastWriteTimeBeforeStartup captures the handler log file's last write
-	// time BEFORE this process writes any logs. This is critical because the shim
-	// redirects stdout to the same log file, so any log output from this process
-	// would refresh the mtime. By capturing it early, checkIdempotency can accurately
-	// determine whether the previous process was responsive (fresh log) vs stuck (stale log).
-	logFileLastWriteTimeBeforeStartup time.Time
-	logFileLastWriteTimeErr           error
 )
 
 func main() {
@@ -64,21 +55,6 @@ func main() {
 	if err != nil {
 		logger.Info("failed to parse handlerenv", "error", err)
 		os.Exit(cmd.failExitCode)
-	}
-
-	// Capture the log file's last write time before any logging by this process.
-	// The shim redirects stdout to the same log file, so any log output from
-	// this process would refresh the mtime and make a stale existing process
-	// appear fresh. Retry up to 3 times with 1-second delays to handle transient
-	// I/O errors.
-	for attempt := 1; attempt <= 3; attempt++ {
-		logFileLastWriteTimeBeforeStartup, logFileLastWriteTimeErr = getLogFileLastWriteTime()
-		if logFileLastWriteTimeErr == nil {
-			break
-		}
-		if attempt < 3 {
-			time.Sleep(1 * time.Second)
-		}
 	}
 
 	seqNum, err := seqnoManager.FindSeqNum(hEnv.ConfigFolder)

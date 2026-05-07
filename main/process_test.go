@@ -66,6 +66,33 @@ func Test_killProcess_AlreadyExited(t *testing.T) {
 	assert.Error(t, err, "killProcess should return error for already-exited process")
 }
 
+func Test_getLogFileLastWriteTimeFromEnv(t *testing.T) {
+	t.Run("ReturnsTimestampWhenSet", func(t *testing.T) {
+		expected := time.Now().Add(-3 * time.Minute)
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", expected.Unix()))
+
+		result, err := getLogFileLastWriteTimeFromEnv()
+		assert.NoError(t, err)
+		assert.Equal(t, expected.Unix(), result.Unix())
+	})
+
+	t.Run("ReturnsErrorWhenNotSet", func(t *testing.T) {
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", "")
+
+		_, err := getLogFileLastWriteTimeFromEnv()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not set")
+	})
+
+	t.Run("ReturnsErrorWhenInvalidValue", func(t *testing.T) {
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", "not-a-number")
+
+		_, err := getLogFileLastWriteTimeFromEnv()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse")
+	})
+}
+
 // Test_shimAndConstantsInSync reads the shim script and verifies that the
 // LOG_DIR and LOG_FILE values match the Go constants. This test will fail
 // if someone changes one side without updating the other.

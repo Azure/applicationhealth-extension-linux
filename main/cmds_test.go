@@ -42,13 +42,9 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 func saveAndRestoreIdempotencyMocks(t *testing.T) {
 	origFindExistingProcesses := findExistingProcesses
 	origKillProcesses := killProcesses
-	origLogFileLastWriteTime := logFileLastWriteTimeBeforeStartup
-	origLogFileLastWriteTimeErr := logFileLastWriteTimeErr
 	t.Cleanup(func() {
 		findExistingProcesses = origFindExistingProcesses
 		killProcesses = origKillProcesses
-		logFileLastWriteTimeBeforeStartup = origLogFileLastWriteTime
-		logFileLastWriteTimeErr = origLogFileLastWriteTimeErr
 	})
 	// Default to no-op kill in tests to avoid sending real signals
 	killProcesses = func(lg *slog.Logger, pids []int) {}
@@ -129,8 +125,7 @@ func Test_enablePre_Idempotency(t *testing.T) {
 		seqnoManager = mockSeqNumManager
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(20), nil)
 
-		logFileLastWriteTimeBeforeStartup = time.Now().Add(-1 * time.Minute) // 1 minute ago = fresh
-		logFileLastWriteTimeErr = nil
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", time.Now().Add(-1*time.Minute).Unix())) // 1 minute ago = fresh
 		findExistingProcesses = func() ([]int, error) {
 			return []int{1234}, nil // existing process found
 		}
@@ -146,8 +141,7 @@ func Test_enablePre_Idempotency(t *testing.T) {
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(21), nil)
 		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-		logFileLastWriteTimeBeforeStartup = time.Now().Add(-15 * time.Minute) // 15 minutes ago = stale (threshold is 10)
-		logFileLastWriteTimeErr = nil
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", time.Now().Add(-15*time.Minute).Unix())) // 15 minutes ago = stale (threshold is 6)
 		findExistingProcesses = func() ([]int, error) {
 			return []int{5678}, nil // existing process found
 		}
@@ -222,8 +216,7 @@ func Test_enablePre_Idempotency(t *testing.T) {
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(10), nil)
 		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-		logFileLastWriteTimeBeforeStartup = time.Now().Add(-20 * time.Minute) // stale
-		logFileLastWriteTimeErr = nil
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", time.Now().Add(-20*time.Minute).Unix())) // stale
 		findExistingProcesses = func() ([]int, error) {
 			return nil, nil // no existing process
 		}
@@ -258,8 +251,7 @@ func Test_enablePre_Idempotency(t *testing.T) {
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(10), nil)
 		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-		logFileLastWriteTimeBeforeStartup = time.Time{}
-		logFileLastWriteTimeErr = fmt.Errorf("no log files found")
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", "") // not set = log file doesn't exist
 		findExistingProcesses = func() ([]int, error) {
 			return []int{9999}, nil // process exists
 		}

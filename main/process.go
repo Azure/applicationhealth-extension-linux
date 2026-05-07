@@ -15,10 +15,10 @@ import (
 
 // Package-level function variables to allow mocking in tests
 var (
-	findExistingProcesses  = findExistingProcessesImpl
+	findExistingProcesses   = findExistingProcessesImpl
 	getLogFileLastWriteTime = getLogFileLastWriteTimeImpl
-	getHandlerEnvironment  = handlerenv.GetHandlerEnviroment
-	killProcesses          = killProcessesImpl
+	getHandlerEnvironment   = handlerenv.GetHandlerEnviroment
+	killProcesses           = killProcessesImpl
 )
 
 // procExePath returns the path to the /proc/<pid>/exe symlink for the given PID.
@@ -73,6 +73,24 @@ func getLogFileLastWriteTimeImpl() (time.Time, error) {
 		return time.Time{}, fmt.Errorf("failed to stat handler log file %s: %w", logFilePath, err)
 	}
 	return info.ModTime(), nil
+}
+
+// getLogFileLastWriteTimeFromEnv reads the handler log file's last write time from the
+// HANDLER_LOG_LAST_WRITE_TIME environment variable. The shim captures this value
+// before redirecting output to handler.log, so it reflects the previous process's
+// last write time rather than the current invocation's writes.
+// Returns the timestamp and nil on success, or zero time and an error if the env var
+// is not set or cannot be parsed.
+func getLogFileLastWriteTimeFromEnv() (time.Time, error) {
+	envTime := os.Getenv("HANDLER_LOG_LAST_WRITE_TIME")
+	if envTime == "" {
+		return time.Time{}, fmt.Errorf("HANDLER_LOG_LAST_WRITE_TIME not set, log file may not exist")
+	}
+	epochSec, err := strconv.ParseInt(envTime, 10, 64)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse HANDLER_LOG_LAST_WRITE_TIME=%q: %w", envTime, err)
+	}
+	return time.Unix(epochSec, 0), nil
 }
 
 // isLogFileFresh checks whether the log file was updated within the stale

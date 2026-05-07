@@ -120,9 +120,15 @@ if [[ "$1" != "enable" ]]; then
     kill_existing_vmwatch_processes
 fi
 
-# Redirect logs of the handler process
+# Capture the handler log file's last write time BEFORE redirecting output to it
 mkdir -p "$LOG_DIR"
-exec &> >(tee -ia "$LOG_DIR/$LOG_FILE")
+log_file_path="$LOG_DIR/$LOG_FILE"
+if [ -f "$log_file_path" ]; then
+    export HANDLER_LOG_LAST_WRITE_TIME=$(stat -c %Y "$log_file_path" 2>/dev/null || echo "")
+fi
+
+# Redirect logs of the handler process
+exec &> >(tee -ia "$log_file_path")
 
 # Start handling the process in the background
 bin="$(readlink -f "$SCRIPT_DIR/$HANDLER_BIN")"

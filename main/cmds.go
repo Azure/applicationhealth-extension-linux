@@ -172,12 +172,10 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 		fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', PIDs=%v, result=True", AppHealthBinaryNameAmd64, existingPids),
 		"pids", existingPids)
 
-	// Use the log file modification time captured at process startup (before any
-	// logging by this process). This is critical because the shim redirects stdout
-	// to the same log file — any log output from this process would refresh the
-	// mtime and make a stale existing process appear fresh.
-	lastUpdate := logFileLastWriteTimeBeforeStartup
-	logFileErr := logFileLastWriteTimeErr
+	// Read the handler log file's last write time, captured by the shim BEFORE
+	// redirecting output to handler.log. This ensures we check the previous
+	// process's last write time, not the current shim invocation's writes.
+	lastUpdate, logFileErr := getLogFileLastWriteTimeFromEnv()
 
 	// Could not determine log file timestamp after retries (e.g., file does not exist, I/O errors).
 	// Treat as not responsive — if no log file exists, no previous process was writing heartbeats.
