@@ -88,8 +88,9 @@ const (
 )
 
 var (
-	errTerminated     = errors.New("Application health process terminated")
-	errIdempotentExit = errors.New("idempotent exit: healthy process already running with current configuration")
+	errTerminated        = errors.New("Application health process terminated")
+	errIdempotentExit    = errors.New("idempotent exit: healthy process already running with current configuration")
+	errSuperseded        = errors.New("process superseded by newer sequence number")
 )
 
 func enablePre(lg *slog.Logger, seqNum uint) error {
@@ -296,7 +297,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 				fmt.Sprintf("Current sequence number %d is not greater than the most recently started sequence number %d. PID %d initiating graceful shutdown.",
 					seqNum, mostRecentSequenceNumberStarted, os.Getpid()),
 				"sequenceNumber", seqNum, "mostRecentSequenceNumberStarted", mostRecentSequenceNumberStarted, "currentPid", os.Getpid())
-			return "", errTerminated
+			return "", errSuperseded
 		}
 
 		// Since we only log health state changes, it is possible there will be no recent logs for app health extension.

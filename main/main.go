@@ -90,6 +90,13 @@ func main() {
 	reportStatus(logger, hEnv, seqNum, StatusTransitioning, cmd, "")
 	msg, err := cmd.f(logger, hEnv, seqNum)
 	if err != nil {
+		// Superseded: a newer sequence number was detected in the enable loop.
+		// Exit cleanly without overwriting the status file — the newer process
+		// owns the status now.
+		if errors.Is(err, errSuperseded) {
+			telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Process superseded by newer sequence number, exiting gracefully")
+			os.Exit(0)
+		}
 		logger.Error("failed to handle", "error", err)
 		reportStatus(logger, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
