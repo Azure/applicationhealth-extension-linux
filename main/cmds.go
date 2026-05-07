@@ -12,20 +12,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// logAndSend logs a message via slog and sends a telemetry event in one call,
-// reducing the paired lg.Info/Warn + telemetry.SendEvent duplication.
-func logAndSend(lg *slog.Logger, level telemetry.EventLevel, task telemetry.EventTask, msg string, kvPairs ...any) {
-	switch level {
-	case telemetry.ErrorEvent:
-		lg.Error(msg, kvPairs...)
-	case telemetry.WarningEvent:
-		lg.Warn(msg, kvPairs...)
-	default:
-		lg.Info(msg, kvPairs...)
-	}
-	telemetry.SendEvent(level, task, msg)
-}
-
 type cmdFunc func(lg *slog.Logger, hEnv *handlerenv.HandlerEnvironment, seqNum uint) (msg string, err error)
 type preFunc func(lg *slog.Logger, seqNum uint) error
 
@@ -107,12 +93,12 @@ func enablePre(lg *slog.Logger, seqNum uint) error {
 	var existingPids []int
 	pids, err := findExistingProcesses()
 	if err != nil {
-		logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+		telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("Failed to discover existing processes: %v", err), "error", err)
 	} else {
 		existingPids = pids
 		if len(pids) > 1 {
-			logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+			telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 				fmt.Sprintf("Found %d existing AHE processes (PIDs: %v). Expected at most 1.", len(pids), pids),
 				"pids", pids)
 		}
@@ -145,7 +131,7 @@ func enablePre(lg *slog.Logger, seqNum uint) error {
 		lg.Info("Killing existing processes from previous sequence number", "pids", existingPids, "oldSeq", mrSeqNum, "newSeq", seqNum)
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("Killing existing processes PIDs=%v from previous sequence number %d, new sequence number %d", existingPids, mrSeqNum, seqNum))
-		killProcesses(lg, existingPids)
+		killProcesses(existingPids)
 	}
 
 	return nil
@@ -164,12 +150,12 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 	// Check if any other AHE process is running — do this before log freshness
 	// to avoid unnecessary I/O and misleading telemetry when nothing is running.
 	if len(existingPids) == 0 {
-		logAndSend(lg, telemetry.InfoEvent, telemetry.AppHealthTask,
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', result=False", AppHealthBinaryNameAmd64))
 		return false
 	}
 
-	logAndSend(lg, telemetry.InfoEvent, telemetry.AppHealthTask,
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
 		fmt.Sprintf("IsHandlerStillExecuting: Process Name='%s', PIDs=%v, result=True", AppHealthBinaryNameAmd64, existingPids),
 		"pids", existingPids)
 
@@ -181,12 +167,12 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 	// Could not determine log file timestamp after retries (e.g., file does not exist, I/O errors).
 	// Treat as not responsive — if no log file exists, no previous process was writing heartbeats.
 	if logFileErr != nil {
-		logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+		telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("Could not determine log file last write time: %v. Existing process appears unresponsive. PID %d taking over execution.",
 				logFileErr, os.Getpid()),
 			"error", logFileErr, "seqNum", seqNum, "existingPids", existingPids, "currentPid", os.Getpid())
 
-		killProcesses(lg, existingPids)
+		killProcesses(existingPids)
 		return false
 	}
 
@@ -194,11 +180,11 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 	logFresh := time.Since(lastUpdate) < threshold
 
 	if logFresh {
-		logAndSend(lg, telemetry.InfoEvent, telemetry.AppHealthTask,
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("Existing process log file was fresh at startup. Last update: %s UTC.", lastUpdate.UTC().Format(time.RFC3339Nano)),
 			"lastUpdate", lastUpdate.UTC().Format(time.RFC3339Nano))
 	} else {
-		logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+		telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("Existing process log file was stale at startup. Last update: %s UTC, Threshold: %d minutes. Process may be stuck.",
 				lastUpdate.UTC().Format(time.RFC3339Nano), AppHealthLogFileStaleThresholdInMinutes),
 			"lastUpdate", lastUpdate.UTC().Format(time.RFC3339Nano),
@@ -207,7 +193,7 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 
 	// Same sequence number + process running + log fresh → caller should exit to maintain idempotency
 	if logFresh {
-		logAndSend(lg, telemetry.InfoEvent, telemetry.AppHealthTask,
+		telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask,
 			fmt.Sprintf("Another instance of AppHealthExtension is already running with the same sequence number (%d) and is responsive. PID %d exiting to maintain idempotency.",
 				seqNum, os.Getpid()),
 			"seqNum", seqNum, "existingPids", existingPids, "currentPid", os.Getpid())
@@ -215,12 +201,12 @@ func checkIdempotency(lg *slog.Logger, seqNum uint, mrSeqNum uint, existingPids 
 	}
 
 	// Same sequence number + process running + log stale → take over execution
-	logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+	telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 		fmt.Sprintf("Another instance of AppHealthExtension exists with the same sequence number (%d) but appears unresponsive (log file stale). PID %d taking over execution.",
 			seqNum, os.Getpid()),
 		"seqNum", seqNum, "existingPids", existingPids, "currentPid", os.Getpid())
 
-	killProcesses(lg, existingPids)
+	killProcesses(existingPids)
 
 	return false
 }
@@ -290,10 +276,10 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		// If so, this process has a stale configuration and should exit gracefully.
 		mostRecentSequenceNumberStarted, err := seqnoManager.GetCurrentSequenceNumber(lg, fullName, "")
 		if err != nil {
-			logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+			telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 				fmt.Sprintf("Failed to read current sequence number: %v. Continuing with current configuration.", err), "error", err)
 		} else if seqNum < mostRecentSequenceNumberStarted {
-			logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+			telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 				fmt.Sprintf("Current sequence number %d is not greater than the most recently started sequence number %d. PID %d initiating graceful shutdown.",
 					seqNum, mostRecentSequenceNumberStarted, os.Getpid()),
 				"sequenceNumber", seqNum, "mostRecentSequenceNumberStarted", mostRecentSequenceNumberStarted, "currentPid", os.Getpid())

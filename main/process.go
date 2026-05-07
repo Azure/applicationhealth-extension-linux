@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -82,10 +81,10 @@ func getLogFileLastWriteTimeFromEnv() (time.Time, error) {
 
 // killProcessesImpl sends SIGTERM to all specified processes and waits for each to exit.
 // Logs a warning for any process that cannot be killed but continues with the rest.
-func killProcessesImpl(lg *slog.Logger, pids []int) {
+func killProcessesImpl(pids []int) {
 	for _, pid := range pids {
 		if err := killProcess(pid); err != nil {
-			logAndSend(lg, telemetry.WarningEvent, telemetry.AppHealthTask,
+			telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
 				fmt.Sprintf("Failed to terminate existing process %d: %v", pid, err),
 				"pid", pid, "error", err)
 		}

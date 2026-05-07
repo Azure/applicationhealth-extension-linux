@@ -47,7 +47,7 @@ func saveAndRestoreIdempotencyMocks(t *testing.T) {
 		killProcesses = origKillProcesses
 	})
 	// Default to no-op kill in tests to avoid sending real signals
-	killProcesses = func(lg *slog.Logger, pids []int) {}
+	killProcesses = func(pids []int) {}
 }
 
 // mockNoExistingProcess sets up mocks so idempotency check finds no existing process
