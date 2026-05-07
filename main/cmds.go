@@ -105,8 +105,9 @@ func enablePre(lg *slog.Logger, seqNum uint) error {
 	}
 
 	// Check idempotency: if an existing healthy process is already running
-	// with the same sequence number, exit cleanly.
-	// This must happen before we write any logs so we don't detect our own writes.
+	// with the same sequence number, exit cleanly. The log file mtime used
+	// for freshness is captured by the shim before any output is redirected,
+	// so it is not affected by logging from this process.
 	if shouldExit := checkIdempotency(lg, seqNum, mrSeqNum, existingPids); shouldExit {
 		return errIdempotentExit
 	}
