@@ -100,7 +100,18 @@ jobs:
     - name: Build Binaries
       run: make binary
       working-directory: ${{ env.repo_root }}
-    
+
+    - name: Upload Extension Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: applicationhealth-extension-${{ matrix.os }}
+        path: |
+          ${{ env.repo_root }}/bin/applicationhealth-extension
+          ${{ env.repo_root }}/bin/applicationhealth-extension-arm64
+          ${{ env.repo_root }}/bin/applicationhealth-shim
+          ${{ env.repo_root }}/misc/HandlerManifest.json
+          ${{ env.repo_root }}/misc/manifest.xml
+
     - name: Generate Webserver Credentials
       run: |
         openssl rand -out ~/.rnd 2048
