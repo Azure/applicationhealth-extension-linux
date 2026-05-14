@@ -39,7 +39,7 @@ teardown(){
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
 }
 
-@test "handler command: enable twice, process exits cleanly" {
+@test "handler command: enable twice, command is idempotent - initial process uninterrupted, second process exits" {
     mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable && fake-waagent enable && sleep 2"
     push_settings '' ''
 
@@ -62,7 +62,7 @@ teardown(){
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
-@test "handler command: enable with new sequence number, old process exits" {
+@test "handler command: enable with higher sequence number - old process killed, new process takes over" {
     # First enable runs with seq 0, becomes healthy. Then we add 1.settings (seq 1)
     # and enable again. The new process (seq 1) should kill the old process (seq 0)
     # and take over execution.
@@ -97,7 +97,7 @@ teardown(){
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
 }
 
-@test "handler command: enable with lower sequence number exits immediately" {
+@test "handler command: enable with lower sequence number - rejected, existing process uninterrupted" {
     # First enable runs with seq 1, becomes healthy. Then we remove 1.settings
     # (leaving only 0.settings, seq 0) and enable again. The new process (seq 0)
     # should exit immediately because mrSeqNum (1) > seqNum (0).
@@ -128,7 +128,7 @@ teardown(){
     [ "$healthy_count" -ge 1 ]
 }
 
-@test "handler command: enable with lower sequence number exits immediately, existing unhealthy" {
+@test "handler command: enable with lower sequence number - rejected even when existing process is unhealthy" {
     # Same as above but validates sequence number takes precedence regardless of
     # existing process health. Even if the existing process were unhealthy, a lower
     # sequence number should still be rejected.
