@@ -15,6 +15,7 @@ import (
 var (
 	findExistingProcesses = findExistingProcessesImpl
 	killProcesses         = killProcessesImpl
+	isAHEProcess          = isAHEProcessImpl
 )
 
 // procExePath returns the path to the /proc/<pid>/exe symlink for the given PID.
@@ -22,9 +23,9 @@ func procExePath(pid int) string {
 	return filepath.Join("/proc", strconv.Itoa(pid), "exe")
 }
 
-// isAHEProcess checks whether the given PID belongs to an Application Health Extension
+// isAHEProcessImpl checks whether the given PID belongs to an Application Health Extension
 // binary by reading /proc/<pid>/exe. Returns true if it matches a known AHE binary name.
-func isAHEProcess(pid int) bool {
+func isAHEProcessImpl(pid int) bool {
 	exePath, err := os.Readlink(procExePath(pid))
 	if err != nil {
 		return false

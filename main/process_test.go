@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -36,6 +37,11 @@ func spawnDetachedProcess(t *testing.T, shellCmd string) int {
 func Test_killProcess_SIGTERM(t *testing.T) {
 	pid := spawnDetachedProcess(t, "sleep 60")
 
+	// Mock isAHEProcess to return true for test processes
+	originalFn := isAHEProcess
+	isAHEProcess = func(p int) bool { return true }
+	defer func() { isAHEProcess = originalFn }()
+
 	err := killProcess(pid)
 	assert.NoError(t, err, "killProcess should succeed for a process that handles SIGTERM")
 }
@@ -43,6 +49,11 @@ func Test_killProcess_SIGTERM(t *testing.T) {
 func Test_killProcess_SIGKILL_escalation(t *testing.T) {
 	// Spawn a process that ignores SIGTERM
 	pid := spawnDetachedProcess(t, "trap '' TERM; sleep 60")
+
+	// Mock isAHEProcess to return true for test processes
+	originalFn := isAHEProcess
+	isAHEProcess = func(p int) bool { return true }
+	defer func() { isAHEProcess = originalFn }()
 
 	startTime := time.Now()
 	err := killProcess(pid)
@@ -53,8 +64,10 @@ func Test_killProcess_SIGKILL_escalation(t *testing.T) {
 }
 
 func Test_killProcess_NonExistentPID(t *testing.T) {
+	// isAHEProcess returns false for non-existent PID (can't read /proc/<pid>/exe)
+	// so killProcess skips it gracefully
 	err := killProcess(9999999)
-	assert.Error(t, err, "killProcess should return error for non-existent PID")
+	assert.NoError(t, err, "killProcess should return nil for non-existent PID (skipped by revalidation)")
 }
 
 func Test_killProcess_AlreadyExited(t *testing.T) {
@@ -63,8 +76,28 @@ func Test_killProcess_AlreadyExited(t *testing.T) {
 	pid := cmd.Process.Pid
 	cmd.Wait()
 
+	// Process already exited, isAHEProcess returns false (can't read /proc/<pid>/exe)
 	err := killProcess(pid)
-	assert.Error(t, err, "killProcess should return error for already-exited process")
+	assert.NoError(t, err, "killProcess should return nil for already-exited process (skipped by revalidation)")
+}
+
+func Test_killProcess_PIDReusedByNonAHE(t *testing.T) {
+	// Spawn a non-AHE process
+	pid := spawnDetachedProcess(t, "sleep 60")
+
+	// isAHEProcess returns false (simulating PID reuse by unrelated process)
+	originalFn := isAHEProcess
+	isAHEProcess = func(p int) bool { return false }
+	defer func() { isAHEProcess = originalFn }()
+
+	err := killProcess(pid)
+	assert.NoError(t, err, "killProcess should skip killing when PID is no longer AHE")
+
+	// Verify the process is still alive (was not killed)
+	proc, _ := os.FindProcess(pid)
+	assert.NoError(t, proc.Signal(syscall.Signal(0)), "process should still be alive after skipped kill")
+	// Clean up
+	proc.Kill()
 }
 
 func Test_getLogFileLastWriteTimeFromEnv(t *testing.T) {
