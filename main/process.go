@@ -22,6 +22,17 @@ func procExePath(pid int) string {
 	return filepath.Join("/proc", strconv.Itoa(pid), "exe")
 }
 
+// isAHEProcess checks whether the given PID belongs to an Application Health Extension
+// binary by reading /proc/<pid>/exe. Returns true if it matches a known AHE binary name.
+func isAHEProcess(pid int) bool {
+	exePath, err := os.Readlink(procExePath(pid))
+	if err != nil {
+		return false
+	}
+	procName := filepath.Base(exePath)
+	return procName == AppHealthBinaryNameAmd64 || procName == AppHealthBinaryNameArm64
+}
+
 // findExistingProcessesImpl scans /proc to find all other running instances of the
 // Application Health Extension binary (excluding the current process).
 // Uses /proc/<pid>/exe for binary identification.
@@ -45,13 +56,7 @@ func findExistingProcessesImpl() ([]int, error) {
 			continue
 		}
 
-		exePath, err := os.Readlink(procExePath(pid))
-		if err != nil {
-			continue
-		}
-
-		procName := filepath.Base(exePath)
-		if procName == AppHealthBinaryNameAmd64 || procName == AppHealthBinaryNameArm64 {
+		if isAHEProcess(pid) {
 			pids = append(pids, pid)
 		}
 	}
@@ -93,6 +98,15 @@ func killProcessesImpl(pids []int) {
 // to exit before returning. This prevents a race where two AHE instances run
 // simultaneously during takeover.
 func killProcess(pid int) error {
+	// Revalidate that the PID still belongs to AHE before killing to guard
+	// against PID reuse between discovery and kill time.
+	if !isAHEProcess(pid) {
+		telemetry.SendEvent(telemetry.WarningEvent, telemetry.AppHealthTask,
+			fmt.Sprintf("PID %d is no longer an AHE process at kill time, skipping", pid),
+			"pid", pid)
+		return nil
+	}
+
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return fmt.Errorf("failed to find process %d: %w", pid, err)
