@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -74,6 +75,13 @@ func main() {
 	if cmd.pre != nil {
 		logger.Info("pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
+			// Idempotent exit: healthy process already running, exit cleanly.
+			// Do NOT overwrite the status file — the running process already
+			// wrote the correct status with substatuses (AppHealthStatus, etc.).
+			if errors.Is(err, errIdempotentExit) {
+				telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Idempotent exit: extension already running with current configuration")
+				os.Exit(0)
+			}
 			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.MainTask, "pre-check failed", "error", err.Error())
 			os.Exit(cmd.failExitCode)
 		}
@@ -82,6 +90,13 @@ func main() {
 	reportStatus(logger, hEnv, seqNum, StatusTransitioning, cmd, "")
 	msg, err := cmd.f(logger, hEnv, seqNum)
 	if err != nil {
+		// Superseded: a newer sequence number was detected in the enable loop.
+		// Exit cleanly without overwriting the status file — the newer process
+		// owns the status now.
+		if errors.Is(err, errSuperseded) {
+			telemetry.SendEvent(telemetry.InfoEvent, telemetry.MainTask, "Process superseded by newer sequence number, exiting gracefully")
+			os.Exit(0)
+		}
 		logger.Error("failed to handle", "error", err)
 		reportStatus(logger, hEnv, seqNum, StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)

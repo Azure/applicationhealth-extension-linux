@@ -39,17 +39,20 @@ teardown(){
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
 }
 
-@test "handler command: enable twice, process exits cleanly" {
-    mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable && rm /var/lib/waagent/Extension/status/0.status && fake-waagent enable && wait-for-enable status"
+@test "handler command: enable twice, command is idempotent - initial process uninterrupted, second process exits" {
+    mk_container $container_name sh -c "fake-waagent install && fake-waagent enable && wait-for-enable && fake-waagent enable && sleep 2"
     push_settings '' ''
 
     run start_container
     echo "$output"
-    [[ "$output" = *'applicationhealth-extension process terminated'* ]]
 
+    # Second enable should detect the existing healthy process and exit cleanly (idempotent)
+    [[ "$output" = *'Idempotent exit: extension already running with current configuration'* ]]
+
+    # Only one process should have reached the healthy state (the first one)
     healthy_count="$(echo "$output" | grep -c 'Health state changed to healthy')"
     echo "Enable count=$healthy_count"
-    [ "$healthy_count" -eq 2 ]
+    [ "$healthy_count" -eq 1 ]
 
     diff="$(container_diff)"; echo "$diff"
     [[ "$diff" = *"A /var/lib/waagent/Extension/status/0.status"* ]]
@@ -57,6 +60,102 @@ teardown(){
     
     verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
     verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+}
+
+@test "handler command: enable with higher sequence number - old process killed, new process takes over" {
+    # First enable runs with seq 0, becomes healthy. Then we add 1.settings (seq 1)
+    # and enable again. The new process (seq 1) should kill the old process (seq 0)
+    # and take over execution.
+    mk_container $container_name sh -c "\
+        fake-waagent install && \
+        fake-waagent enable && \
+        wait-for-enable && \
+        cp /var/lib/waagent/Extension/config/0.settings /var/lib/waagent/Extension/config/1.settings && \
+        fake-waagent enable && \
+        until grep -q success /var/lib/waagent/Extension/status/1.status 2>/dev/null; do sleep 0.5; done"
+    push_settings '' ''
+
+    run start_container
+    echo "$output"
+
+    # New process should kill old process from previous sequence number
+    [[ "$output" = *'Killing existing processes from previous sequence number'* ]]
+
+    # Should NOT get an idempotent exit (different sequence numbers)
+    idempotent_count="$(echo "$output" | grep -c 'Idempotent exit' || true)"
+    echo "Idempotent exit count=$idempotent_count"
+    [ "$idempotent_count" -eq 0 ]
+
+    # Both processes should have reached healthy state (old with seq 0, new with seq 1)
+    healthy_count="$(echo "$output" | grep -c 'Health state changed to healthy')"
+    echo "Healthy count=$healthy_count"
+    [ "$healthy_count" -eq 2 ]
+
+    # Verify status file exists for the new sequence number
+    status_file="$(container_read_file /var/lib/waagent/Extension/status/1.status)"
+    verify_substatus_item "$status_file" AppHealthStatus success "Application found to be healthy"
+    verify_substatus_item "$status_file" ApplicationHealthState success Healthy
+}
+
+@test "handler command: enable with lower sequence number - rejected, existing process uninterrupted" {
+    # First enable runs with seq 1, becomes healthy. Then we remove 1.settings
+    # (leaving only 0.settings, seq 0) and enable again. The new process (seq 0)
+    # should exit immediately because mrSeqNum (1) > seqNum (0).
+    mk_container $container_name sh -c "\
+        fake-waagent install && \
+        fake-waagent enable && \
+        until grep -q success /var/lib/waagent/Extension/status/1.status 2>/dev/null; do sleep 0.5; done && \
+        rm /var/lib/waagent/Extension/config/1.settings && \
+        fake-waagent enable && \
+        sleep 2"
+
+    # Push settings as both 0.settings and 1.settings so first enable uses seq 1
+    push_settings '' ''
+    cfg_file="$(mktemp)"
+    docker cp "$TEST_CONTAINER:/var/lib/waagent/Extension/config/0.settings" "$cfg_file"
+    docker cp "$cfg_file" "$TEST_CONTAINER:/var/lib/waagent/Extension/config/1.settings"
+    rm -f "$cfg_file"
+
+    run start_container
+    echo "$output"
+
+    # Second enable (seq 0) should fail because mrSeqNum (1) > seqNum (0)
+    [[ "$output" = *'most recent sequence number 1 is greater than the requested sequence number 0'* ]]
+
+    # First process should have reached healthy state
+    healthy_count="$(echo "$output" | grep -c 'Health state changed to healthy')"
+    echo "Healthy count=$healthy_count"
+    [ "$healthy_count" -ge 1 ]
+}
+
+@test "handler command: enable with lower sequence number - rejected even when existing process is unhealthy" {
+    # Same as above but validates sequence number takes precedence regardless of
+    # existing process health. Even if the existing process were unhealthy, a lower
+    # sequence number should still be rejected.
+    mk_container $container_name sh -c "\
+        fake-waagent install && \
+        fake-waagent enable && \
+        until grep -q success /var/lib/waagent/Extension/status/1.status 2>/dev/null; do sleep 0.5; done && \
+        rm /var/lib/waagent/Extension/config/1.settings && \
+        fake-waagent enable && \
+        sleep 2"
+
+    push_settings '' ''
+    cfg_file="$(mktemp)"
+    docker cp "$TEST_CONTAINER:/var/lib/waagent/Extension/config/0.settings" "$cfg_file"
+    docker cp "$cfg_file" "$TEST_CONTAINER:/var/lib/waagent/Extension/config/1.settings"
+    rm -f "$cfg_file"
+
+    run start_container
+    echo "$output"
+
+    # Second enable (seq 0) should still fail - sequence number takes precedence over healthiness
+    [[ "$output" = *'most recent sequence number 1 is greater than the requested sequence number 0'* ]]
+
+    # Should NOT get an idempotent exit (different sequence numbers)
+    idempotent_count="$(echo "$output" | grep -c 'Idempotent exit' || true)"
+    echo "Idempotent exit count=$idempotent_count"
+    [ "$idempotent_count" -eq 0 ]
 }
 
 @test "handler command: enable - validates json schema" {

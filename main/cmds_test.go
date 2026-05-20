@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/seqno"
 	"github.com/stretchr/testify/assert"
@@ -35,6 +37,25 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 	require.True(t, cmds["update"].shouldReportStatus, "update should report status")
 }
 
+// saveAndRestoreIdempotencyMocks saves original function variables and restores
+// them after the test to prevent test pollution.
+func saveAndRestoreIdempotencyMocks(t *testing.T) {
+	origFindExistingProcesses := findExistingProcesses
+	origKillProcesses := killProcesses
+	t.Cleanup(func() {
+		findExistingProcesses = origFindExistingProcesses
+		killProcesses = origKillProcesses
+	})
+	// Default to no-op kill in tests to avoid sending real signals
+	killProcesses = func(pids []int) {}
+}
+
+// mockNoExistingProcess sets up mocks so idempotency check finds no existing process
+func mockNoExistingProcess(t *testing.T) {
+	saveAndRestoreIdempotencyMocks(t)
+	findExistingProcesses = func() ([]int, error) { return nil, nil }
+}
+
 func Test_enablePre(t *testing.T) {
 	var (
 		logger          = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -46,6 +67,7 @@ func Test_enablePre(t *testing.T) {
 	t.Run("SaveSequenceNumberError_ShouldFail", func(t *testing.T) {
 		// seqNumToProcess = 0, mrSeqNum = 1
 		seqNumToProcess = 0
+		mockNoExistingProcess(t)
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(1), nil)
 		seqnoManager = mockSeqNumManager
 		err := enablePre(logger, seqNumToProcess)
@@ -55,6 +77,7 @@ func Test_enablePre(t *testing.T) {
 	t.Run("GetSequenceNumberIsGreaterThanRequestedSequenceNumber_ShouldFail", func(t *testing.T) {
 		// seqNumToProcess = 4, mrSeqNum = 8
 		seqNumToProcess = 4
+		mockNoExistingProcess(t)
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(8), nil)
 		seqnoManager = mockSeqNumManager
 		err := enablePre(logger, seqNumToProcess)
@@ -64,15 +87,17 @@ func Test_enablePre(t *testing.T) {
 	t.Run("SequenceNumberisZero_Startup", func(t *testing.T) {
 		// seqNumToProcess = 0, mrSeqNum = 0
 		seqNumToProcess = 0
+		mockNoExistingProcess(t)
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(0), nil)
 		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		seqnoManager = mockSeqNumManager
 		err := enablePre(logger, seqNumToProcess)
 		assert.NoError(t, err)
 	})
-	t.Run("SequenceNumberAlreadyProcessed", func(t *testing.T) {
-		// seqNumToProcess = 5, mrSeqNum = 5
+	t.Run("SequenceNumberAlreadyProcessed_NoExistingProcess", func(t *testing.T) {
+		// seqNumToProcess = 5, mrSeqNum = 5, no existing process → should continue
 		seqNumToProcess = 5
+		mockNoExistingProcess(t)
 		seqnoManager = mockSeqNumManager
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(5), nil)
 		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -82,10 +107,194 @@ func Test_enablePre(t *testing.T) {
 	t.Run("MostRecentSeqNumIsSmaller_ShouldPass", func(t *testing.T) {
 		// seqNumToProcess = 4, mrSeqNum = 2
 		seqNumToProcess = 4
+		mockNoExistingProcess(t)
 		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(2), nil)
 		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		seqnoManager = mockSeqNumManager
 		err := enablePre(logger, seqNumToProcess)
 		assert.NoError(t, err)
+	})
+}
+
+func Test_enablePre_Idempotency(t *testing.T) {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	ctrl := gomock.NewController(t)
+	mockSeqNumManager := seqno.NewMockSequenceNumberManager(ctrl)
+
+	// Test Case 1: Same seq + healthy process → returns errIdempotentExit
+	t.Run("SameSeq_HealthyProcess_ShouldReturnIdempotentExit", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(20), nil)
+
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", time.Now().Add(-1*time.Minute).Unix())) // 1 minute ago = fresh
+		findExistingProcesses = func() ([]int, error) {
+			return []int{1234}, nil // existing process found
+		}
+
+		err := enablePre(logger, 20) // same sequence number
+		assert.ErrorIs(t, err, errIdempotentExit, "should return errIdempotentExit when healthy process exists")
+	})
+
+	// Test Case 2: Same seq + unhealthy process → new process takes over
+	t.Run("SameSeq_UnhealthyProcess_ShouldTakeOver", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(21), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", time.Now().Add(-15*time.Minute).Unix())) // 15 minutes ago = stale (threshold is 6)
+		findExistingProcesses = func() ([]int, error) {
+			return []int{5678}, nil // existing process found
+		}
+
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
+		err := enablePre(logger, 21) // same sequence number
+		assert.NoError(t, err, "should take over unhealthy process")
+		assert.Equal(t, []int{5678}, killedPids, "should have killed the existing process")
+	})
+
+	// Test Case 3: Higher seq than existing → new process should continue and kill old
+	t.Run("HigherSeq_ExistingProcess_ShouldKillAndContinue", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		// mrSeqNum = 36, seqNum = 37 → seqNum > mrSeqNum
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(36), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		// Single call — PIDs are discovered once and reused for both idempotency and kill
+		findExistingProcesses = func() ([]int, error) {
+			return []int{5492}, nil
+		}
+
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
+		err := enablePre(logger, 37)
+		assert.NoError(t, err, "new process with higher seq should continue")
+		assert.Equal(t, []int{5492}, killedPids, "should have killed the old process")
+	})
+
+	// Test Case 4: New seq + existing running process → should kill old and continue
+	t.Run("HigherSeq_RunningProcess_ShouldKillOld", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		// mrSeqNum = 10, seqNum = 11 → new config
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(10), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		findProcessCalled := false
+		findExistingProcesses = func() ([]int, error) {
+			findProcessCalled = true
+			return []int{4321}, nil // existing process from old seq
+		}
+
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
+		err := enablePre(logger, 11) // new seq > mrSeq
+		assert.NoError(t, err, "should succeed with new sequence number")
+		assert.True(t, findProcessCalled, "should have checked for existing process to kill")
+		assert.Equal(t, []int{4321}, killedPids, "should have killed the old process")
+	})
+
+	// Test Case 5: Lower seq (existing) + healthy process → new process exits with error
+	t.Run("LowerSeq_HealthyExistingProcess_ShouldFail", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		// mrSeqNum = 26, seqNum = 25 → seqNum < mrSeqNum
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(26), nil)
+
+		err := enablePre(logger, 25)
+		assert.Error(t, err, "lower sequence number should fail")
+		assert.NotErrorIs(t, err, errIdempotentExit, "should not be idempotent exit, should be regular error")
+	})
+
+	// Test Case 6: Lower seq (existing) + unhealthy process → still fails (seq takes precedence)
+	t.Run("LowerSeq_UnhealthyExistingProcess_ShouldFail", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		// mrSeqNum = 26, seqNum = 25 → seqNum < mrSeqNum
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(26), nil)
+
+		err := enablePre(logger, 25)
+		assert.Error(t, err, "lower sequence number should fail regardless of health")
+	})
+
+	// Test Case 7: No existing AHE process → normal startup
+	t.Run("SameSeq_NoExistingProcess_ShouldContinue", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(10), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", fmt.Sprintf("%d", time.Now().Add(-20*time.Minute).Unix())) // stale
+		findExistingProcesses = func() ([]int, error) {
+			return nil, nil // no existing process
+		}
+
+		err := enablePre(logger, 10)
+		assert.NoError(t, err, "should not exit when no existing process")
+	})
+
+	// Edge case: findExistingProcesses fails → should continue gracefully
+	t.Run("SameSeq_ProcessDiscoveryError_ShouldContinue", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(15), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		findExistingProcesses = func() ([]int, error) {
+			return nil, fmt.Errorf("proc filesystem error")
+		}
+
+		err := enablePre(logger, 15)
+		assert.NoError(t, err, "should continue gracefully on process discovery error")
+	})
+
+	// Edge case: No log files (file does not exist) + existing process →
+	// should take over execution. If no log file exists, no previous process
+	// was writing heartbeats, so the existing process is treated as unresponsive.
+	// If no log file exists, no previous process was writing heartbeats,
+	// so the existing process is treated as unresponsive.
+	t.Run("SameSeq_NoLogFiles_ShouldTakeOver", func(t *testing.T) {
+		saveAndRestoreIdempotencyMocks(t)
+		seqnoManager = mockSeqNumManager
+		mockSeqNumManager.EXPECT().GetCurrentSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint(10), nil)
+		mockSeqNumManager.EXPECT().SetSequenceNumber(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+		t.Setenv("HANDLER_LOG_LAST_WRITE_TIME", "") // not set = log file doesn't exist
+		findExistingProcesses = func() ([]int, error) {
+			return []int{9999}, nil // process exists
+		}
+
+		var killedPids []int
+		killProcesses = func(pids []int) { killedPids = pids }
+
+		err := enablePre(logger, 10)
+		assert.NoError(t, err, "should take over when log file is missing")
+		assert.Equal(t, []int{9999}, killedPids, "should have killed the existing process")
+	})
+}
+
+func Test_appHealthBinaryName(t *testing.T) {
+	origArgs := os.Args
+	defer func() { os.Args = origArgs }()
+
+	t.Run("ReturnsAmd64WhenBinaryIsAmd64", func(t *testing.T) {
+		os.Args = []string{"/var/lib/waagent/Extension/bin/applicationhealth-extension", "enable"}
+		assert.Equal(t, AppHealthBinaryNameAmd64, appHealthBinaryName())
+	})
+
+	t.Run("ReturnsArm64WhenBinaryIsArm64", func(t *testing.T) {
+		os.Args = []string{"/var/lib/waagent/Extension/bin/applicationhealth-extension-arm64", "enable"}
+		assert.Equal(t, AppHealthBinaryNameArm64, appHealthBinaryName())
+	})
+
+	t.Run("ReturnsAmd64ByDefault", func(t *testing.T) {
+		os.Args = []string{"some-other-binary", "enable"}
+		assert.Equal(t, AppHealthBinaryNameAmd64, appHealthBinaryName())
 	})
 }
