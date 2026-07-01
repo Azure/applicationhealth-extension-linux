@@ -3197,12 +3197,13 @@ limitations under the License.
 
 ---------------------------------------------------------
 
-github.com%2Ftklauser/numcpus v0.7.0 - Apache-2.0
+github.com%2ftklauser/numcpus v0.11.0 - Apache-2.0
 
 
 Copyright 2018 Tobias Klauser
 Copyright 2021 Tobias Klauser
 Copyright 2022 Tobias Klauser
+Copyright 2024 Tobias Klauser
 Copyright 2018-2022 Tobias Klauser
 Copyright 2019-2020 Tobias Klauser
 
@@ -4298,20 +4299,30 @@ Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause
 
 ---------------------------------------------------------
 
-github.com%2febitengine/purego v0.8.2 - Apache-2.0 AND BSD-3-Clause
+github.com%2febitengine/purego v0.10.0 - Apache-2.0 AND BSD-3-Clause
 
 
 2022 The Ebitengine Authors
 2023 The Ebitengine Authors
 2024 The Ebitengine Authors
+2025 The Ebitengine Authors
+2026 The Ebitengine Authors
 Copyright 2009 The Go Authors
 Copyright 2010 The Go Authors
 Copyright 2011 The Go Authors
+Copyright 2012 The Go Authors
+Copyright 2014 The Go Authors
 Copyright 2015 The Go Authors
+Copyright 2016 The Go Authors
+Copyright 2020 The Go Authors
 Copyright 2021 The Go Authors
+Copyright 2022 The Go Authors
+Copyright 2023 The Go Authors
 Copyright 2022 The Ebitengine Authors
 Copyright 2023 The Ebitengine Authors
 Copyright 2024 The Ebitengine Authors
+Copyright 2025 The Ebitengine Authors
+Copyright 2026 The Ebitengine Authors
 
 Apache-2.0 AND BSD-3-Clause
 
@@ -4541,7 +4552,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ---------------------------------------------------------
 
-filippo.io/edwards25519 v1.1.0 - BSD-3-Clause
+filippo.io/edwards25519 v1.1.1 - BSD-3-Clause
 
 
 Copyright (c) 2009 The Go Authors
@@ -4796,41 +4807,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ---------------------------------------------------------
 
-github.com%2fshirou%2fgopsutil/v4 v4.25.3 - BSD-3-Clause
-
-
-Copyright 2009 The Go Authors
-Copyright (c) 2010 Ed Schouten
-Copyright (c) 2009 The Go Authors
-Copyright (c) 2014, WAKAYAMA Shirou
-Copyright (c) 1992-2011 The FreeBSD Project
-Copyright (c) 1992-2016 The FreeBSD Project
-Copyright (c) 2010 Ed Schouten <ed@FreeBSD.org>
-Copyright 2009 The Go Authors. All rights reserved.
-Copyright (c) 1979, 1980, 1983, 1986, 1988, 1989, 1991, 1992, 1993, 1994 The Regents of the University of California
-
-Copyright (c) <year> <owner> . All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-   1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-   2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-   3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
----------------------------------------------------------
-
----------------------------------------------------------
-
-github.com%2Ftklauser/go-sysconf v0.3.13 - BSD-3-Clause
+github.com%2ftklauser/go-sysconf v0.3.16 - BSD-3-Clause
 
 
 Copyright 2018 Tobias Klauser
 Copyright 2021 Tobias Klauser
 Copyright 2022 Tobias Klauser
+Copyright 2024 Tobias Klauser
 Copyright (c) 2018-2022, Tobias Klauser
 
 Copyright (c) <year> <owner> . All rights reserved.
@@ -4849,7 +4832,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 ---------------------------------------------------------
 
-golang.org%2fx/crypto v0.37.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
+golang.org%2fx/crypto v0.51.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 
 Copyright 2009 The Go Authors
@@ -4902,7 +4885,7 @@ BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 ---------------------------------------------------------
 
-golang.org%2fx/net v0.39.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
+golang.org%2fx/net v0.54.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 
 (c) cc.fr
@@ -4924,6 +4907,7 @@ Copyright 2022 The Go Authors
 Copyright 2023 The Go Authors
 Copyright 2024 The Go Authors
 Copyright 2025 The Go Authors
+Copyright 2026 The Go Authors
 
 BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
@@ -4931,7 +4915,7 @@ BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 ---------------------------------------------------------
 
-golang.org%2fx/sys v0.32.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
+golang.org%2fx/sys v0.44.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 
 Copyright 2009 The Go Authors
@@ -4951,6 +4935,7 @@ Copyright 2022 The Go Authors
 Copyright 2023 The Go Authors
 Copyright 2024 The Go Authors
 Copyright 2025 The Go Authors
+Copyright 2026 The Go Authors
 Copyright 2009,2010 The Go Authors
 
 BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
@@ -4959,18 +4944,11 @@ BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 ---------------------------------------------------------
 
-golang.org%2fx/text v0.24.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
+golang.org%2fx/text v0.37.0 - BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
 
-(c) (c) A
-(c) AeHa (c)
-(c) EeAoq (c)
 (c) EAiE (c) A
 (c) lEEe (c) AE
-(c) (c) AAEE (c)
-(c) oav!A (c) AY
-(c) aA"AE (c) 1AE (c)
-(c) 1/4, ?i'U CY A$?A CO
 Copyright 2009 The Go Authors
 Copyright 2011 The Go Authors
 Copyright 2012 The Go Authors
@@ -4982,6 +4960,7 @@ Copyright 2017 The Go Authors
 Copyright 2018 The Go Authors
 Copyright 2019 The Go Authors
 Copyright 2021 The Go Authors
+Copyright 2025 The Go Authors
 
 BSD-3-Clause AND LicenseRef-scancode-google-patent-license-golang
 
@@ -5086,7 +5065,7 @@ LicenseRef-scancode-generic-cla AND MIT
 
 ---------------------------------------------------------
 
-github.com%2Fazure%2Fazure-sdk-for-go%2Fsdk/azcore v1.18.0 - LicenseRef-scancode-generic-cla AND MIT
+github.com%2fazure%2fazure-sdk-for-go%2fsdk/azcore v1.21.1 - LicenseRef-scancode-generic-cla AND MIT
 
 
 Copyright (c) Microsoft Corporation
@@ -5098,7 +5077,7 @@ LicenseRef-scancode-generic-cla AND MIT
 
 ---------------------------------------------------------
 
-github.com%2fazure%2fazure-sdk-for-go%2fsdk/azidentity v1.8.2 - LicenseRef-scancode-generic-cla AND MIT
+github.com%2fazure%2fazure-sdk-for-go%2fsdk/azidentity v1.13.1 - LicenseRef-scancode-generic-cla AND MIT
 
 
 Copyright (c) Microsoft Corporation
@@ -5109,7 +5088,7 @@ LicenseRef-scancode-generic-cla AND MIT
 
 ---------------------------------------------------------
 
-github.com%2fazure%2fazure-sdk-for-go%2fsdk/internal v1.11.1 - LicenseRef-scancode-generic-cla AND MIT
+github.com%2fazure%2fazure-sdk-for-go%2fsdk/internal v1.12.0 - LicenseRef-scancode-generic-cla AND MIT
 
 
 (c) Val Thoermer/Alamy
@@ -5122,7 +5101,7 @@ LicenseRef-scancode-generic-cla AND MIT
 
 ---------------------------------------------------------
 
-github.com%2fazuread/microsoft-authentication-library-for-go v1.4.2 - LicenseRef-scancode-generic-cla AND MIT
+github.com%2fazuread/microsoft-authentication-library-for-go v1.6.0 - LicenseRef-scancode-generic-cla AND MIT
 
 
 Copyright (c) Microsoft Corporation
@@ -5191,7 +5170,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---------------------------------------------------------
 
-github.com%2fazure%2fazure-sdk-for-go%2fsdk%2fstorage/azblob v1.6.0 - MIT
+github.com%2fazure%2fazure-sdk-for-go%2fsdk%2fstorage/azblob v1.6.4 - MIT
 
 
 Copyright (c) Microsoft Corporation
@@ -5440,7 +5419,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---------------------------------------------------------
 
-github.com%2fgolang-jwt%2fjwt/v5 v5.2.2 - MIT
+github.com%2fgolang-jwt%2fjwt/v5 v5.3.0 - MIT
 
 
 Copyright (c) 2012 Dave Grijalva
@@ -5962,7 +5941,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---------------------------------------------------------
 
-github.com%2fstretchr/testify v1.10.0 - MIT
+github.com%2fstretchr/testify v1.11.1 - MIT
 
 
 Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors
