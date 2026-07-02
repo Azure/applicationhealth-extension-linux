@@ -647,7 +647,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch enabled - Override OperationId with VMWatchCohortId " {
-    mk_container $container_name sh -c "webserver -args=2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
+    mk_container $container_name sh -c "webserver -args=2h,2h & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit"
     push_settings '
     {
         "protocol": "http",
