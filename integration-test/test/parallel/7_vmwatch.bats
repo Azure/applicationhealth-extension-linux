@@ -284,6 +284,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch process exit - give up after 3 restarts" {
+    skip "Relies on the 'test' optional signal (TEST_EXIT_PROCESS), which was removed from the VMWatch prod release 1.5.0"
     mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
     push_settings '
     {
@@ -327,6 +328,7 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch process does not start when cgroup assignment fails" {
+    skip "Relies on the 'test' optional signal, which was removed from the VMWatch prod release 1.5.0"
     mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 30"
     push_settings '
     {
@@ -518,6 +520,7 @@ teardown(){
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch oom - process should be killed" {
+    skip "Relies on the 'test' optional signal (TEST_ALLOCATE_MEMORY), which was removed from the VMWatch prod release 1.5.0"
     mk_container_priviliged $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 300"
     push_settings '
     {
@@ -562,6 +565,7 @@ teardown(){
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should not use more than 1 percent cpu" {
+    skip "Relies on the 'test' optional signal (TEST_HIGH_CPU), which was removed from the VMWatch prod release 1.5.0"
     mk_container_priviliged $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 0.5 1.5"
     push_settings '
     {
@@ -605,6 +609,7 @@ teardown(){
 
 # bats test_tags=linuxhostonly
 @test "handler command: enable - vm watch cpu - process should use more than 30 percent cpu when non-privileged" {
+    skip "Relies on the 'test' optional signal (TEST_HIGH_CPU), which was removed from the VMWatch prod release 1.5.0"
     mk_container $container_name sh -c "nc -l localhost 22 -k & fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 10 && /var/lib/waagent/check-avg-cpu.sh vmwatch_linux 30 150"
     push_settings '
     {
