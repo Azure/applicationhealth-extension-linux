@@ -3,6 +3,7 @@ FROM ubuntu:22.04
 RUN apt-get -qqy update && \
 	apt-get -qqy install jq openssl ca-certificates && \
         apt-get -y install sysstat bc netcat && \
+        apt-get -qqy install --no-install-recommends systemd && \
         apt-get -qqy clean && \
         rm -rf /var/lib/apt/lists/*
 
