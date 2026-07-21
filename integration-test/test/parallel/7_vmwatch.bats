@@ -674,7 +674,7 @@ teardown(){
     [[ "$output" == *'Overriding OperationId with 450affae-1b71-474d-885f-1598051038a0'* ]]
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'Started VMWatch'* ]]
-    [[ "$output" == *'--env-attributes SomeOtherKey=SomeOtherValue:VMWatchCohortId=450affae-1b71-474d-885f-1598051038a0'* ]]
+    echo "$output" | grep -Eq -- '--env-attributes (SomeOtherKey=SomeOtherValue:VMWatchCohortId=450affae-1b71-474d-885f-1598051038a0|VMWatchCohortId=450affae-1b71-474d-885f-1598051038a0:SomeOtherKey=SomeOtherValue)'
     [[ "$output" == *'VMWatch is running'* ]]
 
     status_file="$(container_read_extension_status)"
