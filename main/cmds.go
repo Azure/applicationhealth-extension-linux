@@ -264,7 +264,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		}
 	}
 
-	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", redact.JSON(vmWatchSettings.String())))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, "VMWatch is disabled, not starting process.")
 	} else {
