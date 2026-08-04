@@ -16,6 +16,7 @@ import (
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/redact"
 	"github.com/containerd/cgroups/v3"
 	"github.com/containerd/cgroups/v3/cgroup1"
 	"github.com/containerd/cgroups/v3/cgroup2"
@@ -212,9 +213,11 @@ func executeVMWatchHelper(lg *slog.Logger, attempt int, vmWatchSettings *vmWatch
 		return err
 	}
 
+	// Redact potential secrets (e.g. SAS tokens in the global config URL or
+	// parameter-override env vars) before writing the command to telemetry.
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.SetupVMWatchTask,
 		fmt.Sprintf("Attempt %d: Setup VMWatch command: %s\nArgs: %v\nDir: %s\nEnv: %v\n",
-			attempt, vmWatchCommand.Path, vmWatchCommand.Args, vmWatchCommand.Dir, vmWatchCommand.Env),
+			attempt, vmWatchCommand.Path, redact.Slice(vmWatchCommand.Args), vmWatchCommand.Dir, redact.Slice(vmWatchCommand.Env)),
 	)
 	// TODO: Combined output may get excessively long, especially since VMWatch is a long running process
 	// We should trim the output or only get from Stderr
@@ -225,7 +228,7 @@ func executeVMWatchHelper(lg *slog.Logger, attempt int, vmWatchSettings *vmWatch
 
 	// Start command
 	if err := vmWatchCommand.Start(); err != nil {
-		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch failed to start. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), attempt, err, combinedOutput.String())
+		err = fmt.Errorf("[%v][PID -1] Attempt %d: VMWatch failed to start. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), attempt, err, redact.Text(combinedOutput.String()))
 		telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StartVMWatchTask, err.Error(), "error", err)
 		return err
 	}
@@ -238,7 +241,7 @@ func executeVMWatchHelper(lg *slog.Logger, attempt int, vmWatchSettings *vmWatch
 		err = applyResourceGovernance(lg, vmWatchSettings, vmWatchCommand)
 		if err != nil {
 			// if this has failed we have already killed the process as we failed to assign to cgroup so log the appropriate error
-			err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
+			err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, redact.Text(combinedOutput.String()))
 			telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StopVMWatchTask, err.Error(), "error", err)
 			return err
 		}
@@ -263,7 +266,7 @@ func executeVMWatchHelper(lg *slog.Logger, attempt int, vmWatchSettings *vmWatch
 		monitorHeartBeat(lg, GetVMWatchHeartbeatFilePath(hEnv), processDone, vmWatchCommand, time.Now())
 	}()
 	wg.Wait()
-	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, combinedOutput.String())
+	err = fmt.Errorf("[%v][PID %d] Attempt %d: VMWatch process exited. Error: %w\nOutput: %s", time.Now().UTC().Format(time.RFC3339), pid, attempt, err, redact.Text(combinedOutput.String()))
 	telemetry.SendEvent(telemetry.ErrorEvent, telemetry.StopVMWatchTask, err.Error(), "error", err)
 	return err
 }
@@ -639,7 +642,6 @@ func GetVMWatchEnvironmentVariables(parameterOverrides map[string]interface{}, h
 	sort.Strings(keys)
 	for _, k := range keys {
 		arr = append(arr, fmt.Sprintf("%s=%s", k, parameterOverrides[k]))
-		fmt.Println(k, parameterOverrides[k])
 	}
 
 	arr = append(arr, fmt.Sprintf("SIGNAL_FOLDER=%s", hEnv.EventsFolder))

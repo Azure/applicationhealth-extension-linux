@@ -9,6 +9,7 @@ import (
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/redact"
 	"github.com/pkg/errors"
 )
 
@@ -229,7 +230,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	}
 
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Successfully parsed and validated settings")
-	telemetry.SendEvent(telemetry.VerboseEvent, telemetry.AppHealthTask, fmt.Sprintf("HandlerSettings = %s", cfg))
+	telemetry.SendEvent(telemetry.VerboseEvent, telemetry.AppHealthTask, fmt.Sprintf("HandlerSettings = %s", redact.JSON(cfg.String())))
 
 	probe := NewHealthProbe(lg, &cfg)
 	var (
