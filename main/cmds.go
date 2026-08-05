@@ -9,6 +9,7 @@ import (
 
 	"github.com/Azure/applicationhealth-extension-linux/internal/handlerenv"
 	"github.com/Azure/applicationhealth-extension-linux/internal/telemetry"
+	"github.com/Azure/applicationhealth-extension-linux/pkg/redact"
 	"github.com/pkg/errors"
 )
 
@@ -229,7 +230,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 	}
 
 	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, "Successfully parsed and validated settings")
-	telemetry.SendEvent(telemetry.VerboseEvent, telemetry.AppHealthTask, fmt.Sprintf("HandlerSettings = %s", cfg))
+	telemetry.SendEvent(telemetry.VerboseEvent, telemetry.AppHealthTask, fmt.Sprintf("HandlerSettings = %s", redact.JSON(cfg.String())))
 
 	probe := NewHealthProbe(lg, &cfg)
 	var (
@@ -263,7 +264,7 @@ func enable(lg *slog.Logger, h *handlerenv.HandlerEnvironment, seqNum uint) (str
 		}
 	}
 
-	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", vmWatchSettings))
+	telemetry.SendEvent(telemetry.InfoEvent, telemetry.AppHealthTask, fmt.Sprintf("VMWatch settings: %s", redact.JSON(vmWatchSettings.String())))
 	if vmWatchSettings == nil || vmWatchSettings.Enabled == false {
 		telemetry.SendEvent(telemetry.InfoEvent, telemetry.StartVMWatchTask, "VMWatch is disabled, not starting process.")
 	} else {
