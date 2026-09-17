@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptrace"
+	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -57,18 +60,22 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 }
 
 func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
-	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
+	trace := newProbeTrace()
+	dialContext := httptrace.WithClientTrace(context.Background(), trace.clientTrace())
+	conn, err := newLoopbackDialer().DialContext(dialContext, "tcp", p.address())
+	trace.report(ctx, err != nil)
 	if err != nil {
-		return Unhealthy, nil
+		return Unhealthy, err
 	}
+	defer conn.Close()
 
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
 		return Unhealthy, errUnableToConvertType
 	}
 
+	logProbeConnection(ctx, conn)
 	tcpConn.SetLinger(0)
-	tcpConn.Close()
 	return Healthy, nil
 }
 
@@ -79,25 +86,23 @@ func (p *TcpHealthProbe) address() string {
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
 	p := new(HttpHealthProbe)
 
-	timeout := time.Duration(30 * time.Second)
-
 	var transport *http.Transport
 	if protocol == "https" {
 		transport = &http.Transport{
+			DialContext: newLoopbackDialer().DialContext,
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-
-		p.HttpClient = &http.Client{
-			CheckRedirect: noRedirect,
-			Timeout:       timeout,
-			Transport:     transport,
-		}
 	} else if protocol == "http" {
+		transport = http.DefaultTransport.(*http.Transport).Clone()
+		transport.DialContext = newLoopbackDialer().DialContext
+	}
+	if transport != nil {
 		p.HttpClient = &http.Client{
 			CheckRedirect: noRedirect,
-			Timeout:       timeout,
+			Timeout:       probeTimeout,
+			Transport:     transport,
 		}
 	}
 
@@ -121,16 +126,24 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	}
 
 	req.Header.Set("User-Agent", "ApplicationHealthExtension/1.0")
+	trace := newProbeTrace()
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace.clientTrace()))
 	resp, err := p.HttpClient.Do(req)
+	failedPhase := trace.report(ctx, err != nil || resp != nil && resp.StatusCode != http.StatusOK)
 	if err != nil {
-		return Unhealthy, nil
+		// url.Error includes the request URL, which may contain sensitive query parameters.
+		if requestError, ok := err.(*url.Error); ok {
+			err = requestError.Err
+		}
+		return Unhealthy, fmt.Errorf("%s probe failed during %s: %w", req.URL.Scheme, failedPhase, err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
 		return Healthy, nil
 	}
 
-	return Unhealthy, nil
+	return Unhealthy, fmt.Errorf("HTTP health probe returned status %d", resp.StatusCode)
 }
 
 func (p *HttpHealthProbe) address() string {
