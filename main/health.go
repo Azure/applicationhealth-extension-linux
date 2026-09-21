@@ -60,10 +60,7 @@ func NewHealthProbe(ctx *log.Context, cfg *handlerSettings) HealthProbe {
 }
 
 func (p *TcpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
-	trace := newProbeTrace()
-	dialContext := httptrace.WithClientTrace(context.Background(), trace.clientTrace())
-	conn, err := newLoopbackDialer().DialContext(dialContext, "tcp", p.address())
-	trace.report(ctx, err != nil)
+	conn, err := newLoopbackDialer().DialContext(context.Background(), "tcp", p.address())
 	if err != nil {
 		return Unhealthy, err
 	}
@@ -129,13 +126,13 @@ func (p *HttpHealthProbe) evaluate(ctx *log.Context) (HealthStatus, error) {
 	trace := newProbeTrace()
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace.clientTrace()))
 	resp, err := p.HttpClient.Do(req)
-	failedPhase := trace.report(ctx, err != nil || resp != nil && resp.StatusCode != http.StatusOK)
+	trace.report(ctx)
 	if err != nil {
 		// url.Error includes the request URL, which may contain sensitive query parameters.
 		if requestError, ok := err.(*url.Error); ok {
 			err = requestError.Err
 		}
-		return Unhealthy, fmt.Errorf("%s probe failed during %s: %w", req.URL.Scheme, failedPhase, err)
+		return Unhealthy, fmt.Errorf("%s probe failed: %w", req.URL.Scheme, err)
 	}
 	defer resp.Body.Close()
 

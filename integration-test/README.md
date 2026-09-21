@@ -40,31 +40,3 @@ root:
 make binary
 bats integration-test/test
 ```
-
-## Loopback probe regression scenarios
-
-The Go tests also exercise TCP, HTTP, and HTTPS against IPv4-only and IPv6-only
-listeners, single-family `localhost` entries, disabled IPv6, dropped IPv6
-packets, alternate loopback mappings, and dual-stack listeners:
-
-```
-CGO_ENABLED=0 go test ./main -run '^Test_loopbackProbe(LinuxScenarios|PreservesIPv4Mapping)$' -count=1 -v
-```
-
-These Linux-only tests require `unshare`, `ip`, `tc`, and permission to create
-unprivileged user, network, and mount namespaces. Each scenario runs in a child
-namespace. Hosts-file mounts, IPv6 sysctls, and packet-drop rules cannot affect
-the parent network or hosts file. The suite skips when namespaces are unavailable
-or `-short` is specified.
-
-Use the same Go compiler for baseline and candidate comparisons. With both
-addresses returned for `localhost`, modern Go already handles dropped IPv6
-packets using its default fallback. Single-family hosts entries distinguish the
-explicit loopback fallback from that existing behavior. The TLS 1.3 scenario
-does not simulate FIPS policy or certify a hardened customer image.
-
-The mapping tests also provide a healthy IPv4 HTTPS listener and an
-unadvertised IPv6 listener that accepts TCP but stalls TLS. They cover both a
-hosts-file mapping and delayed DNS responses. The primary dial must preserve
-the configured addresses, perform only one lookup, and start the supplemental
-fallback delay after its own resolution completes, not during DNS resolution.

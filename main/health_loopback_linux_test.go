@@ -144,7 +144,11 @@ func Test_loopbackProbeLinuxChild(t *testing.T) {
 	}
 	t.Logf("localhost=%v; server=%s; IPv6-drop=%t; IPv6-disabled=%t",
 		addresses, scenario.listen, scenario.dropIPv6, scenario.disableIPv6)
-	for _, protocol := range []string{"tcp", "http", "https"} {
+	protocols := []string{"tcp", "http", "https"}
+	if scenario.tls13 {
+		protocols = []string{"https"}
+	}
+	for _, protocol := range protocols {
 		t.Run(protocol, func(t *testing.T) {
 			listener, err := net.Listen("tcp", net.JoinHostPort(scenario.listen, "0"))
 			if err != nil {

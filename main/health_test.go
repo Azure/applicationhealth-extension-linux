@@ -2,10 +2,8 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -111,49 +109,6 @@ func Test_httpProbeDoesNotFollowRedirects(t *testing.T) {
 	count := atomic.LoadInt32(&requests)
 	if state != Unhealthy || !errors.Is(err, errNoRedirect) || count != 1 {
 		t.Fatalf("redirect semantics changed: %s, %v, requests=%d", state, err, count)
-	}
-}
-
-func Test_httpProbeIdentifiesStalledPhase(t *testing.T) {
-	for _, protocol := range []string{"http", "https"} {
-		t.Run(protocol, func(t *testing.T) {
-			listener, err := net.Listen("tcp", "127.0.0.1:0")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer listener.Close()
-			stop := make(chan struct{})
-			exited := make(chan struct{})
-			go func() {
-				defer close(exited)
-				conn, err := listener.Accept()
-				if err != nil {
-					return
-				}
-				defer conn.Close()
-				<-stop
-			}()
-			defer func() {
-				close(stop)
-				listener.Close()
-				<-exited
-			}()
-			probe := NewHttpHealthProbe(protocol, "/health", 0)
-			probe.Address = protocol + "://" + listener.Addr().String() + "/health"
-			probe.HttpClient.Timeout = 100 * time.Millisecond
-			defer probe.HttpClient.CloseIdleConnections()
-			state, err := probe.evaluate(log.NewContext(log.NewNopLogger()))
-			if state != Unhealthy || !errors.Is(err, context.DeadlineExceeded) {
-				t.Fatalf("expected request timeout: %s, %v", state, err)
-			}
-			phase := "HTTP response"
-			if protocol == "https" {
-				phase = "TLS handshake"
-			}
-			if !strings.Contains(err.Error(), phase) {
-				t.Errorf("missing %q phase in %v", phase, err)
-			}
-		})
 	}
 }
 
