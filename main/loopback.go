@@ -9,7 +9,10 @@ import (
 	"time"
 )
 
-const probeTimeout = 30 * time.Second
+const (
+	probeTimeout          = 30 * time.Second
+	loopbackFallbackDelay = 300 * time.Millisecond
+)
 
 type loopbackDialer struct {
 	dialContext   func(context.Context, string, string) (net.Conn, error)
@@ -21,21 +24,24 @@ func newLoopbackDialer() *loopbackDialer {
 	dialer := &net.Dialer{
 		Timeout:       probeTimeout,
 		KeepAlive:     30 * time.Second,
-		FallbackDelay: 300 * time.Millisecond,
+		FallbackDelay: loopbackFallbackDelay,
 	}
 	return &loopbackDialer{
 		dialContext:   dialer.DialContext,
-		fallbackDelay: 300 * time.Millisecond,
+		fallbackDelay: loopbackFallbackDelay,
 		timeout:       probeTimeout,
 	}
 }
 
 func (d *loopbackDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	if network != "tcp" {
+		return d.dialContext(ctx, network, address)
+	}
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, err
 	}
-	if network != "tcp" || !strings.EqualFold(strings.TrimSuffix(host, "."), "localhost") {
+	if !strings.EqualFold(strings.TrimSuffix(host, "."), "localhost") {
 		return d.dialContext(ctx, network, address)
 	}
 

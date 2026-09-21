@@ -20,6 +20,11 @@ func Test_loopbackProbePreservesIPv4Mapping(t *testing.T) {
 		if testing.Short() {
 			t.Skip("network-namespace integration test")
 		}
+		for _, tool := range []string{"unshare", "ip"} {
+			if _, err := exec.LookPath(tool); err != nil {
+				t.Skipf("network-namespace mapping scenarios require %s: %v", tool, err)
+			}
+		}
 		if output, err := exec.Command("unshare", "-Urnm", "true").CombinedOutput(); err != nil {
 			t.Skipf("unprivileged namespaces unavailable: %v: %s", err, output)
 		}

@@ -265,6 +265,7 @@ func Test_loopbackDialerPreservesExplicitAddressesAndNetworks(t *testing.T) {
 		{"tcp", "example.invalid:8081"},
 		{"tcp4", "localhost:8081"},
 		{"tcp6", "localhost:8081"},
+		{"unix", "/tmp/service.sock"},
 	} {
 		t.Run(test.network+"/"+test.address, func(t *testing.T) {
 			dialer := newLoopbackDialer()

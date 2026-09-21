@@ -25,6 +25,8 @@ type loopbackScenario struct {
 	tls13       bool
 }
 
+// Rows specify name, hosts contents, listen address, dropIPv6, disableIPv6, tls13.
+// The flags enable packet drops, kernel IPv6 disabling, and HTTPS-only TLS 1.3, respectively.
 var loopbackScenarios = []loopbackScenario{
 	{"ipv4-listener", "::1 localhost\n127.0.0.1 localhost\n", "127.0.0.1", false, false, false},
 	{"ipv6-listener", "::1 localhost\n127.0.0.1 localhost\n", "::1", false, false, false},
