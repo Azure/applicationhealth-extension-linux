@@ -45,21 +45,39 @@ func (d *loopbackDialer) DialContext(ctx context.Context, network, address strin
 		return d.dialContext(ctx, network, address)
 	}
 
+	return d.dialLocalhost(ctx, address, port)
+}
+
+func (d *loopbackDialer) dialLocalhost(ctx context.Context, address, port string) (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.timeout)
 	defer cancel()
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	addresses := [2]string{address, ""}
-	labels := [2]string{"primary " + address, "fallback not selected"}
-	type result struct {
-		conn   net.Conn
-		err    error
-		family int
-		dns    *httptrace.DNSDoneInfo
+	const (
+		primaryAttempt = iota
+		fallbackAttempt
+	)
+	type attempt struct {
+		address string
+		label   string
+		failure error
 	}
-	results := make(chan result)
+	attempts := [2]attempt{
+		primaryAttempt:  {address: address, label: "primary " + address},
+		fallbackAttempt: {label: "fallback not selected"},
+	}
+	type event struct {
+		conn        net.Conn
+		err         error
+		attemptKind int
+		dns         *httptrace.DNSDoneInfo
+	}
+	// Keep events unbuffered: a successful connection must not remain queued
+	// after the coordinator returns. Without a receiver, the attempt instead
+	// takes the finished branch and closes its connection.
+	events := make(chan event)
 	finished := make(chan struct{})
 	defer close(finished)
 	// Observe the primary dial's own resolution. A separate lookup could disagree
@@ -67,17 +85,17 @@ func (d *loopbackDialer) DialContext(ctx context.Context, network, address strin
 	primaryContext := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		DNSDone: func(info httptrace.DNSDoneInfo) {
 			select {
-			case results <- result{dns: &info}:
+			case events <- event{dns: &info}:
 			case <-finished:
 			}
 		},
 	})
-	start := func(family int) {
+	start := func(attemptKind int) {
 		attemptContext := ctx
-		if family == 0 {
+		if attemptKind == primaryAttempt {
 			attemptContext = primaryContext
 		}
-		target := addresses[family]
+		target := attempts[attemptKind].address
 		go func() {
 			conn, err := d.dialContext(attemptContext, "tcp", target)
 			if err != nil && conn != nil {
@@ -88,8 +106,10 @@ func (d *loopbackDialer) DialContext(ctx context.Context, network, address strin
 				err = fmt.Errorf("dial %s returned no connection", target)
 			}
 			select {
-			case results <- result{conn: conn, err: err, family: family}:
+			case events <- event{conn: conn, err: err, attemptKind: attemptKind}:
 			case <-finished:
+				// The coordinator no longer accepts results, so this attempt
+				// owns cleanup of any late successful connection.
 				if conn != nil {
 					conn.Close()
 				}
@@ -97,7 +117,7 @@ func (d *loopbackDialer) DialContext(ctx context.Context, network, address strin
 		}()
 	}
 
-	start(0)
+	start(primaryAttempt)
 	var timer *time.Timer
 	var timerC <-chan time.Time
 	defer func() {
@@ -107,64 +127,72 @@ func (d *loopbackDialer) DialContext(ctx context.Context, network, address strin
 	}()
 	resolutionSeen := false
 	fallbackStarted := false
-	var failures [2]error
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("loopback dial %s canceled (%s: %v; %s: %v): %w",
-				address, labels[0], attemptStatus(failures[0], true),
-				labels[1], attemptStatus(failures[1], fallbackStarted), ctx.Err())
+				address, attempts[primaryAttempt].label, attemptStatus(attempts[primaryAttempt].failure, true),
+				attempts[fallbackAttempt].label, attemptStatus(attempts[fallbackAttempt].failure, fallbackStarted), ctx.Err())
 		case <-timerC:
+			// A nil channel disables the timer branch of select after it fires.
 			timerC = nil
 			if !fallbackStarted {
 				fallbackStarted = true
-				start(1)
+				start(fallbackAttempt)
 			}
-		case r := <-results:
-			if r.dns != nil {
+		case e := <-events:
+			if e.dns != nil {
 				if resolutionSeen {
 					continue
 				}
 				resolutionSeen = true
-				fallback := missingLoopbackFamily(*r.dns)
+				fallback := missingLoopbackFamily(*e.dns)
 				if fallback != "" {
-					addresses[1] = net.JoinHostPort(fallback, port)
+					attempts[fallbackAttempt].address = net.JoinHostPort(fallback, port)
 					var resolvedAddresses []string
-					for _, ip := range r.dns.Addrs {
+					for _, ip := range e.dns.Addrs {
 						resolvedAddresses = append(resolvedAddresses, net.JoinHostPort(ip.String(), port))
 					}
-					labels[0] = "resolved " + strings.Join(resolvedAddresses, ",")
-					labels[1] = "fallback " + addresses[1]
+					attempts[primaryAttempt].label = "resolved " + strings.Join(resolvedAddresses, ",")
+					attempts[fallbackAttempt].label = "fallback " + attempts[fallbackAttempt].address
 					timer = time.NewTimer(d.fallbackDelay)
 					timerC = timer.C
 				}
 				continue
 			}
-			if r.err == nil {
+			if e.err == nil {
 				if err := ctx.Err(); err != nil {
-					r.conn.Close()
+					e.conn.Close()
 					return nil, err
 				}
-				return r.conn, nil
+				// Ownership of the winning connection passes to the caller.
+				// Deferred cancellation stops the other attempt; finished makes
+				// that attempt close any connection it produces after we return.
+				return e.conn, nil
 			}
-			failures[r.family] = r.err
-			if addresses[1] == "" {
-				return nil, r.err
+			attempts[e.attemptKind].failure = e.err
+			if attempts[fallbackAttempt].address == "" {
+				return nil, e.err
 			}
-			if failures[0] != nil && failures[1] != nil {
+			if attempts[primaryAttempt].failure != nil && attempts[fallbackAttempt].failure != nil {
 				return nil, fmt.Errorf("loopback dial %s failed (%s: %v; %s: %w)",
-					address, labels[0], failures[0], labels[1], failures[1])
+					address, attempts[primaryAttempt].label, attempts[primaryAttempt].failure,
+					attempts[fallbackAttempt].label, attempts[fallbackAttempt].failure)
 			}
 			if !fallbackStarted {
 				timer.Stop()
+				// Disable the timer branch of select now that fallback starts early.
 				timerC = nil
 				fallbackStarted = true
-				start(1)
+				start(fallbackAttempt)
 			}
 		}
 	}
 }
 
+// missingLoopbackFamily returns the missing canonical address only when the
+// localhost lookup contains exclusively loopback addresses from exactly one family.
+// Mixed-family or non-loopback results retain Go's normal dialing behavior.
 func missingLoopbackFamily(info httptrace.DNSDoneInfo) string {
 	if info.Err != nil {
 		return ""
