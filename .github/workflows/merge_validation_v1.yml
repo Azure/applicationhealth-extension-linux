@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-20.04]
+        os: [ubuntu-latest, ubuntu-22.04]
     
     runs-on: ${{ matrix.os }}
 
@@ -36,19 +36,13 @@ jobs:
   
     - name: Install Go Packages
       run: |
-        sudo apt install golint
-        go get -u github.com/ahmetalpbalkan/govvv
-        go get -u github.com/tools/godep
+        go install golang.org/x/lint/golint@v0.0.0-20241112194109-818c5a804067
+        go install github.com/ahmetalpbalkan/govvv@v0.3.0
 
     - name: Pull Repository
       uses: actions/checkout@v3
       with:
         path: ${{ env.repo_root }}
-
-    - name: Restore Go Dependencies
-      run: |
-        godep restore
-      working-directory: ${{ env.repo_root }}
 
     - name: Install Bats
       run: |
@@ -77,7 +71,7 @@ jobs:
       working-directory: ${{ env.repo_root }}
 
     - name: Unit Tests
-      continue-on-error: true
+      continue-on-error: false
       run: go list ./... | grep -v '/vendor/' | xargs go test -v -cover
       working-directory: ${{ env.repo_root }}
 
