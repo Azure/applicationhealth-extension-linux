@@ -42,3 +42,26 @@ make binary
 ```
 
 If you are running on a linux host (a real linux host not WSL), you can use the command `./integration-test/run.sh --all` to run all the tests.
+
+## Localhost fallback regression tests
+
+TCP, HTTP, and HTTPS probes retain normal hostname dialing and supplement a
+missing loopback family only when `localhost` resolves exclusively to IPv4 or
+IPv6 loopback addresses. TLS and HTTP response failures do not trigger fallback;
+rich-state JSON validation and custom metrics are unchanged.
+
+Run the dialer tests and Linux probe scenarios from the repository root:
+
+```sh
+CGO_ENABLED=0 go test -count=1 -v ./main -run 'Test.*[Ll]oopback'
+```
+
+The Linux scenarios require `unshare`, `ip`, `tc`, and permission to create user,
+network, and mount namespaces. They modify hosts mappings and IPv6 settings only
+inside isolated namespaces. They skip with `-short` or unavailable prerequisites;
+check that the scenario tests execute, rather than skip, when validating a fix.
+
+Coverage includes IPv4-only and IPv6-only listeners, missing-family hosts
+mappings, dropped/disabled IPv6, alternate loopback mappings, slow DNS, endpoint
+failure, invalid rich-state JSON, and explicit Unhealthy responses. Literal-IP
+controls verify endpoint reachability independently of localhost resolution.
