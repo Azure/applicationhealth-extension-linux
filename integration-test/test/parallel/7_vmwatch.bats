@@ -248,7 +248,43 @@ teardown(){
 }
 
 @test "handler command: enable - vm watch failed - force kill vmwatch process 3 times" {
-    mk_container $container_name sh -c "fake-waagent install && export RUNNING_IN_DEV_CONTAINER=1 && export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1 && fake-waagent enable && wait-for-enable webserverexit && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15 && pkill -f vmwatch_linux_amd64 && sleep 15"
+    mk_container $container_name bash -ec '
+        fake-waagent install
+        export RUNNING_IN_DEV_CONTAINER=1
+        export ALLOW_VMWATCH_CGROUP_ASSIGNMENT_FAILURE=1
+        fake-waagent enable
+
+        handler_log=/var/log/azure/applicationhealth-extension/handler.log
+        status_file=/var/lib/waagent/Extension/status/0.status
+        wait_for_pattern() {
+            local pattern="$1" file="$2" deadline=$((SECONDS + 60))
+            until grep -Eq "$pattern" "$file"; do
+                if (( SECONDS >= deadline )); then
+                    echo "Timed out waiting for $pattern in $file" >&2
+                    cat "$handler_log" "$status_file" >&2
+                    return 1
+                fi
+                sleep 1
+            done
+        }
+
+        wait_for_pattern "." /var/log/azure/Extension/VE.RS.ION/vmwatch.log
+
+        # A fixed sleep can send the next signal before the replacement process starts.
+        for attempt in 1 2 3; do
+            wait_for_pattern "Attempt $attempt: Started VMWatch with PID " "$handler_log"
+            pid=$(sed -nE "s/.*Attempt $attempt: Started VMWatch with PID ([0-9]+).*/\1/p" "$handler_log" | tail -n 1)
+            if [[ ! "$pid" =~ ^[0-9]+$ ]] || (( pid <= 1 )); then
+                echo "Invalid VMWatch PID for attempt $attempt: $pid" >&2
+                exit 1
+            fi
+            kill -TERM "$pid"
+            wait_for_pattern "Attempt $attempt: VMWatch process exited" "$handler_log"
+        done
+
+        wait_for_pattern "VMWatch cycle 1 reached max 3 attempts, sleeping for 3 hours before cycle 2" "$handler_log"
+        wait_for_pattern "VMWatch failed: .* Attempt 3:" "$status_file"
+    '
     push_settings '
     {
         "protocol": "http",
@@ -264,12 +300,13 @@ teardown(){
     run start_container
 
     status_file="$(container_read_file /var/lib/waagent/Extension/status/0.status)"
-    hanlder_log="$(container_read_handler_log)"
+    handler_log="$(container_read_handler_log)"
     echo "$handler_log"
     vmwatch_log="$(container_read_vmwatch_log)"
     echo "$vmwatch_log"
     echo "$output"
     echo "$status_file"
+    [ "$status" -eq 0 ]
     [[ "$output" == *'Setup VMWatch command: /var/lib/waagent/Extension/bin/VMWatch/vmwatch_linux_amd64'* ]]
     [[ "$output" == *'Attempt 1: Started VMWatch'* ]]
     [[ "$output" == *'Attempt 3: Started VMWatch'* ]]
