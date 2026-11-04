@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -100,12 +101,13 @@ func NewHealthProbe(lg *slog.Logger, cfg *handlerSettings) HealthProbe {
 }
 
 func (p *TcpHealthProbe) evaluate(lg *slog.Logger) (ProbeResponse, error) {
-	conn, err := net.DialTimeout("tcp", p.address(), 30*time.Second)
+	conn, err := newLoopbackDialer().DialContext(context.Background(), "tcp", p.address())
 	var probeResponse ProbeResponse
 	if err != nil {
 		probeResponse.ApplicationHealthState = Unhealthy
 		return probeResponse, err
 	}
+	defer conn.Close()
 
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
@@ -114,7 +116,6 @@ func (p *TcpHealthProbe) evaluate(lg *slog.Logger) (ProbeResponse, error) {
 	}
 
 	tcpConn.SetLinger(0)
-	tcpConn.Close()
 
 	probeResponse.ApplicationHealthState = Healthy
 	return probeResponse, nil
@@ -150,18 +151,20 @@ func constructAddress(protocol string, port int, requestPath string) string {
 func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHealthProbe {
 	p := new(HttpHealthProbe)
 
-	timeout := time.Duration(30 * time.Second)
+	timeout := probeTimeout
+	dialer := newLoopbackDialer()
 
 	var transport *http.Transport
 	if protocol == "https" {
 		transport = &http.Transport{
+			DialContext: dialer.DialContext,
 			// Ignore authentication/certificate failures - just validate that the localhost
 			// endpoint responds with HTTP.OK
 			// MinVersion set to tls1.0 because as after go 1.18, default min version changed
 			// from tls1.0 to tls1.2 and we want to support customers who are using tls1.0.
 			// tls MaxVersion is set to tls1.3 by default.
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // CodeQL [SM03511] Ignore TLS certificate validation, since the endpoint will be on localhost.
+				InsecureSkipVerify: true,             // CodeQL [SM03511] Ignore TLS certificate validation, since the endpoint will be on localhost.
 				MinVersion:         tls.VersionTLS10, // CodeQL [SM03566] Ignore TLS old version, since the endpoint will be on localhost.
 			},
 		}
@@ -171,9 +174,13 @@ func NewHttpHealthProbe(protocol string, requestPath string, port int) *HttpHeal
 			Transport:     transport,
 		}
 	} else {
+		// Keep the default HTTP transport settings while adding localhost fallback.
+		transport = http.DefaultTransport.(*http.Transport).Clone()
+		transport.DialContext = dialer.DialContext
 		p.HttpClient = &http.Client{
 			CheckRedirect: noRedirect,
 			Timeout:       timeout,
+			Transport:     transport,
 		}
 	}
 
